@@ -45,6 +45,15 @@ const approvedCategories = new Set([
 ]);
 
 const approvedStatuses = new Set(["active", "draft", "deprecated"]);
+const optionalListFields = new Set([
+  "handles_state",
+  "requires_permission",
+  "mutates",
+  "reads",
+  "writes",
+  "evidence",
+  "stop_conditions",
+]);
 
 const errors = [];
 const warnings = [];
@@ -228,6 +237,19 @@ if (!fs.existsSync(skillDir) || !fs.statSync(skillDir).isDirectory()) {
 
     if (!approvedStatuses.has(data.status)) {
       addError(`${relativePath}: status must be active, draft, or deprecated`);
+    }
+
+    for (const field of optionalListFields) {
+      if (field in data && !Array.isArray(data[field])) {
+        addError(`${relativePath}: optional autonomy field ${field} must be a list`);
+      }
+    }
+
+    if (
+      "safe_by_default" in data &&
+      !["true", "false"].includes(String(data.safe_by_default).toLowerCase())
+    ) {
+      addError(`${relativePath}: safe_by_default must be true or false when present`);
     }
 
     if (data.name) {

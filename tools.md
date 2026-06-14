@@ -118,14 +118,16 @@ Evidence required:
 
 Purpose: executable autonomous work-loop runner for the coding workflow library. It reads `work-ledger.md`, selects the active repo work item, maps status to skill and permission gate, runs only actions covered by supplied `--allow` flags, updates ledger/run-log evidence, and stops at real John-required boundaries.
 
-Default permission: `read-only-local` for `--dry-run` and unsupported/boundary states; escalates by supplied `--allow` flag for covered actions. Current covered paths are GitHub handoff for `Auth pass for GitHub handoff`, read-only PR readiness inspection for `PR opened, not merged`, PR #11 merge handoff for `PR ready for merge approval`, source-only deployment planning for `Merged, not deployed`, source/local Supabase execution preflight for `Deployment plan ready, not deployed`, Supabase tooling/auth setup for `Supabase execution preflight ready, not executed`, Supabase link/local secret readiness for `Supabase tooling/auth ready, not linked`, and scheduler draft/PR handoff for `Supabase linked and local secret ready, not deployed`.
+Default permission: `read-only-local` for `--dry-run`, `--explain`, and unsupported/boundary states; escalates by supplied `--allow` flag for covered actions. Current covered paths are GitHub handoff for `Auth pass for GitHub handoff`, read-only PR readiness inspection for `PR opened, not merged`, PR #11 merge handoff for `PR ready for merge approval`, source-only deployment planning for `Merged, not deployed`, source/local Supabase execution preflight for `Deployment plan ready, not deployed`, Supabase tooling/auth setup for `Supabase execution preflight ready, not executed`, Supabase link/local secret readiness for `Supabase tooling/auth ready, not linked`, scheduler draft/PR handoff for `Supabase linked and local secret ready, not deployed`, and read-only planning for `Scheduler migration draft merged, Supabase mutation still gated`.
 
 Examples:
 
 ```bash
 ./scripts/run-next
 ./scripts/run-next --dry-run
+./scripts/run-next --explain
 ./scripts/run-next --repo /home/johnh/wagging-web-wins
+./scripts/run-next --repo /home/johnh/wagging-web-wins --explain
 ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow github-handoff
 ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow github-handoff --dry-run
 ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow pr-readiness
@@ -161,7 +163,7 @@ Rules:
 - Never add deploy, migration, Supabase mutation, production endpoint, release, or destructive powers without a future explicit upgrade.
 - Never print token values.
 - Never push `main`, force push, deploy, run Supabase migrations, mutate Supabase, call production endpoints, stage unrelated files, or include `evidence/`; never merge except through the explicit PR merge mode.
-- Dry-run mode must not create branches, push, create PRs, inspect live PRs, or mark ledger work completed.
+- Dry-run and explain modes must not create branches, push, create PRs, inspect live PRs, mark ledger work completed, append run-log entries, edit target repos, or call external services.
 - PR readiness mode must inspect GitHub evidence only and must never merge.
 - PR merge mode must only merge PR #11 after explicit `--allow pr-merge`, exact PR scope checks, passing/nonblocking checks, `MERGEABLE` state, repo access, auth user confirmation, and repo-local workflow deployment scan. It must not delete the branch, deploy, run migrations, mutate Supabase, call production endpoints, force push, or push `main`.
 - Deployment planning mode must only inspect local/source evidence and draft future-gated commands. It must not set secrets, deploy, run migrations, mutate Supabase, update schedulers, call production endpoints, push, create PRs, merge, or print secrets.

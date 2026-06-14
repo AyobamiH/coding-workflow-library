@@ -46,7 +46,7 @@ const ALLOWED_FLAGS = new Set([
 
 const args = parseArgs(process.argv.slice(2));
 const targetRepo = args.repo || DEFAULT_REPO;
-const dryRun = args.dryRun;
+const dryRun = args.dryRun || args.explain;
 
 const evidence = [];
 const actions = [];
@@ -92,15 +92,7 @@ function main() {
       result = notImplemented(route, active);
     }
 
-    if (dryRun) {
-      appendRunLog({
-        dryRun: true,
-        status,
-        result,
-        active,
-        route,
-      });
-    } else {
+    if (!dryRun) {
       appendLedger({
         status: result.ledgerStatus || result.finalStatus,
         result,
@@ -124,15 +116,6 @@ function main() {
       summary: error.message,
       exitCode: 1,
     };
-    if (dryRun) {
-      appendRunLog({
-        dryRun: true,
-        status: "error",
-        result,
-        active: {},
-        route: { skill: "coding-workflow-orchestrator-skill" },
-      });
-    }
     printReport(result, {}, { skill: "coding-workflow-orchestrator-skill" });
     process.exit(1);
   }
@@ -142,6 +125,7 @@ function parseArgs(rawArgs) {
   const parsed = {
     allow: new Set(),
     dryRun: false,
+    explain: false,
     repo: null,
   };
 
@@ -149,6 +133,10 @@ function parseArgs(rawArgs) {
     const arg = rawArgs[index];
     if (arg === "--dry-run") {
       parsed.dryRun = true;
+      continue;
+    }
+    if (arg === "--explain") {
+      parsed.explain = true;
       continue;
     }
     if (arg === "--repo") {
@@ -181,7 +169,9 @@ function printHelp() {
   console.log(`Usage:
   ./scripts/run-next
   ./scripts/run-next --dry-run
+  ./scripts/run-next --explain
   ./scripts/run-next --repo /home/johnh/wagging-web-wins
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --explain
   ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow github-handoff
   ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow github-handoff --dry-run
   ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow pr-readiness
@@ -212,7 +202,9 @@ Supported --allow values:
   supabase-preflight
   supabase-tooling-auth
   supabase-link-secret-readiness
-  scheduler-draft-pr`);
+  scheduler-draft-pr
+
+Dry-run and explain modes do not mutate target repos, work-ledger.md, or runs/skill-runs.md.`);
 }
 
 function readControlFiles() {
@@ -248,6 +240,16 @@ function findActiveWorkItem(ledgerText, repo) {
 
   const repoMatches = parsed.filter((section) => section.activeRepo === repo);
   if (repoMatches.length > 0) return repoMatches[repoMatches.length - 1];
+  if (repo) {
+    return {
+      heading: `No ledger entry for ${repo}`,
+      text: "",
+      activeRepo: repo,
+      currentObjective: "Create or select a ledger item before mutation",
+      currentStatus: "No ledger item for repo",
+      selectedSkill: "coding-workflow-orchestrator-skill",
+    };
+  }
   if (parsed.length > 0) return parsed[parsed.length - 1];
   die("work-ledger.md has no parseable work items");
 }
@@ -267,6 +269,17 @@ function cleanField(value) {
 
 function routeStatus(status) {
   const normalized = status.toLowerCase();
+
+  if (normalized === "no ledger item for repo") {
+    return {
+      skill: "repo-map-skill / coding-workflow-orchestrator-skill",
+      permission: null,
+      kind: "human-boundary",
+      finalStatus: "NEEDS LEDGER ENTRY",
+      nextPermission: "add a work-ledger.md item for this repo",
+      nextAction: "add a work-ledger.md item for this repo before any mutating action",
+    };
+  }
 
   if (normalized === "ready to commit with caveats") {
     return {
@@ -340,6 +353,15 @@ function routeStatus(status) {
       permission: "supabase-preflight",
       kind: "supabase-preflight",
       nextAction: "inspect Supabase execution prerequisites and draft exact execution sequence without executing it",
+    };
+  }
+
+  if (normalized === "scheduler migration draft merged, supabase mutation still gated") {
+    return {
+      skill: "cloudflare-deploy-skill / reviewed Supabase secret setup and scheduler application plan",
+      permission: "supabase-preflight",
+      kind: "supabase-preflight",
+      nextAction: "inspect Supabase execution prerequisites and draft the reviewed secret/scheduler plan without executing it",
     };
   }
 
@@ -417,6 +439,23 @@ function permissionGranted(route) {
   return false;
 }
 
+function canRunNow(route) {
+  if (route.kind === "human-boundary" || route.kind === "permission-boundary") return false;
+  if (route.kind === "not-implemented") return false;
+  return permissionGranted(route);
+}
+
+function nextApprovalCommand(route) {
+  if (!route.permission) return "";
+  return `./scripts/run-next --repo ${targetRepo} --allow ${route.permission}`;
+}
+
+function modeLabel() {
+  if (args.explain) return "explain";
+  if (args.dryRun) return "dry-run";
+  return "real";
+}
+
 function needsJohn(route) {
   return {
     finalStatus: "NEEDS JOHN",
@@ -433,7 +472,7 @@ function stopAtBoundary(route) {
     finalStatus: route.finalStatus || "NEEDS JOHN",
     ledgerStatus: route.finalStatus || "Needs John",
     summary: route.nextAction,
-    nextPermission: "merge/deploy planning boundary",
+    nextPermission: route.nextPermission || route.permission || route.nextAction || "manual review",
     nextSkill: route.skill,
     exitCode: 0,
   };
@@ -3687,14 +3726,17 @@ function printReport(result, active, route) {
 
   console.log("# run-next report");
   console.log("");
-  console.log(`Mode: ${dryRun ? "dry-run" : "real"}`);
+  console.log(`Mode: ${modeLabel()}`);
   console.log(`Target repo: ${targetRepo}`);
   console.log(`Ledger item: ${active.heading || "unknown"}`);
   console.log(`Current status: ${active.currentStatus || "unknown"}`);
   console.log(`Selected skill: ${route.skill || "unknown"}`);
   console.log(`Required permission: ${route.permission || "none"}`);
+  console.log(`Can run now: ${canRunNow(route) ? "yes" : "no"}`);
   console.log(`Final status: ${result.finalStatus}`);
   console.log(`Summary: ${result.summary}`);
+  if (!canRunNow(route)) console.log(`Stopped because: ${result.summary || route.nextAction || "permission boundary"}`);
+  if (!canRunNow(route) && nextApprovalCommand(route)) console.log(`Next approval command: ${nextApprovalCommand(route)}`);
   if (result.branch) console.log(`Branch: ${result.branch}`);
   if (result.prUrl) console.log(`PR URL: ${result.prUrl}`);
   if (result.autoDeploy) {
@@ -3740,7 +3782,7 @@ function printSchedulerDraftPrReport(result, active, route) {
   console.log("# Scheduler Migration Draft + PR Report");
   console.log("");
   console.log("## Current Ledger State");
-  console.log(`Mode: ${dryRun ? "dry-run" : "real"}`);
+  console.log(`Mode: ${modeLabel()}`);
   console.log(`Target repo: ${targetRepo}`);
   console.log(`Ledger item: ${active.heading || "unknown"}`);
   console.log(`Current status: ${active.currentStatus || "unknown"}`);
@@ -3789,7 +3831,7 @@ function printSchedulerDraftPrReport(result, active, route) {
   console.log(dryRun ? "Dry-run only; ledger not updated." : (result.ledgerStatus || result.finalStatus));
   console.log("");
   console.log("## Run Log Update");
-  console.log(dryRun ? "Dry-run entry appended." : "Run entry appended.");
+  console.log(dryRun ? "Dry-run/explain only; run log not updated." : "Run entry appended.");
   console.log("");
   console.log("## Next Permission Needed From John");
   console.log(result.nextPermission || "hold");
@@ -3806,7 +3848,7 @@ function printSupabaseLinkSecretReadinessReport(result, active, route) {
   console.log("# Supabase Link + Secret Readiness Report");
   console.log("");
   console.log("## Current Ledger State");
-  console.log(`Mode: ${dryRun ? "dry-run" : "real"}`);
+  console.log(`Mode: ${modeLabel()}`);
   console.log(`Target repo: ${targetRepo}`);
   console.log(`Ledger item: ${active.heading || "unknown"}`);
   console.log(`Current status: ${active.currentStatus || "unknown"}`);
@@ -3847,7 +3889,7 @@ function printSupabaseLinkSecretReadinessReport(result, active, route) {
   console.log(dryRun ? "Dry-run only; ledger not updated." : (result.ledgerStatus || result.finalStatus));
   console.log("");
   console.log("## Run Log Update");
-  console.log(dryRun ? "Dry-run entry appended." : "Run entry appended.");
+  console.log(dryRun ? "Dry-run/explain only; run log not updated." : "Run entry appended.");
   console.log("");
   console.log("## Next Permission Needed From John");
   console.log(result.nextPermission || readiness.nextPermission || "hold");
@@ -3861,7 +3903,7 @@ function printSupabaseToolingAuthReport(result, active, route) {
   console.log("# Supabase Tooling/Auth Report");
   console.log("");
   console.log("## Current Ledger State");
-  console.log(`Mode: ${dryRun ? "dry-run" : "real"}`);
+  console.log(`Mode: ${modeLabel()}`);
   console.log(`Target repo: ${targetRepo}`);
   console.log(`Ledger item: ${active.heading || "unknown"}`);
   console.log(`Current status: ${active.currentStatus || "unknown"}`);
@@ -3908,7 +3950,7 @@ function printSupabaseToolingAuthReport(result, active, route) {
   console.log(dryRun ? "Dry-run only; ledger not updated." : (result.ledgerStatus || result.finalStatus));
   console.log("");
   console.log("## Run Log Update");
-  console.log(dryRun ? "Dry-run entry appended." : "Run entry appended.");
+  console.log(dryRun ? "Dry-run/explain only; run log not updated." : "Run entry appended.");
   console.log("");
   console.log("## Next Permission Needed From John");
   console.log(result.nextPermission || auth.nextPermission || "hold");

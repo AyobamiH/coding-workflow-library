@@ -38,7 +38,7 @@ Permission gates in `AGENTS.md` override individual skill convenience. A skill m
 
 Git handoff requires its own gate. Use `github-handoff-skill` before any commit, use `scripts/committer` for approved local commits when available, and treat push, PR creation, deploy, migration, release, and merge as separate later decisions.
 
-`scripts/run-next` is the default executable path when the next step is already represented in `work-ledger.md`. It must never assume permission: it can only act when a matching `--allow` flag is present. Manual prompts remain the fallback when the runner stops at an unimplemented state, missing permission, credential repair, merge, deploy, migration, production verification, or security decision boundary.
+`scripts/run-next` is the default executable path when the next step is already represented in `work-ledger.md`. It must never assume permission: it can only act when a matching `--allow` flag is present. Use `--explain` or `--dry-run` when the next selected job should be reported without mutating the ledger, run log, target repo, or external services. Manual prompts remain the fallback when the runner stops at a missing ledger item, unimplemented state, missing permission, credential repair, merge, deploy, migration, production verification, or security decision boundary.
 
 For GitHub PR handoff work, `PR opened, not merged` is not a dead end. `scripts/run-next --allow pr-readiness` may inspect the PR, collect files/checks/mergeability/review evidence, update the ledger, and stop before merge. Merge remains a separate John-required gate.
 
@@ -162,7 +162,7 @@ Every active orchestrated task must update `work-ledger.md`.
 
 Every real use of this library must be logged in `runs/skill-runs.md`.
 
-`scripts/run-next` updates `work-ledger.md` for real runs and appends `runs/skill-runs.md` for both real runs and dry-runs. Dry-runs must not mark ledger work completed.
+`scripts/run-next` updates `work-ledger.md` and appends `runs/skill-runs.md` only for real runs. Dry-run and explain modes must not mutate files or mark ledger work completed.
 
 Minimum ledger fields:
 

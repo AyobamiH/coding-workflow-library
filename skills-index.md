@@ -129,4 +129,6 @@ Use for read-only migration review until repo-specific apply commands are confir
 - `templates/evidence-report-template.md`: report format for task evidence.
 - `scripts/skill-cleaner`: advisory skill hygiene scanner.
 - `scripts/validate-skills`: frontmatter, required-section, index-coverage, placeholder-marker, and secret-shaped marker validator.
+- `docs/autonomous-loop-model.md`: autonomous operator model for ledger-driven work.
+- `docs/job-selection-contract.md`: selection and stop contract for `scripts/run-next`.
 - `tests/library-validation-checklist.md`: validation checklist and commands.

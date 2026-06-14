@@ -8,6 +8,52 @@ routing_triggers:
   - orchestrate task
   - work ledger
 status: active
+handles_state:
+  - No ledger item for repo
+  - Auth pass for GitHub handoff
+  - PR opened, not merged
+  - PR ready for merge approval
+  - Merged, not deployed
+  - Deployment plan ready, not deployed
+  - Supabase execution preflight ready, not executed
+  - Supabase tooling/auth ready, not linked
+  - Supabase linked and local secret ready, not deployed
+  - Scheduler migration draft merged, Supabase mutation still gated
+requires_permission:
+  - auth-check
+  - github-handoff
+  - pr-readiness
+  - pr-merge
+  - deployment-plan
+  - supabase-preflight
+  - supabase-tooling-auth
+  - supabase-link-secret-readiness
+  - scheduler-draft-pr
+safe_by_default: true
+mutates:
+  - work-ledger.md on real execution
+  - runs/skill-runs.md on real execution
+reads:
+  - AGENTS.md
+  - tools.md
+  - work-ledger.md
+  - target repo git state
+writes:
+  - work-ledger.md
+  - runs/skill-runs.md
+evidence:
+  - selected ledger item
+  - current status
+  - selected skill
+  - required permission
+  - validation evidence for executed bounded step
+stop_conditions:
+  - missing ledger item
+  - missing permission flag
+  - unknown status
+  - unimplemented route
+  - credential blocker
+  - production mutation boundary
 ---
 # coding-workflow-orchestrator-skill
 

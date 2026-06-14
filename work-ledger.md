@@ -519,3 +519,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: `cloudflare-deploy-skill` / Supabase remote secret setup and scheduler application plan.
 * Exact next action: approve reviewed Supabase secret setup and scheduler application plan.
 * Whether John is needed: Yes for any Supabase remote secret setup, scheduler application, deployment, migration execution, runtime verification, or production check.
+
+## 2026-06-14 - Workflow Library Private Repo + Autonomous Loop Uplift
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Split the workflow library into its own private GitHub repo and improve `scripts/run-next` so it can select the next safe ledger job without prompt babysitting.
+* Current permission level: GitHub private repo creation/push and local workflow-library edit/commit/push. No target repo mutation, Supabase mutation, deploy, production endpoint call, npm publish, release, or secret printing.
+* Current status: Autonomous loop uplift ready to push.
+* Selected skill: `coding-workflow-orchestrator-skill` / `github-handoff-skill`.
+* Last commands run: `./scripts/validate-skills`; strict redacted secret scan; GitHub auth/repo lookup; `gh repo create AyobamiH/coding-workflow-library --private --source=. --remote=origin --push`; repo visibility verification; `scripts/run-next` dry-run/explain checks for Wagging Web Wins and OpsTruth.
+* Files changed: `AGENTS.md`; `README.md`; `RUNBOOK.md`; `tools.md`; `skills-index.md`; `scripts/run-next`; `scripts/validate-skills`; `skill-files/coding-workflow-orchestrator-skill.md`; `docs/autonomous-loop-model.md`; `docs/job-selection-contract.md`; `evidence/autonomous-loop-uplift.md`; `work-ledger.md`; `runs/skill-runs.md`.
+* Validation evidence: private repo `AyobamiH/coding-workflow-library` exists with visibility `PRIVATE`; local `main` tracks `origin/main`; skill validation passed with 111 files and 19 skills checked; Wagging dry-run selected `supabase-preflight` and stopped for missing permission; OpsTruth dry-run stopped at `No ledger item for repo`; explain mode reported selected job, permission, stop reason, and approval command; redacted strict scan found expected placeholder/identifier/hash matches but no real secret value in tracked source.
+* Blockers: none for this workflow-library uplift. Future remote operations still require explicit permission gates.
+* Next recommended skill: `coding-workflow-orchestrator-skill`.
+* Exact next action: use `./scripts/run-next --repo <target> --explain` before asking John for large bespoke prompts.
+* Whether John is needed: Yes only when a reported permission gate is required.

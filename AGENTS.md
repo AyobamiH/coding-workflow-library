@@ -116,6 +116,7 @@ John is required for:
 
 - Give the next exact action.
 - Do not ask vague "what next?" questions.
+- Prefer `scripts/run-next --explain` when the next safe job should be selected without mutating any files, repos, or external services.
 - When John is needed, provide a decision brief with options and recommendation.
 - Keep reports evidence-backed.
 - Include commands run, files changed, validation results, risks, and next skill.

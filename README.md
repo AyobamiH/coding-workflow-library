@@ -141,7 +141,9 @@ It supports `GH_TOKEN` and `GITHUB_TOKEN` only as runtime environment auth. It m
 
 ## Autonomous Work Loop
 
-`scripts/run-next` is the executable implementation of the orchestrator loop. It reads `AGENTS.md`, `tools.md`, and `work-ledger.md`; selects the latest ledger item for the requested repo; checks the required permission gate from `--allow`; runs only covered safe actions; updates the ledger/run log; and stops at real John-required boundaries.
+`scripts/run-next` is the executable implementation of the orchestrator loop. It reads `AGENTS.md`, `tools.md`, and `work-ledger.md`; selects the latest ledger item for the requested repo; checks the required permission gate from `--allow`; runs only covered safe actions; updates the ledger/run log after real execution; and stops at real John-required boundaries.
+
+Use `--explain` when John needs the selected job, required permission, stop reason, and next approval command without mutating any files. `--dry-run` is also non-mutating; it does not update `work-ledger.md`, `runs/skill-runs.md`, target repos, or external services.
 
 Current automation supports the `Auth pass for GitHub handoff` path for `/home/johnh/wagging-web-wins`: it isolates `GH_TOKEN`, verifies `AyobamiH/wagging-web-wins` access, checks local repo safety, creates/switches the feature branch, pushes that branch only, and creates or confirms the PR.
 
@@ -163,6 +165,7 @@ Official vendor skills may be reviewed only as advisory input under `vendor-inta
 
 ```bash
 cd /home/johnh/.openclaw/skills/coding-workflow-library
+./scripts/run-next --repo /home/johnh/wagging-web-wins --explain
 ./scripts/run-next --dry-run --repo /home/johnh/wagging-web-wins --allow github-handoff
 ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow github-handoff
 ./scripts/run-next --dry-run --repo /home/johnh/wagging-web-wins --allow pr-readiness

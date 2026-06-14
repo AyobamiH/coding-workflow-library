@@ -704,3 +704,17 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: The workflow library directory is not itself a Git repository, so `git status --short` there reports that fact; this did not affect validation or target repo GitHub handoff. No Supabase mutation, deployment, SQL execution, scheduler mutation, production endpoint call, or token/secret printing occurred.
 * Follow-up skill needed: cloudflare-deploy-skill / reviewed Supabase secret setup and scheduler application plan.
 * Upgrade idea: Add a dedicated `pr-readiness-and-merge` runner path for arbitrary PR numbers so future merge gates can use the same evidence checklist without manual command sequencing.
+
+## 2026-06-14 - Workflow Library Private Repo + Autonomous Loop Uplift
+
+* Skill used: coding-workflow-orchestrator-skill; github-handoff-skill.
+* Goal: Create the workflow library as its own private GitHub repo, then improve `scripts/run-next` so it selects safe jobs from ledger state with less prompt babysitting.
+* Starting state: Local workflow library had commits `e509313` and `7171bdc`, no remote, and validation passing. Wagging Web Wins remained on `main` with expected local-only `evidence/` and `supabase/.temp/`.
+* Commands/tools used: repo status/log/remote checks; `./scripts/validate-skills`; split-plan reads; strict redacted secret scan; GitHub auth/repo lookup; `gh repo create AyobamiH/coding-workflow-library --private --source=. --remote=origin --push`; repo visibility verification; `apply_patch`; `./scripts/run-next --repo /home/johnh/wagging-web-wins --dry-run`; `./scripts/run-next --repo /home/johnh/opstruth/tempo/opstruth --dry-run`; `./scripts/run-next --repo /home/johnh/wagging-web-wins --explain`.
+* Files inspected: `AGENTS.md`; `RUNBOOK.md`; `tools.md`; `work-ledger.md`; `runs/skill-runs.md`; `scripts/run-next`; `scripts/validate-skills`; `skills-index.md`; selected skill frontmatter.
+* Files changed: `AGENTS.md`; `README.md`; `RUNBOOK.md`; `tools.md`; `skills-index.md`; `scripts/run-next`; `scripts/validate-skills`; `skill-files/coding-workflow-orchestrator-skill.md`; `docs/autonomous-loop-model.md`; `docs/job-selection-contract.md`; `evidence/autonomous-loop-uplift.md`; `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: private repo created at `AyobamiH/coding-workflow-library`; visibility verified as `PRIVATE`; `main` tracks `origin/main`; validation passed with 111 files and 19 skills checked; dry-run and explain modes did not write ledger/run-log entries; missing OpsTruth ledger entry stopped safely; Wagging selected `supabase-preflight` and reported the next approval command; strict scan output was redacted and reviewed as expected identifiers/placeholders/hashes rather than real token values.
+* Result: Autonomous loop uplift ready to push.
+* Failure/recovery notes: Initial docs patch missed existing README wording and was split into targeted patches. No target repo mutation, Supabase mutation, deploy, production call, npm publish, release, or secret printing occurred.
+* Follow-up skill needed: coding-workflow-orchestrator-skill.
+* Upgrade idea: Add a machine-readable route table to `scripts/run-next` so skill frontmatter can drive more routes without editing large conditional blocks.
