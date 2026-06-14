@@ -11,3 +11,4 @@ build/
 supabase/.temp/
 evidence/private/
 tmp/
+vendor-intake/

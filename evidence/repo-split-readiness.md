@@ -42,7 +42,7 @@ The proposed initial repo contains only workflow-library source, runbooks, scrip
 
 ## Exclude Scope
 
-The proposed initial repo excludes env files, token material, logs, temporary files, caches, build outputs, `node_modules/`, `.wrangler/`, `supabase/.temp/`, and private evidence.
+The proposed initial repo excludes env files, token material, logs, temporary files, caches, build outputs, `node_modules/`, `.wrangler/`, `supabase/.temp/`, `vendor-intake/`, and private evidence.
 
 ## Secret Scan Result
 

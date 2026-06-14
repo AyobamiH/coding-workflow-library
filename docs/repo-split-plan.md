@@ -68,6 +68,7 @@ The first remote must be private unless John explicitly approves a different vis
 - `.wrangler/`
 - `supabase/.temp/`
 - `evidence/private/`
+- `vendor-intake/` snapshots unless explicitly approved
 - target repo checkouts
 - generated archives or tarballs
 
