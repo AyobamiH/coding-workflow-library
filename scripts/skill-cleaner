@@ -1,0 +1,432 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+
+const root = process.cwd();
+const args = process.argv.slice(2);
+const asJson = args.includes("--json");
+
+function numberArg(name, fallback) {
+  const index = args.indexOf(name);
+  if (index === -1) return fallback;
+  const value = Number(args[index + 1]);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+const maxLines = numberArg("--max-lines", 300);
+const maxTriggers = numberArg("--max-triggers", 6);
+
+const requiredSections = [
+  "Purpose",
+  "When to Use",
+  "Inputs Required",
+  "Commands",
+  "Procedure",
+  "Evidence Required",
+  "Safety Rules",
+  "Common Failures",
+  "Output Format",
+  "Upgrade Ideas",
+];
+
+function rel(file) {
+  return path.relative(root, file).replaceAll(path.sep, "/") || ".";
+}
+
+function parseFrontmatter(text) {
+  if (!text.startsWith("---\n")) return { data: {}, body: text, ok: false };
+  const end = text.indexOf("\n---", 4);
+  if (end === -1) return { data: {}, body: text, ok: false };
+  const raw = text.slice(4, end).trimEnd();
+  const body = text.slice(end + 4).replace(/^\n/, "");
+  const data = {};
+  let currentList = null;
+
+  for (const line of raw.split(/\r?\n/)) {
+    const listMatch = line.match(/^\s*-\s+(.*)$/);
+    if (listMatch && currentList) {
+      data[currentList].push(listMatch[1].trim());
+      continue;
+    }
+    const keyMatch = line.match(/^([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$/);
+    if (!keyMatch) continue;
+    const key = keyMatch[1];
+    const value = keyMatch[2].trim();
+    if (value === "") {
+      data[key] = [];
+      currentList = key;
+    } else {
+      data[key] = value;
+      currentList = null;
+    }
+  }
+
+  return { data, body, ok: true };
+}
+
+function words(text) {
+  return (text.match(/\b[\w-]+\b/g) || []).length;
+}
+
+function normalize(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/`[^`]+`/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function tokenSet(text) {
+  return new Set(
+    normalize(text)
+      .split(" ")
+      .filter((token) => token.length > 2)
+      .filter((token) => !["skill", "audit", "review", "local", "repo", "file", "files", "run"].includes(token))
+  );
+}
+
+function jaccard(a, b) {
+  if (!a.size || !b.size) return 0;
+  const intersection = [...a].filter((item) => b.has(item)).length;
+  const union = new Set([...a, ...b]).size;
+  return intersection / union;
+}
+
+function sectionBody(markdown, heading) {
+  const match = markdown.match(new RegExp(`^## ${heading}\\n([\\s\\S]*?)(?=^## |\\z)`, "m"));
+  return match ? match[1].trim() : "";
+}
+
+function fencedBlocks(text) {
+  const blocks = [];
+  const re = /```[^\n]*\n([\s\S]*?)```/g;
+  let match;
+  while ((match = re.exec(text))) blocks.push(match[1].trim());
+  return blocks;
+}
+
+function maskSnippet(text) {
+  let value = String(text || "").trim();
+  value = value.replace(/sk-[A-Za-z0-9_-]{8,}/g, (match) => `${match.slice(0, 5)}...${match.slice(-4)}`);
+  value = value.replace(/eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, "[JWT redacted]");
+  value = value.replace(/(postgres(?:ql)?:\/\/)[^\s"']+/gi, "$1[database-url redacted]");
+  value = value.replace(/(https?:\/\/[^:\s"']+):[^@\s"']+@/gi, "$1:[credential redacted]@");
+  if (value.length > 120) value = `${value.slice(0, 117)}...`;
+  return value;
+}
+
+function titleCase(value) {
+  return value
+    .split("-")
+    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function readSkills() {
+  const skillDir = path.join(root, "skill-files");
+  if (!fs.existsSync(skillDir)) throw new Error("skill-files directory is missing");
+
+  return fs
+    .readdirSync(skillDir)
+    .filter((file) => file.endsWith(".md"))
+    .sort()
+    .map((file) => {
+      const full = path.join(skillDir, file);
+      const text = fs.readFileSync(full, "utf8");
+      const parsed = parseFrontmatter(text);
+      const body = parsed.body;
+      const headingSource = body.replace(/```[\s\S]*?```/g, "");
+      const lines = text.split(/\r?\n/);
+      const commands = sectionBody(body, "Commands");
+      const commandLines = fencedBlocks(commands)
+        .flatMap((block) => block.split(/\r?\n/))
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .filter((line) => !line.startsWith("#"));
+      const headings = [...headingSource.matchAll(/^##\s+(.+)$/gm)].map((match) => match[1].trim());
+      const sectionMissing = requiredSections.filter((section) => !headings.includes(section));
+
+      return {
+        file,
+        path: rel(full),
+        text,
+        body,
+        frontmatterOk: parsed.ok,
+        name: parsed.data.name || file.replace(/\.md$/, ""),
+        description: parsed.data.description || "",
+        category: parsed.data.category || "unknown",
+        status: parsed.data.status || "unknown",
+        triggers: Array.isArray(parsed.data.routing_triggers) ? parsed.data.routing_triggers : [],
+        lineCount: lines.length,
+        wordCount: words(text),
+        commandLines,
+        commandLineCount: commandLines.length,
+        headings,
+        customHeadings: headings.filter((heading) => !requiredSections.includes(heading)),
+        sectionMissing,
+      };
+    });
+}
+
+function byCountMap(items, keyFn) {
+  const map = new Map();
+  for (const item of items) {
+    const key = keyFn(item);
+    if (!key) continue;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(item);
+  }
+  return [...map.entries()].filter(([, group]) => group.length > 1);
+}
+
+function markdownList(items, formatter) {
+  if (!items.length) return "- None";
+  return items.map((item) => `- ${formatter(item)}`).join("\n");
+}
+
+function main() {
+  const skills = readSkills();
+  const skillsIndexPath = path.join(root, "skills-index.md");
+  const skillsIndex = fs.existsSync(skillsIndexPath) ? fs.readFileSync(skillsIndexPath, "utf8") : "";
+
+  const statusDistribution = {};
+  const categoryDistribution = {};
+  for (const skill of skills) {
+    statusDistribution[skill.status] = (statusDistribution[skill.status] || 0) + 1;
+    categoryDistribution[skill.category] = (categoryDistribution[skill.category] || 0) + 1;
+  }
+
+  const duplicateNames = byCountMap(skills, (skill) => normalize(skill.name)).map(([name, group]) => ({
+    name,
+    skills: group.map((skill) => skill.file),
+  }));
+
+  const duplicateDescriptions = byCountMap(skills, (skill) => normalize(skill.description)).map(([description, group]) => ({
+    description,
+    skills: group.map((skill) => skill.file),
+  }));
+
+  const triggerEntries = [];
+  for (const skill of skills) {
+    for (const trigger of skill.triggers) {
+      triggerEntries.push({ skill: skill.file, trigger, normalized: normalize(trigger) });
+    }
+  }
+
+  const duplicateTriggerGroups = byCountMap(triggerEntries, (entry) => entry.normalized).map(([trigger, group]) => ({
+    trigger,
+    skills: group.map((entry) => entry.skill),
+  }));
+
+  const commandEntries = [];
+  for (const skill of skills) {
+    for (const command of skill.commandLines) {
+      const normalized = normalize(command);
+      if (!normalized || normalized.length < 8) continue;
+      commandEntries.push({ skill: skill.file, command, normalized });
+    }
+  }
+
+  const repeatedCommandSnippets = byCountMap(commandEntries, (entry) => entry.normalized)
+    .map(([normalized, group]) => ({
+      command: maskSnippet(group[0].command),
+      count: group.length,
+      skills: [...new Set(group.map((entry) => entry.skill))],
+      normalized,
+    }))
+    .filter((entry) => entry.skills.length > 1 || entry.count > 2);
+
+  const headingEntries = [];
+  for (const skill of skills) {
+    for (const heading of skill.headings) headingEntries.push({ skill: skill.file, heading });
+  }
+  const repeatedSectionHeadings = byCountMap(headingEntries, (entry) => normalize(entry.heading)).map(([heading, group]) => ({
+    heading,
+    count: group.length,
+    skills: [...new Set(group.map((entry) => entry.skill))],
+  }));
+
+  const missingIndexReferences = skills
+    .filter((skill) => skill.status === "active")
+    .filter((skill) => !skillsIndex.includes(skill.file) && !skillsIndex.includes(skill.name))
+    .map((skill) => skill.file);
+
+  const warnings = [];
+  for (const skill of skills) {
+    if (!skill.frontmatterOk) warnings.push(`${skill.file}: missing or invalid frontmatter`);
+    if (skill.sectionMissing.length) warnings.push(`${skill.file}: missing sections ${skill.sectionMissing.join(", ")}`);
+    if (skill.triggers.length < 2 || skill.triggers.length > maxTriggers) warnings.push(`${skill.file}: routing trigger count is ${skill.triggers.length}`);
+    if (skill.description.length < 30) warnings.push(`${skill.file}: description may be too short for routing`);
+    if (skill.description.length > 150) warnings.push(`${skill.file}: description may be too long for routing`);
+    if (skill.lineCount > maxLines) warnings.push(`${skill.file}: line count ${skill.lineCount} exceeds ${maxLines}`);
+  }
+  if (duplicateNames.length) warnings.push(`duplicate skill names: ${duplicateNames.map((entry) => entry.name).join(", ")}`);
+  if (missingIndexReferences.length) warnings.push(`active skills missing index references: ${missingIndexReferences.join(", ")}`);
+
+  const pairs = [];
+  for (let i = 0; i < skills.length; i += 1) {
+    for (let j = i + 1; j < skills.length; j += 1) {
+      const a = skills[i];
+      const b = skills[j];
+      const descriptionOverlap = jaccard(tokenSet(`${a.description} ${a.triggers.join(" ")}`), tokenSet(`${b.description} ${b.triggers.join(" ")}`));
+      const commandOverlap = jaccard(new Set(a.commandLines.map(normalize)), new Set(b.commandLines.map(normalize)));
+      const sameCategory = a.category === b.category;
+      const score = descriptionOverlap + commandOverlap + (sameCategory ? 0.12 : 0);
+      if (score >= 0.34) {
+        pairs.push({
+          skills: [a.file, b.file],
+          reason: `same category: ${sameCategory}; routing overlap: ${descriptionOverlap.toFixed(2)}; command overlap: ${commandOverlap.toFixed(2)}`,
+          score: Number(score.toFixed(2)),
+        });
+      }
+    }
+  }
+  pairs.sort((a, b) => b.score - a.score);
+
+  const splitCandidates = skills
+    .filter((skill) => skill.lineCount > maxLines || skill.customHeadings.length >= 8 || skill.commandLineCount >= 18)
+    .map((skill) => ({
+      skill: skill.file,
+      reason: `lines ${skill.lineCount}, command lines ${skill.commandLineCount}, custom headings ${skill.customHeadings.length}`,
+    }));
+
+  const sharpen = skills
+    .filter((skill) => {
+      const weakDescription = skill.description.length < 30 || skill.description.length > 150;
+      const weakTriggers = skill.triggers.length < 2 || skill.triggers.length > maxTriggers || new Set(skill.triggers.map(normalize)).size !== skill.triggers.length;
+      const vague = /\b(general|various|stuff|things|misc|tooling)\b/i.test(`${skill.description} ${skill.triggers.join(" ")}`);
+      return weakDescription || weakTriggers || vague || skill.sectionMissing.length;
+    })
+    .map((skill) => ({
+      skill: skill.file,
+      reason: [
+        skill.description.length < 30 ? "short description" : "",
+        skill.description.length > 150 ? "long description" : "",
+        skill.triggers.length > maxTriggers ? "too many triggers" : "",
+        skill.triggers.length < 2 ? "too few triggers" : "",
+        skill.sectionMissing.length ? `missing sections ${skill.sectionMissing.join(", ")}` : "",
+      ]
+        .filter(Boolean)
+        .join("; ") || "routing wording needs review",
+    }));
+
+  const scriptCandidates = skills
+    .filter((skill) => skill.commandLineCount >= 8 || (skill.commandLineCount >= 5 && /script|scanner|helper|parser|generator/i.test(skill.body)))
+    .map((skill) => ({
+      skill: skill.file,
+      reason: `command lines ${skill.commandLineCount}; helper language present: ${/script|scanner|helper|parser|generator/i.test(skill.body)}`,
+    }));
+
+  const deprecateCandidates = skills
+    .filter((skill) => skill.status === "deprecated" || /\b(superseded by|unused skill|retire this skill|remove this skill)\b/i.test(skill.body))
+    .map((skill) => ({
+      skill: skill.file,
+      reason: skill.status === "deprecated" ? "status is deprecated" : "contains deprecation-like language; review before any status change",
+    }));
+
+  const mergeCandidates = pairs.slice(0, 10);
+
+  const keep = skills
+    .filter((skill) => !sharpen.some((item) => item.skill === skill.file))
+    .filter((skill) => !splitCandidates.some((item) => item.skill === skill.file))
+    .filter((skill) => !deprecateCandidates.some((item) => item.skill === skill.file))
+    .filter((skill) => !mergeCandidates.some((item) => item.skills.includes(skill.file)))
+    .map((skill) => ({
+      skill: skill.file,
+      reason: `${skill.status}, indexed, ${skill.lineCount} lines, ${skill.triggers.length} routing triggers`,
+    }));
+
+  const longestSkills = [...skills]
+    .sort((a, b) => b.lineCount - a.lineCount)
+    .slice(0, 5)
+    .map((skill) => ({ skill: skill.file, lines: skill.lineCount, words: skill.wordCount }));
+
+  const cleanupCandidates = new Set([
+    ...sharpen.map((item) => item.skill),
+    ...splitCandidates.map((item) => item.skill),
+    ...deprecateCandidates.map((item) => item.skill),
+    ...mergeCandidates.flatMap((item) => item.skills),
+    ...scriptCandidates.map((item) => item.skill),
+  ]);
+
+  const recommendedCleanupQueue = [
+    missingIndexReferences.length ? "Fix active skill index coverage before other cleanup." : "",
+    duplicateNames.length ? "Resolve duplicate skill names." : "",
+    duplicateTriggerGroups.length ? "Sharpen duplicate routing triggers." : "",
+    "Review long safety-critical skills before splitting; keep procedures intact unless a helper script can preserve evidence requirements.",
+    "Promote repeated command-heavy workflows into scripts only after preserving safety rules in the skill.",
+    "Review merge candidates manually; overlap is advisory and may reflect different permission boundaries.",
+  ].filter(Boolean);
+
+  const report = {
+    summary: {
+      skillsScanned: skills.length,
+      activeSkills: statusDistribution.active || 0,
+      draftSkills: statusDistribution.draft || 0,
+      deprecatedSkills: statusDistribution.deprecated || 0,
+      averageLineCount: Math.round(skills.reduce((sum, skill) => sum + skill.lineCount, 0) / Math.max(skills.length, 1)),
+      longestSkills,
+      duplicateNames,
+      duplicateTriggerGroups,
+      duplicateDescriptions,
+      repeatedCommandSnippets,
+      repeatedSectionHeadings: repeatedSectionHeadings.slice(0, 12),
+      missingIndexReferences,
+      cleanupCandidates: [...cleanupCandidates].sort(),
+      statusDistribution,
+      categoryDistribution,
+      thresholds: { maxLines, maxTriggers },
+    },
+    keep,
+    sharpen,
+    mergeCandidates,
+    splitCandidates,
+    deprecateCandidates,
+    scriptCandidates,
+    warnings,
+    recommendedCleanupQueue,
+  };
+
+  if (asJson) {
+    console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+
+  console.log("# Skill Cleaner Report\n");
+  console.log("## Summary\n");
+  console.log(`* skills scanned: ${report.summary.skillsScanned}`);
+  console.log(`* active skills: ${report.summary.activeSkills}`);
+  console.log(`* draft skills: ${report.summary.draftSkills}`);
+  console.log(`* deprecated skills: ${report.summary.deprecatedSkills}`);
+  console.log(`* average line count: ${report.summary.averageLineCount}`);
+  console.log(`* longest skills: ${longestSkills.map((item) => `${item.skill} (${item.lines})`).join(", ") || "none"}`);
+  console.log(`* duplicate names: ${duplicateNames.length ? duplicateNames.map((item) => item.name).join(", ") : "none"}`);
+  console.log(`* duplicate trigger groups: ${duplicateTriggerGroups.length ? duplicateTriggerGroups.map((item) => item.trigger).join(", ") : "none"}`);
+  console.log(`* missing index references: ${missingIndexReferences.length ? missingIndexReferences.join(", ") : "none"}`);
+  console.log(`* cleanup candidates: ${cleanupCandidates.size}`);
+  console.log("\n## Keep\n");
+  console.log(markdownList(keep, (item) => `${item.skill}: ${item.reason}`));
+  console.log("\n## Sharpen\n");
+  console.log(markdownList(sharpen, (item) => `${item.skill}: ${item.reason}`));
+  console.log("\n## Merge Candidates\n");
+  console.log(markdownList(mergeCandidates, (item) => `${item.skills.join(" + ")}: ${item.reason}`));
+  console.log("\n## Split Candidates\n");
+  console.log(markdownList(splitCandidates, (item) => `${item.skill}: ${item.reason}`));
+  console.log("\n## Deprecate Candidates\n");
+  console.log(markdownList(deprecateCandidates, (item) => `${item.skill}: ${item.reason}`));
+  console.log("\n## Script Candidates\n");
+  console.log(markdownList(scriptCandidates, (item) => `${item.skill}: ${item.reason}`));
+  console.log("\n## Warnings\n");
+  console.log(markdownList(warnings, (item) => item));
+  console.log("\n## Recommended Cleanup Queue\n");
+  console.log(markdownList(recommendedCleanupQueue, (item) => item));
+}
+
+try {
+  main();
+} catch (error) {
+  console.error(`skill-cleaner runtime error: ${error.message}`);
+  process.exit(1);
+}

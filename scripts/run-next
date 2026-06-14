@@ -1,0 +1,4444 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+const { spawnSync } = require("child_process");
+
+const LIBRARY_ROOT = path.resolve(__dirname, "..");
+const DEFAULT_REPO = "/home/johnh/wagging-web-wins";
+const EXPECTED_GITHUB_REPO = "AyobamiH/wagging-web-wins";
+const EXPECTED_GITHUB_USER = "AyobamiH";
+const FEATURE_BRANCH = "harden-import-reddit-tips-auth";
+const SCHEDULER_BRANCH = "update-import-reddit-tips-scheduler-secret";
+const EXPECTED_COMMIT = "271414a";
+const EXPECTED_COMMIT_SUBJECT = "Harden import reddit tips authorization";
+const PR_TITLE = "Harden import reddit tips authorization";
+const SCHEDULER_PR_TITLE = "Draft import reddit tips scheduler secret migration";
+const PR_BODY_PATH = "/tmp/import-reddit-tips-pr-body.md";
+const SCHEDULER_PR_BODY_PATH = "/tmp/import-reddit-tips-scheduler-pr-body.md";
+const PR_NUMBER = "11";
+const SCHEDULER_COMMIT_MESSAGE = "Draft import reddit tips scheduler secret migration";
+const INTENDED_PR_FILES = [
+  ".env.example",
+  "docs/import-reddit-tips-security.md",
+  "supabase/functions/import-reddit-tips/index.ts",
+];
+const IMPORT_FUNCTION_NAME = "import-reddit-tips";
+const IMPORT_FUNCTION_DIR = `supabase/functions/${IMPORT_FUNCTION_NAME}`;
+const REQUIRED_IMPORT_SECRET = "IMPORT_REDDIT_TIPS_SECRET";
+const EXPECTED_SUPABASE_PROJECT_REF = "viwxxjnehceedyctevau";
+
+const ALLOWED_FLAGS = new Set([
+  "auth-check",
+  "github-handoff",
+  "push-pr",
+  "local-validation",
+  "local-edit",
+  "commit",
+  "pr-readiness",
+  "pr-merge",
+  "deployment-plan",
+  "supabase-preflight",
+  "supabase-tooling-auth",
+  "supabase-link-secret-readiness",
+  "scheduler-draft-pr",
+]);
+
+const args = parseArgs(process.argv.slice(2));
+const targetRepo = args.repo || DEFAULT_REPO;
+const dryRun = args.dryRun;
+
+const evidence = [];
+const actions = [];
+const filesChanged = [];
+
+main();
+
+function main() {
+  try {
+    readControlFiles();
+    const ledgerText = readText("work-ledger.md");
+    const active = findActiveWorkItem(ledgerText, targetRepo);
+    const status = active.currentStatus || "Unknown";
+    const route = routeStatus(status);
+
+    actions.push(`selected work item: ${active.heading || "latest ledger entry"}`);
+    actions.push(`current status: ${status}`);
+    actions.push(`next skill: ${route.skill}`);
+    actions.push(`required permission: ${route.permission || "none"}`);
+
+    let result;
+    if (route.kind === "human-boundary" || route.kind === "permission-boundary") {
+      result = stopAtBoundary(route, active);
+    } else if (!permissionGranted(route)) {
+      result = needsJohn(route, active);
+    } else if (route.kind === "github-handoff") {
+      result = runGithubHandoff(active);
+    } else if (route.kind === "pr-readiness") {
+      result = runPrReadiness(active);
+    } else if (route.kind === "pr-merge") {
+      result = runPrMerge(active);
+    } else if (route.kind === "deployment-plan") {
+      result = runDeploymentPlan(active);
+    } else if (route.kind === "supabase-preflight") {
+      result = runSupabasePreflight(active);
+    } else if (route.kind === "supabase-tooling-auth") {
+      result = runSupabaseToolingAuth(active);
+    } else if (route.kind === "supabase-link-secret-readiness") {
+      result = runSupabaseLinkSecretReadiness(active);
+    } else if (route.kind === "scheduler-draft-pr") {
+      result = runSchedulerDraftPr(active);
+    } else {
+      result = notImplemented(route, active);
+    }
+
+    if (dryRun) {
+      appendRunLog({
+        dryRun: true,
+        status,
+        result,
+        active,
+        route,
+      });
+    } else {
+      appendLedger({
+        status: result.ledgerStatus || result.finalStatus,
+        result,
+        active,
+        route,
+      });
+      appendRunLog({
+        dryRun: false,
+        status,
+        result,
+        active,
+        route,
+      });
+    }
+
+    printReport(result, active, route);
+    process.exit(result.exitCode || 0);
+  } catch (error) {
+    const result = {
+      finalStatus: "BLOCKED",
+      summary: error.message,
+      exitCode: 1,
+    };
+    if (dryRun) {
+      appendRunLog({
+        dryRun: true,
+        status: "error",
+        result,
+        active: {},
+        route: { skill: "coding-workflow-orchestrator-skill" },
+      });
+    }
+    printReport(result, {}, { skill: "coding-workflow-orchestrator-skill" });
+    process.exit(1);
+  }
+}
+
+function parseArgs(rawArgs) {
+  const parsed = {
+    allow: new Set(),
+    dryRun: false,
+    repo: null,
+  };
+
+  for (let index = 0; index < rawArgs.length; index += 1) {
+    const arg = rawArgs[index];
+    if (arg === "--dry-run") {
+      parsed.dryRun = true;
+      continue;
+    }
+    if (arg === "--repo") {
+      parsed.repo = rawArgs[index + 1];
+      index += 1;
+      if (!parsed.repo) die("--repo requires an absolute path");
+      continue;
+    }
+    if (arg === "--allow") {
+      const value = rawArgs[index + 1];
+      index += 1;
+      if (!value) die("--allow requires a permission name");
+      if (!ALLOWED_FLAGS.has(value)) {
+        die(`unsupported permission flag: ${value}`);
+      }
+      parsed.allow.add(value);
+      continue;
+    }
+    if (arg === "--help" || arg === "-h") {
+      printHelp();
+      process.exit(0);
+    }
+    die(`unknown argument: ${arg}`);
+  }
+
+  return parsed;
+}
+
+function printHelp() {
+  console.log(`Usage:
+  ./scripts/run-next
+  ./scripts/run-next --dry-run
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow github-handoff
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow github-handoff --dry-run
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow pr-readiness
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow pr-readiness --dry-run
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow pr-merge
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow pr-merge --dry-run
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow deployment-plan
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow deployment-plan --dry-run
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow supabase-preflight
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow supabase-preflight --dry-run
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow supabase-tooling-auth
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow supabase-tooling-auth --dry-run
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow supabase-link-secret-readiness
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow supabase-link-secret-readiness --dry-run
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-draft-pr
+  ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-draft-pr --dry-run
+
+Supported --allow values:
+  auth-check
+  github-handoff
+  push-pr
+  local-validation
+  local-edit
+  commit
+  pr-readiness
+  pr-merge
+  deployment-plan
+  supabase-preflight
+  supabase-tooling-auth
+  supabase-link-secret-readiness
+  scheduler-draft-pr`);
+}
+
+function readControlFiles() {
+  for (const file of ["AGENTS.md", "tools.md", "work-ledger.md"]) {
+    const full = path.join(LIBRARY_ROOT, file);
+    if (!fs.existsSync(full)) die(`missing required control file: ${file}`);
+    fs.readFileSync(full, "utf8");
+    evidence.push(`read ${file}`);
+  }
+}
+
+function readText(relativePath) {
+  return fs.readFileSync(path.join(LIBRARY_ROOT, relativePath), "utf8");
+}
+
+function findActiveWorkItem(ledgerText, repo) {
+  const sections = ledgerText
+    .split(/\n(?=## \d{4}-\d{2}-\d{2} - )/)
+    .map((section) => section.trim())
+    .filter(Boolean);
+
+  const parsed = sections.map((section) => {
+    const heading = (section.match(/^## (.+)$/m) || [])[1] || "";
+    return {
+      heading,
+      text: section,
+      activeRepo: cleanField(extractField(section, "Active repo")),
+      currentObjective: cleanField(extractField(section, "Current objective")),
+      currentStatus: cleanField(extractField(section, "Current status")),
+      selectedSkill: cleanField(extractField(section, "Selected skill")),
+    };
+  });
+
+  const repoMatches = parsed.filter((section) => section.activeRepo === repo);
+  if (repoMatches.length > 0) return repoMatches[repoMatches.length - 1];
+  if (parsed.length > 0) return parsed[parsed.length - 1];
+  die("work-ledger.md has no parseable work items");
+}
+
+function extractField(section, label) {
+  const pattern = new RegExp(`^\\* ${escapeRegExp(label)}:\\s*(.+)$`, "m");
+  const match = section.match(pattern);
+  return match ? match[1] : "";
+}
+
+function cleanField(value) {
+  return String(value || "")
+    .replace(/`/g, "")
+    .replace(/\.$/, "")
+    .trim();
+}
+
+function routeStatus(status) {
+  const normalized = status.toLowerCase();
+
+  if (normalized === "ready to commit with caveats") {
+    return {
+      skill: "github-handoff-skill / scripts/committer",
+      permission: "commit",
+      kind: "not-implemented",
+      nextAction: "run exact-file committer workflow",
+    };
+  }
+
+  if (normalized === "committed locally, not pushed" || normalized === "needs github auth gate") {
+    return {
+      skill: "github-auth-gate-skill",
+      permission: "auth-check",
+      kind: "not-implemented",
+      nextAction: "run GitHub auth gate",
+    };
+  }
+
+  if (normalized === "needs john token replacement") {
+    return {
+      skill: "github-auth-gate-skill",
+      permission: null,
+      kind: "human-boundary",
+      finalStatus: "NEEDS JOHN",
+      nextAction: "replace or remove invalid local runtime token outside chat",
+    };
+  }
+
+  if (normalized === "auth pass for github handoff") {
+    return {
+      skill: "github-handoff-skill",
+      permission: "github-handoff",
+      alternatePermission: "push-pr",
+      kind: "github-handoff",
+      nextAction: "create/switch feature branch, push feature branch only, and create or confirm PR",
+    };
+  }
+
+  if (normalized === "pr opened, not merged") {
+    return {
+      skill: "github-handoff-skill / PR readiness inspection",
+      permission: "pr-readiness",
+      alternatePermission: "github-handoff",
+      kind: "pr-readiness",
+      nextAction: "inspect PR readiness and stop before merge",
+    };
+  }
+
+  if (normalized === "pr ready for merge approval") {
+    return {
+      skill: "github-handoff-skill / PR merge handoff",
+      permission: "pr-merge",
+      kind: "pr-merge",
+      nextAction: "merge PR #11 into main and stop before deployment planning",
+    };
+  }
+
+  if (normalized === "merged, not deployed") {
+    return {
+      skill: "cloudflare-deploy-skill / supabase deployment planning",
+      permission: "deployment-plan",
+      kind: "deployment-plan",
+      nextAction: "inspect source and produce deployment plan without deploying",
+    };
+  }
+
+  if (normalized === "deployment plan ready, not deployed") {
+    return {
+      skill: "cloudflare-deploy-skill / supabase deployment execution planning",
+      permission: "supabase-preflight",
+      kind: "supabase-preflight",
+      nextAction: "inspect Supabase execution prerequisites and draft exact execution sequence without executing it",
+    };
+  }
+
+  if (normalized === "supabase execution preflight ready, not executed") {
+    return {
+      skill: "cloudflare-deploy-skill / Supabase tooling/auth setup",
+      permission: "supabase-tooling-auth",
+      kind: "supabase-tooling-auth",
+      nextAction: "verify Supabase CLI tooling and read-only project access without linking or mutating Supabase",
+    };
+  }
+
+  if (
+    normalized === "needs john: supabase access token missing" ||
+    normalized === "needs john: supabase access token invalid" ||
+    normalized === "needs john: supabase token lacks project access" ||
+    normalized === "needs john: supabase project ref mismatch" ||
+    normalized === "blocked: node/npx/supabase cli unavailable" ||
+    normalized === "env file format issue"
+  ) {
+    return {
+      skill: "cloudflare-deploy-skill / Supabase tooling/auth setup",
+      permission: "supabase-tooling-auth",
+      kind: "supabase-tooling-auth",
+      nextAction: "retry Supabase tooling/auth verification after local credential or env correction",
+    };
+  }
+
+  if (normalized === "supabase tooling/auth ready, not linked") {
+    return {
+      skill: "cloudflare-deploy-skill / Supabase link and secret readiness",
+      permission: "supabase-link-secret-readiness",
+      kind: "supabase-link-secret-readiness",
+      nextAction: "link local repo to Supabase project and ensure local import secret readiness without remote secret setup or deploy",
+    };
+  }
+
+  if (normalized === "supabase linked and local secret ready, not deployed") {
+    return {
+      skill: "cloudflare-deploy-skill / scheduler migration draft and GitHub handoff",
+      permission: "scheduler-draft-pr",
+      kind: "scheduler-draft-pr",
+      nextAction: "draft guarded local scheduler migration, run local checks, exact-file commit, push feature branch, and open PR",
+    };
+  }
+
+  if (
+    normalized === "pr blocked by checks" ||
+    normalized === "pr blocked by unexpected files" ||
+    normalized === "pr blocked by mergeability" ||
+    normalized === "pr readiness unknown"
+  ) {
+    return {
+      skill: "github-handoff-skill",
+      permission: null,
+      kind: "permission-boundary",
+      finalStatus: status,
+      nextAction: "John may approve fixing PR blockers, approve fixing lint/Vitest blockers, or hold",
+    };
+  }
+
+  return {
+    skill: "coding-workflow-orchestrator-skill",
+    permission: null,
+    kind: "human-boundary",
+    finalStatus: "NEEDS JOHN",
+    nextAction: `unknown ledger status: ${status}`,
+  };
+}
+
+function permissionGranted(route) {
+  if (!route.permission) return true;
+  if (args.allow.has(route.permission)) return true;
+  if (route.alternatePermission && args.allow.has(route.alternatePermission)) return true;
+  return false;
+}
+
+function needsJohn(route) {
+  return {
+    finalStatus: "NEEDS JOHN",
+    ledgerStatus: "Needs John: permission gate",
+    summary: `permission not granted for ${route.permission}`,
+    nextPermission: route.permission,
+    nextSkill: route.skill,
+    exitCode: dryRun ? 0 : 2,
+  };
+}
+
+function stopAtBoundary(route) {
+  return {
+    finalStatus: route.finalStatus || "NEEDS JOHN",
+    ledgerStatus: route.finalStatus || "Needs John",
+    summary: route.nextAction,
+    nextPermission: "merge/deploy planning boundary",
+    nextSkill: route.skill,
+    exitCode: 0,
+  };
+}
+
+function notImplemented(route) {
+  return {
+    finalStatus: "NEEDS JOHN",
+    ledgerStatus: "Needs John: runner path not implemented",
+    summary: `run-next v1 understands this state but does not execute ${route.nextAction} yet`,
+    nextPermission: route.permission || "manual routing",
+    nextSkill: route.skill,
+    exitCode: dryRun ? 0 : 2,
+  };
+}
+
+function runGithubHandoff() {
+  const envFile = loadEnvFile("/home/johnh/.openclaw/.env");
+  const ghToken = envFile.GH_TOKEN || process.env.GH_TOKEN || "";
+  const githubTokenPresent = Boolean(envFile.GITHUB_TOKEN || process.env.GITHUB_TOKEN);
+  const ghTokenPresent = Boolean(ghToken);
+  evidence.push(`GH_TOKEN presence: ${ghTokenPresent ? "set" : "not set"}`);
+  evidence.push(`GITHUB_TOKEN presence: ${githubTokenPresent ? "set" : "not set"}`);
+
+  if (!ghTokenPresent) {
+    return {
+      finalStatus: "NEEDS JOHN",
+      ledgerStatus: "Needs John token replacement",
+      summary: "GH_TOKEN is not set in runtime env",
+      nextPermission: "auth-check",
+      nextSkill: "github-auth-gate-skill",
+      exitCode: 2,
+    };
+  }
+
+  const ghEnv = buildGhEnv(ghToken);
+  const user = run("gh", ["api", "user", "--jq", ".login"], { env: ghEnv });
+  if (user.code !== 0 || user.stdout.trim() !== EXPECTED_GITHUB_USER) {
+    return {
+      finalStatus: "NEEDS JOHN",
+      ledgerStatus: "Needs John token replacement",
+      summary: `GH_TOKEN user check failed: ${firstLine(user.stderr || user.stdout)}`,
+      nextPermission: "auth-check",
+      nextSkill: "github-auth-gate-skill",
+      exitCode: 2,
+    };
+  }
+  evidence.push(`GH_TOKEN user: ${EXPECTED_GITHUB_USER}`);
+
+  const repoView = run(
+    "gh",
+    ["repo", "view", EXPECTED_GITHUB_REPO, "--json", "nameWithOwner,visibility,viewerPermission"],
+    { env: ghEnv },
+  );
+  if (repoView.code !== 0) {
+    return {
+      finalStatus: "NEEDS JOHN",
+      ledgerStatus: "Needs John token permission fix",
+      summary: `repo view failed: ${firstLine(repoView.stderr || repoView.stdout)}`,
+      nextPermission: "auth-check",
+      nextSkill: "github-auth-gate-skill",
+      exitCode: 2,
+    };
+  }
+
+  let repoJson;
+  try {
+    repoJson = JSON.parse(repoView.stdout);
+  } catch (error) {
+    return {
+      finalStatus: "BLOCKED",
+      ledgerStatus: "Blocked: repo view parse failed",
+      summary: `could not parse repo view JSON: ${error.message}`,
+      nextPermission: "manual review",
+      nextSkill: "github-auth-gate-skill",
+      exitCode: 1,
+    };
+  }
+
+  if (repoJson.nameWithOwner !== EXPECTED_GITHUB_REPO) {
+    return {
+      finalStatus: "BLOCKED",
+      ledgerStatus: "Blocked: wrong repo",
+      summary: `repo view returned ${repoJson.nameWithOwner}`,
+      nextPermission: "manual review",
+      nextSkill: "github-auth-gate-skill",
+      exitCode: 1,
+    };
+  }
+
+  if (!["WRITE", "MAINTAIN", "ADMIN"].includes(repoJson.viewerPermission)) {
+    return {
+      finalStatus: "NEEDS JOHN",
+      ledgerStatus: "Needs John token permission fix",
+      summary: `viewerPermission is ${repoJson.viewerPermission}`,
+      nextPermission: "token permission fix",
+      nextSkill: "github-auth-gate-skill",
+      exitCode: 2,
+    };
+  }
+  evidence.push(`repo access: ${repoJson.nameWithOwner} ${repoJson.viewerPermission}`);
+
+  const local = collectLocalRepoEvidence(targetRepo);
+  if (!local.ok) return local.result;
+
+  if (dryRun) {
+    actions.push(`would create or switch branch ${FEATURE_BRANCH}`);
+    actions.push(`would push only ${FEATURE_BRANCH}`);
+    actions.push("would create PR into main, or confirm existing PR");
+    return {
+      finalStatus: "DRY RUN PASS",
+      ledgerStatus: "Auth pass for GitHub handoff",
+      summary: "dry-run passed; no branch, push, or PR mutation was performed",
+      nextPermission: "github-handoff",
+      nextSkill: "github-handoff-skill",
+      prUrl: null,
+      branch: local.branch,
+      exitCode: 0,
+    };
+  }
+
+  const branchResult = createOrSwitchBranch();
+  if (!branchResult.ok) return branchResult.result;
+  actions.push(branchResult.action);
+
+  const branchContainsCommit = run("git", ["-C", targetRepo, "merge-base", "--is-ancestor", EXPECTED_COMMIT, "HEAD"]);
+  if (branchContainsCommit.code !== 0) {
+    return {
+      finalStatus: "BLOCKED",
+      ledgerStatus: "Blocked: feature branch missing expected commit",
+      summary: `${FEATURE_BRANCH} does not contain ${EXPECTED_COMMIT}`,
+      nextPermission: "manual branch repair",
+      nextSkill: "github-handoff-skill",
+      exitCode: 1,
+    };
+  }
+
+  const setupGit = run("gh", ["auth", "setup-git", "--hostname", "github.com"], {
+    env: ghEnv,
+    allowFailure: true,
+  });
+  actions.push(`gh auth setup-git: ${setupGit.code === 0 ? "ok" : "nonfatal failure"}`);
+
+  const push = run("git", ["-C", targetRepo, "push", "-u", "origin", FEATURE_BRANCH], {
+    env: { ...ghEnv, GIT_TERMINAL_PROMPT: "0" },
+  });
+  if (push.code !== 0) {
+    return {
+      finalStatus: "BLOCKED",
+      ledgerStatus: "Blocked: feature branch push failed",
+      summary: firstLine(push.stderr || push.stdout),
+      nextPermission: "manual push repair",
+      nextSkill: "github-handoff-skill",
+      exitCode: 1,
+    };
+  }
+  actions.push(`pushed origin/${FEATURE_BRANCH}`);
+
+  const existingPr = viewPr(ghEnv);
+  if (existingPr.ok) {
+    actions.push(`confirmed existing PR ${existingPr.url}`);
+    return {
+      finalStatus: "PR opened, not merged",
+      ledgerStatus: "PR opened, not merged",
+      summary: "existing PR confirmed; no duplicate PR created",
+      nextPermission: "approve PR merge",
+      nextSkill: "github-handoff-skill",
+      prUrl: existingPr.url,
+      branch: FEATURE_BRANCH,
+      exitCode: 0,
+    };
+  }
+
+  writePrBody();
+  const createPr = run(
+    "gh",
+    [
+      "pr",
+      "create",
+      "--repo",
+      EXPECTED_GITHUB_REPO,
+      "--base",
+      "main",
+      "--head",
+      FEATURE_BRANCH,
+      "--title",
+      PR_TITLE,
+      "--body-file",
+      PR_BODY_PATH,
+    ],
+    { env: ghEnv },
+  );
+  if (createPr.code !== 0) {
+    const afterFailure = viewPr(ghEnv);
+    if (afterFailure.ok) {
+      return {
+        finalStatus: "PR opened, not merged",
+        ledgerStatus: "PR opened, not merged",
+        summary: "PR exists after create failure; treating as confirmed",
+        nextPermission: "approve PR merge",
+        nextSkill: "github-handoff-skill",
+        prUrl: afterFailure.url,
+        branch: FEATURE_BRANCH,
+        exitCode: 0,
+      };
+    }
+
+    return {
+      finalStatus: "BLOCKED",
+      ledgerStatus: "Blocked: PR creation failed",
+      summary: firstLine(createPr.stderr || createPr.stdout),
+      nextPermission: "manual PR repair",
+      nextSkill: "github-handoff-skill",
+      exitCode: 1,
+    };
+  }
+
+  const prUrl = createPr.stdout.trim();
+  actions.push(`created PR ${prUrl}`);
+  return {
+    finalStatus: "PR opened, not merged",
+    ledgerStatus: "PR opened, not merged",
+    summary: "feature branch pushed and PR created",
+    nextPermission: "approve PR merge",
+    nextSkill: "github-handoff-skill",
+    prUrl,
+    branch: FEATURE_BRANCH,
+    exitCode: 0,
+  };
+}
+
+function runPrReadiness() {
+  if (dryRun) {
+    actions.push("would load /home/johnh/.openclaw/.env without printing token values");
+    actions.push("would isolate GH_TOKEN from GITHUB_TOKEN");
+    actions.push(`would verify auth user ${EXPECTED_GITHUB_USER}`);
+    actions.push(`would verify repo access to ${EXPECTED_GITHUB_REPO}`);
+    actions.push(`would inspect PR ${PR_NUMBER} metadata, files, commits, mergeability, and review decision`);
+    actions.push(`would run gh pr checks --repo ${EXPECTED_GITHUB_REPO} ${PR_NUMBER}`);
+    actions.push(`would confirm intended files: ${INTENDED_PR_FILES.join(", ")}`);
+    actions.push("would capture local repo branch, recent commits, and dirty state");
+    return {
+      finalStatus: "DRY RUN PASS",
+      ledgerStatus: "PR opened, not merged",
+      summary: "dry-run passed; PR readiness evidence would be collected and merge would remain blocked",
+      nextPermission: "pr-readiness",
+      nextSkill: "github-handoff-skill",
+      exitCode: 0,
+    };
+  }
+
+  const envFile = loadEnvFile("/home/johnh/.openclaw/.env");
+  const ghToken = envFile.GH_TOKEN || process.env.GH_TOKEN || "";
+  const githubTokenPresent = Boolean(envFile.GITHUB_TOKEN || process.env.GITHUB_TOKEN);
+  const ghTokenPresent = Boolean(ghToken);
+  evidence.push(`GH_TOKEN presence: ${ghTokenPresent ? "set" : "not set"}`);
+  evidence.push(`GITHUB_TOKEN presence: ${githubTokenPresent ? "set" : "not set"}`);
+
+  if (!ghTokenPresent) {
+    return {
+      finalStatus: "NEEDS JOHN",
+      ledgerStatus: "Needs John token replacement",
+      summary: "GH_TOKEN is not set in runtime env",
+      nextPermission: "auth-check",
+      nextSkill: "github-auth-gate-skill",
+      exitCode: 2,
+    };
+  }
+
+  const ghEnv = buildGhEnv(ghToken);
+  const user = run("gh", ["api", "user", "--jq", ".login"], { env: ghEnv });
+  if (user.code !== 0 || user.stdout.trim() !== EXPECTED_GITHUB_USER) {
+    return {
+      finalStatus: "NEEDS JOHN",
+      ledgerStatus: "Needs John token replacement",
+      summary: `GH_TOKEN user check failed: ${firstLine(user.stderr || user.stdout)}`,
+      nextPermission: "auth-check",
+      nextSkill: "github-auth-gate-skill",
+      exitCode: 2,
+    };
+  }
+  evidence.push(`GH_TOKEN user: ${EXPECTED_GITHUB_USER}`);
+
+  const repoAccess = verifyRepoAccess(ghEnv);
+  if (!repoAccess.ok) return repoAccess.result;
+
+  const prView = viewPrReadiness(ghEnv);
+  if (!prView.ok) return prView.result;
+  const pr = prView.data;
+  const changedFiles = extractPrFiles(pr);
+  const unexpectedFiles = changedFiles.filter((file) => !INTENDED_PR_FILES.includes(file));
+  const missingFiles = INTENDED_PR_FILES.filter((file) => !changedFiles.includes(file));
+  const commits = Array.isArray(pr.commits) ? pr.commits : [];
+
+  evidence.push(`PR URL: ${pr.url || "unknown"}`);
+  evidence.push(`PR state: ${pr.state || "unknown"}`);
+  evidence.push(`PR base/head: ${pr.baseRefName || "unknown"}/${pr.headRefName || "unknown"}`);
+  evidence.push(`PR mergeable: ${pr.mergeable || "unavailable"}`);
+  evidence.push(`PR review decision: ${pr.reviewDecision || "unavailable"}`);
+  evidence.push(`PR files: ${changedFiles.length ? changedFiles.join(", ") : "none"}`);
+  evidence.push(`PR commits: ${summarizeCommits(commits)}`);
+
+  const checks = inspectPrChecks(ghEnv);
+  evidence.push(`PR checks: ${checks.summary}`);
+
+  const local = collectPrLocalEvidence(targetRepo);
+  if (!local.ok) return local.result;
+
+  const readiness = classifyPrReadiness({ pr, unexpectedFiles, missingFiles, checks });
+  return {
+    finalStatus: readiness.status,
+    ledgerStatus: readiness.status,
+    summary: readiness.summary,
+    nextPermission: readiness.nextPermission,
+    nextSkill: "github-handoff-skill",
+    prUrl: pr.url || `https://github.com/${EXPECTED_GITHUB_REPO}/pull/${PR_NUMBER}`,
+    branch: local.branch,
+    prMetadata: pr,
+    checks,
+    changedFiles,
+    unexpectedFiles,
+    missingFiles,
+    commits,
+    exitCode: 0,
+  };
+}
+
+function runPrMerge() {
+  const workflowScan = inspectLocalWorkflowDeployTriggers(targetRepo);
+
+  if (dryRun) {
+    actions.push("would load /home/johnh/.openclaw/.env without printing token values");
+    actions.push("would isolate GH_TOKEN from GITHUB_TOKEN");
+    actions.push(`would verify auth user ${EXPECTED_GITHUB_USER}`);
+    actions.push(`would verify repo access to ${EXPECTED_GITHUB_REPO}`);
+    actions.push(`would inspect PR ${PR_NUMBER} metadata, files, commits, and mergeability`);
+    actions.push(`would run gh pr checks --repo ${EXPECTED_GITHUB_REPO} ${PR_NUMBER}`);
+    actions.push("would merge with gh pr merge --merge only if all safety gates pass");
+    actions.push("would not pass --delete-branch, deploy, run migrations, or call production endpoints");
+
+    if (workflowScan.blocking) {
+      return {
+        finalStatus: "NEEDS JOHN: merge may trigger deployment",
+        ledgerStatus: "NEEDS JOHN: merge may trigger deployment",
+        summary: workflowScan.summary,
+        nextPermission: "approve deployment-aware merge plan or hold",
+        nextSkill: "github-handoff-skill",
+        autoDeploy: workflowScan,
+        exitCode: 2,
+      };
+    }
+
+    return {
+      finalStatus: "DRY RUN PASS",
+      ledgerStatus: "PR ready for merge approval",
+      summary: "dry-run passed; PR merge safety checks would run and no merge was performed",
+      nextPermission: "pr-merge",
+      nextSkill: "github-handoff-skill",
+      autoDeploy: workflowScan,
+      exitCode: 0,
+    };
+  }
+
+  const envFile = loadEnvFile("/home/johnh/.openclaw/.env");
+  const ghToken = envFile.GH_TOKEN || process.env.GH_TOKEN || "";
+  const githubTokenPresent = Boolean(envFile.GITHUB_TOKEN || process.env.GITHUB_TOKEN);
+  const ghTokenPresent = Boolean(ghToken);
+  evidence.push(`GH_TOKEN presence: ${ghTokenPresent ? "set" : "not set"}`);
+  evidence.push(`GITHUB_TOKEN presence: ${githubTokenPresent ? "set" : "not set"}`);
+
+  if (!ghTokenPresent) {
+    return {
+      finalStatus: "NEEDS JOHN",
+      ledgerStatus: "Needs John token replacement",
+      summary: "GH_TOKEN is not set in runtime env",
+      nextPermission: "auth-check",
+      nextSkill: "github-auth-gate-skill",
+      autoDeploy: workflowScan,
+      exitCode: 2,
+    };
+  }
+
+  const ghEnv = buildGhEnv(ghToken);
+  const user = run("gh", ["api", "user", "--jq", ".login"], { env: ghEnv });
+  if (user.code !== 0 || user.stdout.trim() !== EXPECTED_GITHUB_USER) {
+    return {
+      finalStatus: "NEEDS JOHN",
+      ledgerStatus: "Needs John token replacement",
+      summary: `GH_TOKEN user check failed: ${firstLine(user.stderr || user.stdout)}`,
+      nextPermission: "auth-check",
+      nextSkill: "github-auth-gate-skill",
+      autoDeploy: workflowScan,
+      exitCode: 2,
+    };
+  }
+  evidence.push(`GH_TOKEN user: ${EXPECTED_GITHUB_USER}`);
+
+  const repoAccess = verifyRepoAccess(ghEnv);
+  if (!repoAccess.ok) return { ...repoAccess.result, autoDeploy: workflowScan };
+
+  if (workflowScan.blocking) {
+    return {
+      finalStatus: "NEEDS JOHN: merge may trigger deployment",
+      ledgerStatus: "NEEDS JOHN: merge may trigger deployment",
+      summary: workflowScan.summary,
+      nextPermission: "approve deployment-aware merge plan or hold",
+      nextSkill: "github-handoff-skill",
+      autoDeploy: workflowScan,
+      exitCode: 2,
+    };
+  }
+
+  const prView = viewPrReadiness(ghEnv);
+  if (!prView.ok) return { ...prView.result, autoDeploy: workflowScan };
+
+  const pr = prView.data;
+  const changedFiles = extractPrFiles(pr);
+  const unexpectedFiles = changedFiles.filter((file) => !INTENDED_PR_FILES.includes(file));
+  const missingFiles = INTENDED_PR_FILES.filter((file) => !changedFiles.includes(file));
+  const commits = Array.isArray(pr.commits) ? pr.commits : [];
+
+  evidence.push(`PR URL: ${pr.url || "unknown"}`);
+  evidence.push(`PR state: ${pr.state || "unknown"}`);
+  evidence.push(`PR base/head: ${pr.baseRefName || "unknown"}/${pr.headRefName || "unknown"}`);
+  evidence.push(`PR mergeable: ${pr.mergeable || "unavailable"}`);
+  evidence.push(`PR files: ${changedFiles.length ? changedFiles.join(", ") : "none"}`);
+  evidence.push(`PR commits: ${summarizeCommits(commits)}`);
+
+  const checks = inspectPrChecks(ghEnv);
+  evidence.push(`PR checks: ${checks.summary}`);
+
+  const safety = classifyPrMergeSafety({ pr, unexpectedFiles, missingFiles, checks });
+  if (!safety.ok) {
+    return {
+      finalStatus: safety.status,
+      ledgerStatus: safety.status,
+      summary: safety.summary,
+      nextPermission: safety.nextPermission,
+      nextSkill: "github-handoff-skill",
+      prUrl: pr.url || `https://github.com/${EXPECTED_GITHUB_REPO}/pull/${PR_NUMBER}`,
+      prMetadata: pr,
+      checks,
+      changedFiles,
+      unexpectedFiles,
+      missingFiles,
+      commits,
+      autoDeploy: workflowScan,
+      exitCode: 2,
+    };
+  }
+
+  const merge = run("gh", ["pr", "merge", "--repo", EXPECTED_GITHUB_REPO, PR_NUMBER, "--merge"], {
+    env: ghEnv,
+  });
+  if (merge.code !== 0) {
+    return {
+      finalStatus: "BLOCKED",
+      ledgerStatus: "Blocked: PR merge failed",
+      summary: firstLine(merge.stderr || merge.stdout),
+      nextPermission: "manual PR merge repair",
+      nextSkill: "github-handoff-skill",
+      prUrl: pr.url || `https://github.com/${EXPECTED_GITHUB_REPO}/pull/${PR_NUMBER}`,
+      prMetadata: pr,
+      checks,
+      changedFiles,
+      unexpectedFiles,
+      missingFiles,
+      commits,
+      autoDeploy: workflowScan,
+      exitCode: 1,
+    };
+  }
+  actions.push(`merged PR ${PR_NUMBER} with --merge; remote branch was not deleted by this runner`);
+
+  const finalView = viewPrFinal(ghEnv);
+  const finalPrMetadata = finalView.ok ? finalView.data : null;
+  if (finalView.ok) {
+    evidence.push(`PR final state: ${finalPrMetadata.state || "unknown"}`);
+    evidence.push(`PR mergedAt: ${finalPrMetadata.mergedAt || "unavailable"}`);
+  } else {
+    evidence.push(`PR final view unavailable: ${finalView.summary}`);
+  }
+
+  const local = collectPostMergeLocalEvidence(targetRepo);
+  if (!local.ok) {
+    return {
+      ...local.result,
+      prUrl: pr.url || `https://github.com/${EXPECTED_GITHUB_REPO}/pull/${PR_NUMBER}`,
+      prMetadata: pr,
+      finalPrMetadata,
+      checks,
+      changedFiles,
+      unexpectedFiles,
+      missingFiles,
+      commits,
+      autoDeploy: workflowScan,
+    };
+  }
+
+  return {
+    finalStatus: "Merged, not deployed",
+    ledgerStatus: "Merged, not deployed",
+    summary: "PR was merged into main; no deployment, migration, production endpoint call, branch deletion, or Supabase mutation was run",
+    nextPermission: "approve deployment planning",
+    nextSkill: "deployment-planning / supabase-runtime-verification planning",
+    prUrl: pr.url || `https://github.com/${EXPECTED_GITHUB_REPO}/pull/${PR_NUMBER}`,
+    prMetadata: pr,
+    finalPrMetadata,
+    checks,
+    changedFiles,
+    unexpectedFiles,
+    missingFiles,
+    commits,
+    autoDeploy: workflowScan,
+    localState: local.data,
+    exitCode: 0,
+  };
+}
+
+function runDeploymentPlan() {
+  if (dryRun) {
+    actions.push("would inspect target repo git state, merged commit stat, and remotes");
+    actions.push("would inspect Supabase config, Edge Function source, docs, migrations, and scheduler references");
+    actions.push("would inspect package scripts and deployment config files");
+    actions.push("would check CLI availability with command -v only");
+    actions.push("would draft later Supabase secret, function deploy, scheduler update, and runtime verification commands as not run");
+    actions.push("would not deploy, set secrets, run migrations, mutate Supabase, call production endpoints, push, create PRs, or merge");
+    return {
+      finalStatus: "DRY RUN PASS",
+      ledgerStatus: "Merged, not deployed",
+      summary: "dry-run passed; deployment planning would inspect local/source evidence only and stop before execution",
+      nextPermission: "deployment-plan",
+      nextSkill: "cloudflare-deploy-skill / supabase deployment planning",
+      deploymentPlan: buildDeploymentPlanSkeleton(),
+      exitCode: 0,
+    };
+  }
+
+  if (!fs.existsSync(targetRepo)) {
+    return {
+      finalStatus: "BLOCKED",
+      ledgerStatus: "Blocked: target repo missing",
+      summary: `target repo does not exist: ${targetRepo}`,
+      nextPermission: "manual repo repair",
+      nextSkill: "repo-map-skill",
+      exitCode: 1,
+    };
+  }
+
+  const repoEvidence = collectDeploymentRepoEvidence(targetRepo);
+  if (!repoEvidence.ok) return repoEvidence.result;
+
+  const sourceEvidence = collectDeploymentSourceEvidence(targetRepo);
+  const cliEvidence = collectCliAvailability(["supabase", "npx", "npm", "node", "gh"]);
+  const plan = buildDeploymentPlan({
+    repo: repoEvidence.data,
+    source: sourceEvidence,
+    cli: cliEvidence,
+  });
+
+  evidence.push(`deployment plan current branch: ${repoEvidence.data.branch}`);
+  evidence.push(`deployment plan git status: ${repoEvidence.data.status}`);
+  evidence.push(`merged commit evidence: ${repoEvidence.data.commitStatSummary}`);
+  evidence.push(`Supabase files found: ${sourceEvidence.supabaseFiles.length}`);
+  evidence.push(`deployment config files found: ${sourceEvidence.configFiles.length ? sourceEvidence.configFiles.join(", ") : "none"}`);
+  evidence.push(`function source: ${sourceEvidence.functionExists ? IMPORT_FUNCTION_DIR : "missing"}`);
+  evidence.push(`required secret name only: ${REQUIRED_IMPORT_SECRET}`);
+  evidence.push(`scheduler evidence: ${plan.schedulerUpdateRequired}`);
+  evidence.push(`CLI availability: ${formatCliAvailability(cliEvidence)}`);
+  evidence.push("commands drafted but not run: Supabase secret setup, function deploy, scheduler update, runtime verification");
+
+  return {
+    finalStatus: "Deployment plan ready, not deployed",
+    ledgerStatus: "Deployment plan ready, not deployed",
+    summary: "deployment plan produced from local/source evidence only; no secret setup, deploy, migration, scheduler mutation, or runtime call was run",
+    nextPermission: "approve Supabase secret/scheduler/deploy execution plan",
+    nextSkill: "cloudflare-deploy-skill / supabase-runtime-verification planning",
+    deploymentPlan: plan,
+    localState: {
+      branch: repoEvidence.data.branch,
+      status: repoEvidence.data.status,
+      log: repoEvidence.data.log,
+    },
+    exitCode: 0,
+  };
+}
+
+function runSupabasePreflight() {
+  if (dryRun) {
+    actions.push("would inspect target repo git state and remotes");
+    actions.push("would inspect Supabase config, import-reddit-tips source, migrations, scheduler SQL, docs, and env variable names only");
+    actions.push("would check local CLI availability with command -v only");
+    actions.push("would draft Supabase tooling/auth, secret setup, scheduler update, function deploy, and runtime verification sequence as not run");
+    actions.push("would not install Supabase CLI, run npx supabase, login, link, set secrets, deploy, run migrations, mutate scheduler, run SQL, invoke functions, call production endpoints, push, create PRs, or merge");
+    return {
+      finalStatus: "DRY RUN PASS",
+      ledgerStatus: "Deployment plan ready, not deployed",
+      summary: "dry-run passed; Supabase execution preflight would inspect local/source prerequisites only and stop before execution",
+      nextPermission: "supabase-preflight",
+      nextSkill: "cloudflare-deploy-skill / supabase execution preflight",
+      supabasePreflight: buildSupabasePreflightSkeleton(),
+      exitCode: 0,
+    };
+  }
+
+  if (!fs.existsSync(targetRepo)) {
+    return {
+      finalStatus: "BLOCKED",
+      ledgerStatus: "Blocked: target repo missing",
+      summary: `target repo does not exist: ${targetRepo}`,
+      nextPermission: "manual repo repair",
+      nextSkill: "repo-map-skill",
+      exitCode: 1,
+    };
+  }
+
+  const repoEvidence = collectSupabasePreflightRepoEvidence(targetRepo);
+  if (!repoEvidence.ok) return repoEvidence.result;
+
+  const sourceEvidence = collectSupabasePreflightSourceEvidence(targetRepo);
+  const cliEvidence = collectCliAvailability(["supabase", "npx", "npm", "node"]);
+  const preflight = buildSupabasePreflight({
+    repo: repoEvidence.data,
+    source: sourceEvidence,
+    cli: cliEvidence,
+  });
+
+  evidence.push(`preflight current branch: ${repoEvidence.data.branch}`);
+  evidence.push(`preflight git status: ${repoEvidence.data.status}`);
+  evidence.push(`Supabase files found: ${sourceEvidence.supabaseFiles.length}`);
+  evidence.push(`project ref evidence: ${preflight.projectReferenceEvidence}`);
+  evidence.push(`function deployment evidence: ${preflight.functionDeploymentEvidence}`);
+  evidence.push(`secret setup evidence: ${preflight.secretSetupEvidence}`);
+  evidence.push(`scheduler source evidence: ${preflight.schedulerSourceEvidence}`);
+  evidence.push(`scheduler update decision: ${preflight.schedulerUpdateDecision}`);
+  evidence.push(`CLI availability: ${formatCliAvailability(cliEvidence)}`);
+  evidence.push("commands drafted but not run: Supabase tooling/auth, secret setup, scheduler update, function deploy, runtime verification");
+
+  return {
+    finalStatus: "Supabase execution preflight ready, not executed",
+    ledgerStatus: "Supabase execution preflight ready, not executed",
+    summary: "Supabase execution preflight produced from local/source evidence only; no CLI install/auth/link, secret setup, deploy, migration, scheduler mutation, SQL, function invoke, or runtime call was run",
+    nextPermission: preflight.recommendedNextPermission,
+    nextSkill: "cloudflare-deploy-skill / supabase execution gate",
+    supabasePreflight: preflight,
+    localState: {
+      branch: repoEvidence.data.branch,
+      status: repoEvidence.data.status,
+      log: repoEvidence.data.log,
+    },
+    exitCode: 0,
+  };
+}
+
+function runSupabaseToolingAuth() {
+  if (dryRun) {
+    actions.push("would inspect target repo git state");
+    actions.push("would check node, npm, npx, local supabase path, and npx supabase --version");
+    actions.push("would inspect /home/johnh/.openclaw/.env variable names and presence only");
+    actions.push(`would compare SUPABASE_PROJECT_REF, if set, to ${EXPECTED_SUPABASE_PROJECT_REF}`);
+    actions.push("would run read-only npx supabase projects list only if SUPABASE_ACCESS_TOKEN is set and npx supabase --version works");
+    actions.push("would not install Supabase CLI as a dependency, run supabase login/link, set secrets, deploy, run migrations, SQL, scheduler mutation, Edge Function invoke, production curl, push, PR, or merge");
+    return {
+      finalStatus: "DRY RUN PASS",
+      ledgerStatus: "Supabase execution preflight ready, not executed",
+      summary: "dry-run passed; Supabase tooling/auth setup would run only safe local tooling and read-only project access checks",
+      nextPermission: "supabase-tooling-auth",
+      nextSkill: "cloudflare-deploy-skill / Supabase tooling/auth setup",
+      supabaseToolingAuth: buildSupabaseToolingAuthSkeleton(),
+      exitCode: 0,
+    };
+  }
+
+  if (!fs.existsSync(targetRepo)) {
+    return {
+      finalStatus: "BLOCKED: Node/npx/Supabase CLI unavailable",
+      ledgerStatus: "Blocked: target repo missing",
+      summary: `target repo does not exist: ${targetRepo}`,
+      nextPermission: "manual repo repair",
+      nextSkill: "repo-map-skill",
+      supabaseToolingAuth: buildSupabaseToolingAuthSkeleton(),
+      exitCode: 1,
+    };
+  }
+
+  const repoEvidence = collectSupabaseToolingRepoEvidence(targetRepo);
+  if (!repoEvidence.ok) return repoEvidence.result;
+
+  const tooling = collectSupabaseToolingAvailability();
+  const envShape = collectSupabaseRuntimeEnvShape("/home/johnh/.openclaw/.env");
+  const projectRef = checkSupabaseProjectRef(envShape);
+  const version = checkNpxSupabaseVersion(tooling);
+  const projectAccess = checkSupabaseProjectAccess(envShape, version);
+
+  const final = decideSupabaseToolingAuthFinal({
+    tooling,
+    envShape,
+    projectRef,
+    version,
+    projectAccess,
+  });
+
+  const report = {
+    currentLedgerState: "Supabase execution preflight ready, not executed",
+    targetRepoState: {
+      repo: targetRepo,
+      branch: repoEvidence.data.branch,
+      status: repoEvidence.data.status,
+      recentLog: repoEvidence.data.log,
+    },
+    nodeNpmNpxAvailability: formatVersionAvailability(tooling),
+    supabaseCliPath: tooling.supabasePath || "not found",
+    npxSupabaseVersionResult: version.summary,
+    localEnvShape: envShape.summary,
+    projectRefCheck: projectRef.summary,
+    supabaseAccessTokenPresence: envShape.SUPABASE_ACCESS_TOKEN ? "set" : "not set",
+    supabaseProjectAccessResult: projectAccess.summary,
+    finalStatus: final.status,
+    commandsNotRun: supabaseToolingAuthCommandsNotRun(),
+    nextPermission: final.nextPermission,
+  };
+
+  evidence.push(`tooling/auth current branch: ${repoEvidence.data.branch}`);
+  evidence.push(`tooling/auth git status: ${repoEvidence.data.status}`);
+  evidence.push(`node/npm/npx availability: ${report.nodeNpmNpxAvailability}`);
+  evidence.push(`Supabase CLI path: ${report.supabaseCliPath}`);
+  evidence.push(`npx Supabase version result: ${version.summary}`);
+  evidence.push(`local env shape: ${envShape.summary}`);
+  evidence.push(`project ref check: ${projectRef.summary}`);
+  evidence.push(`Supabase access token presence: ${report.supabaseAccessTokenPresence}`);
+  evidence.push(`Supabase project access result: ${projectAccess.summary}`);
+
+  return {
+    finalStatus: final.status,
+    ledgerStatus: final.ledgerStatus,
+    summary: final.summary,
+    nextPermission: final.nextPermission,
+    nextSkill: final.nextSkill,
+    supabaseToolingAuth: report,
+    localState: {
+      branch: repoEvidence.data.branch,
+      status: repoEvidence.data.status,
+      log: repoEvidence.data.log,
+    },
+    exitCode: final.exitCode,
+  };
+}
+
+function runSupabaseLinkSecretReadiness() {
+  if (dryRun) {
+    actions.push("would inspect target repo git state and stop on unexpected tracked changes");
+    actions.push("would load /home/johnh/.openclaw/.env without printing values");
+    actions.push(`would verify SUPABASE_PROJECT_REF matches ${EXPECTED_SUPABASE_PROJECT_REF}`);
+    actions.push("would reconfirm npx supabase --version and read-only project access");
+    actions.push("would run npx supabase link with SUPABASE_ACCESS_TOKEN only after auth/project checks pass");
+    actions.push(`would generate ${REQUIRED_IMPORT_SECRET} only if missing and store it only in /home/johnh/.openclaw/.env`);
+    actions.push("would not set remote secrets, deploy functions, run migrations, SQL, scheduler mutation, Edge Function invoke, production curl, push, PR, or merge");
+    return {
+      finalStatus: "DRY RUN PASS",
+      ledgerStatus: "Supabase tooling/auth ready, not linked",
+      summary: "dry-run passed; Supabase link/local secret readiness would run only local link and local env secret readiness checks",
+      nextPermission: "supabase-link-secret-readiness",
+      nextSkill: "cloudflare-deploy-skill / Supabase link and local secret readiness",
+      supabaseLinkSecretReadiness: buildSupabaseLinkSecretReadinessSkeleton(),
+      exitCode: 0,
+    };
+  }
+
+  if (!fs.existsSync(targetRepo)) {
+    return linkSecretReadinessBlocked("target repo does not exist", `target repo does not exist: ${targetRepo}`);
+  }
+
+  const beforeRepo = collectSupabaseLinkRepoEvidence(targetRepo, "pre-link");
+  if (!beforeRepo.ok) return beforeRepo.result;
+
+  const envFile = "/home/johnh/.openclaw/.env";
+  const envShape = collectSupabaseRuntimeEnvShape(envFile);
+  const projectRef = checkSupabaseProjectRef(envShape);
+  const tooling = collectSupabaseToolingAvailability();
+  const version = checkNpxSupabaseVersion(tooling);
+  const projectAccess = checkSupabaseProjectAccess(envShape, version);
+  const authFailure = decideSupabaseLinkAuthFailure({ envShape, projectRef, version, projectAccess });
+  if (authFailure) {
+    authFailure.supabaseLinkSecretReadiness = buildSupabaseLinkSecretReadinessReport({
+      repo: beforeRepo.data,
+      authResult: authFailure.summary,
+      linkResult: "not run",
+      localFilesChangedByLink: "not checked",
+      localSecretReadiness: "not checked",
+      finalStatus: authFailure.finalStatus,
+    });
+    return authFailure;
+  }
+
+  const linkEnv = {
+    ...process.env,
+    SUPABASE_ACCESS_TOKEN: envShape.SUPABASE_ACCESS_TOKEN,
+  };
+  const link = run("npx", ["supabase", "link", "--project-ref", EXPECTED_SUPABASE_PROJECT_REF], {
+    cwd: targetRepo,
+    env: linkEnv,
+    allowFailure: true,
+    timeout: 120000,
+    input: "",
+  });
+
+  if (link.code !== 0) {
+    const summary = summarizeSupabaseLinkFailure(link);
+    return {
+      finalStatus: "NEEDS JOHN: Supabase link requires interactive credential",
+      ledgerStatus: "Needs John: Supabase link requires interactive credential",
+      summary,
+      nextPermission: "provide required local project/database credential or approve alternate link path",
+      nextSkill: "cloudflare-deploy-skill / Supabase link and local secret readiness",
+      supabaseLinkSecretReadiness: buildSupabaseLinkSecretReadinessReport({
+        repo: beforeRepo.data,
+        authResult: "project access confirmed before link",
+        linkResult: summary,
+        localFilesChangedByLink: "not checked after failed link",
+        localSecretReadiness: "not checked",
+        finalStatus: "NEEDS JOHN: Supabase link requires interactive credential",
+      }),
+      exitCode: 2,
+    };
+  }
+
+  const afterRepo = collectSupabaseLinkRepoEvidence(targetRepo, "post-link");
+  if (!afterRepo.ok) return afterRepo.result;
+  const tempFiles = collectSupabaseTempFiles(targetRepo);
+  const afterUnexpected = classifyUnexpectedTargetRepoChanges(afterRepo.data.status);
+  if (afterUnexpected.hasUnexpected) {
+    return {
+      finalStatus: "BLOCKED: unexpected target repo changes",
+      ledgerStatus: "Blocked: unexpected target repo changes",
+      summary: afterUnexpected.summary,
+      nextPermission: "manual review of target repo changes",
+      nextSkill: "repo-map-skill",
+      supabaseLinkSecretReadiness: buildSupabaseLinkSecretReadinessReport({
+        repo: afterRepo.data,
+        authResult: "project access confirmed before link",
+        linkResult: "link command exited 0",
+        localFilesChangedByLink: summarizeLinkLocalFiles(afterRepo.data.status, tempFiles),
+        localSecretReadiness: "not checked because unexpected repo changes were found",
+        finalStatus: "BLOCKED: unexpected target repo changes",
+      }),
+      exitCode: 1,
+    };
+  }
+
+  const secretResult = ensureLocalImportSecret(envFile);
+  const report = buildSupabaseLinkSecretReadinessReport({
+    repo: afterRepo.data,
+    authResult: `project ref ${EXPECTED_SUPABASE_PROJECT_REF} appears in read-only projects list`,
+    linkResult: "link command exited 0",
+    localFilesChangedByLink: summarizeLinkLocalFiles(afterRepo.data.status, tempFiles),
+    localSecretReadiness: secretResult.summary,
+    finalStatus: "Supabase linked and local secret ready, not deployed",
+  });
+
+  evidence.push(`link/secret current branch: ${beforeRepo.data.branch}`);
+  evidence.push(`link/secret pre-link git status: ${beforeRepo.data.status}`);
+  evidence.push(`Supabase auth result: ${report.authResult}`);
+  evidence.push(`link result: ${report.linkResult}`);
+  evidence.push(`local files changed by link: ${report.localFilesChangedByLink}`);
+  evidence.push(`local secret readiness: ${secretResult.summary}`);
+  evidence.push("commands not run: remote secret setup, function deploy, db push, migrations, SQL, scheduler mutation, Edge Function invoke, production endpoint curl, git push/PR/merge");
+
+  return {
+    finalStatus: "Supabase linked and local secret ready, not deployed",
+    ledgerStatus: "Supabase linked and local secret ready, not deployed",
+    summary: "local Supabase link succeeded and local import secret readiness is satisfied; no remote secret setup, deploy, migration, SQL, scheduler, runtime, push, PR, or merge was run",
+    nextPermission: "approve remote secret setup and scheduler migration draft",
+    nextSkill: "cloudflare-deploy-skill / remote secret setup and scheduler migration draft",
+    supabaseLinkSecretReadiness: report,
+    localState: {
+      branch: afterRepo.data.branch,
+      status: afterRepo.data.status,
+      log: afterRepo.data.log,
+    },
+    exitCode: 0,
+  };
+}
+
+function runSchedulerDraftPr() {
+  const schedulerFiles = [];
+
+  if (dryRun) {
+    actions.push("would confirm target repo status, branch, recent log, remote, and clean tracked state");
+    actions.push(`would fetch origin/main and switch -C ${SCHEDULER_BRANCH} origin/main`);
+    actions.push("would inspect scheduler SQL/docs for import-reddit-tips, pg_cron/net.http_post, headers, and safe secret-storage evidence");
+    actions.push("would create one guarded local migration draft with no secret values");
+    actions.push("would update docs/import-reddit-tips-security.md scheduler status");
+    actions.push("would run git status, git diff --stat, git diff --check, and docs/migrations secret-pattern scan");
+    actions.push("would commit only the new migration and docs/import-reddit-tips-security.md via scripts/committer");
+    actions.push(`would push only ${SCHEDULER_BRANCH} and create or confirm PR into main`);
+    actions.push("would not set remote secrets, deploy functions, run db push, apply migrations, execute SQL, mutate scheduler, invoke Edge Functions, call production endpoints, or merge PR");
+    return {
+      finalStatus: "DRY RUN PASS",
+      ledgerStatus: "Supabase linked and local secret ready, not deployed",
+      summary: "dry-run passed; scheduler migration draft + exact-file commit + push/PR path would run with scheduler-draft-pr permission",
+      nextPermission: "scheduler-draft-pr",
+      nextSkill: "cloudflare-deploy-skill / scheduler migration draft and GitHub handoff",
+      schedulerDraftPr: buildSchedulerDraftPrReport({
+        branchResult: "dry-run",
+        schedulerEvidence: "dry-run",
+        migrationPath: "dry-run",
+        safetyDecision: "guarded draft would be created unless a safe SQL secret-storage path is proven",
+        localChecks: "dry-run",
+        commitResult: "dry-run",
+        pushResult: "dry-run",
+        prResult: "dry-run",
+        prUrl: "",
+        includedFiles: [],
+        excludedFiles: ["evidence/", "supabase/.temp/"],
+        finalStatus: "DRY RUN PASS",
+      }),
+      exitCode: 0,
+    };
+  }
+
+  const starting = collectSchedulerDraftRepoState("starting");
+  if (!starting.ok) return starting.result;
+  const unexpected = classifyUnexpectedTargetRepoChanges(starting.data.status);
+  if (unexpected.hasUnexpected) {
+    return schedulerDraftBlocked("Blocked: unexpected target repo changes", unexpected.summary);
+  }
+  const staged = run("git", ["-C", targetRepo, "diff", "--cached", "--name-only"]);
+  if (staged.code !== 0) return schedulerDraftBlocked("Blocked: staged-area check failed", firstLine(staged.stderr || staged.stdout));
+  if (staged.stdout.trim()) {
+    return schedulerDraftBlocked("Blocked: staged files present", `staged files present before drafting: ${staged.stdout.trim().split(/\r?\n/).join(", ")}`);
+  }
+
+  const fetch = run("git", ["-C", targetRepo, "fetch", "origin", "main"], { timeout: 120000 });
+  if (fetch.code !== 0) return schedulerDraftBlocked("Blocked: fetch failed", firstLine(fetch.stderr || fetch.stdout));
+
+  const switched = run("git", ["-C", targetRepo, "switch", "-C", SCHEDULER_BRANCH, "origin/main"]);
+  if (switched.code !== 0) return schedulerDraftBlocked("Blocked: branch switch failed", firstLine(switched.stderr || switched.stdout));
+  evidence.push(`branch result: switched ${SCHEDULER_BRANCH} from origin/main`);
+
+  const afterSwitch = collectSchedulerDraftRepoState("post-branch");
+  if (!afterSwitch.ok) return afterSwitch.result;
+  const afterUnexpected = classifyUnexpectedTargetRepoChanges(afterSwitch.data.status);
+  if (afterUnexpected.hasUnexpected) {
+    return schedulerDraftBlocked("Blocked: unexpected target repo changes", afterUnexpected.summary);
+  }
+
+  const schedulerEvidence = inspectSchedulerSource();
+  evidence.push(`scheduler source evidence: ${schedulerEvidence.summary}`);
+
+  const migration = createSchedulerMigrationDraft(schedulerEvidence);
+  schedulerFiles.push(migration.relative);
+  filesChanged.push(path.join(targetRepo, migration.relative));
+  evidence.push(`migration draft created: ${migration.relative}`);
+  evidence.push(`migration safety decision: ${migration.safetyDecision}`);
+
+  const docsUpdate = updateImportTipsSecurityDocs(migration.relative);
+  schedulerFiles.push("docs/import-reddit-tips-security.md");
+  filesChanged.push(path.join(targetRepo, "docs/import-reddit-tips-security.md"));
+  evidence.push(`docs update: ${docsUpdate}`);
+
+  const checks = runSchedulerLocalChecks();
+  if (!checks.ok) return checks.result;
+  evidence.push(`local checks: ${checks.summary}`);
+
+  const commit = run(
+    path.join(LIBRARY_ROOT, "scripts", "committer"),
+    [
+      "--repo",
+      targetRepo,
+      "--message",
+      SCHEDULER_COMMIT_MESSAGE,
+      "--files",
+      migration.relative,
+      "docs/import-reddit-tips-security.md",
+    ],
+    { timeout: 120000 },
+  );
+  if (commit.code !== 0) {
+    return schedulerDraftBlocked("Blocked: exact-file commit failed", firstLine(commit.stderr || commit.stdout));
+  }
+  const commitHash = run("git", ["-C", targetRepo, "rev-parse", "--short", "HEAD"]);
+  const commitResult = commitHash.code === 0
+    ? `commit ${commitHash.stdout.trim()} created`
+    : "commit created; hash unavailable";
+  evidence.push(`commit result: ${commitResult}`);
+
+  const gh = prepareSchedulerGhEnv();
+  if (!gh.ok) return gh.result;
+
+  const setupGit = run("gh", ["auth", "setup-git", "--hostname", "github.com"], {
+    env: gh.env,
+    allowFailure: true,
+  });
+  actions.push(`gh auth setup-git: ${setupGit.code === 0 ? "ok" : "nonfatal failure"}`);
+
+  const push = run("git", ["-C", targetRepo, "push", "-u", "origin", SCHEDULER_BRANCH], {
+    env: { ...gh.env, GIT_TERMINAL_PROMPT: "0" },
+    timeout: 120000,
+  });
+  if (push.code !== 0) {
+    return schedulerDraftBlocked("Blocked: scheduler branch push failed", firstLine(push.stderr || push.stdout));
+  }
+  evidence.push(`push result: pushed origin/${SCHEDULER_BRANCH}`);
+
+  const existingPr = viewSchedulerPr(gh.env);
+  let prUrl = "";
+  let prResult = "";
+  if (existingPr.ok) {
+    prUrl = existingPr.url;
+    prResult = "existing PR confirmed; no duplicate PR created";
+  } else {
+    writeSchedulerPrBody();
+    const createPr = run(
+      "gh",
+      [
+        "pr",
+        "create",
+        "--repo",
+        EXPECTED_GITHUB_REPO,
+        "--base",
+        "main",
+        "--head",
+        SCHEDULER_BRANCH,
+        "--title",
+        SCHEDULER_PR_TITLE,
+        "--body-file",
+        SCHEDULER_PR_BODY_PATH,
+      ],
+      { env: gh.env },
+    );
+    if (createPr.code !== 0) {
+      const afterFailure = viewSchedulerPr(gh.env);
+      if (!afterFailure.ok) {
+        return schedulerDraftBlocked("Blocked: scheduler PR creation failed", firstLine(createPr.stderr || createPr.stdout));
+      }
+      prUrl = afterFailure.url;
+      prResult = "PR exists after create failure; treating as confirmed";
+    } else {
+      prUrl = createPr.stdout.trim();
+      prResult = "PR created";
+    }
+  }
+  evidence.push(`PR result: ${prResult}`);
+  evidence.push("commands not run: remote supabase secrets set, function deploy, db push, migration apply, SQL execution, scheduler mutation, Edge Function invoke, production endpoint curl, PR merge");
+
+  const finalState = collectSchedulerDraftRepoState("final");
+  if (finalState.ok) {
+    evidence.push(`final branch: ${finalState.data.branch}`);
+    evidence.push(`final git status: ${finalState.data.status}`);
+  }
+
+  return {
+    finalStatus: "Scheduler migration PR opened, not merged",
+    ledgerStatus: "Scheduler migration PR opened, not merged",
+    summary: "guarded scheduler migration draft was created, local checks passed, exact-file commit succeeded, branch was pushed, and PR was created or confirmed; no remote Supabase mutation was run",
+    nextPermission: "approve scheduler migration PR readiness/merge decision",
+    nextSkill: "github-handoff-skill / scheduler migration PR readiness",
+    prUrl,
+    branch: SCHEDULER_BRANCH,
+    schedulerDraftPr: buildSchedulerDraftPrReport({
+      branchResult: `switched ${SCHEDULER_BRANCH} from origin/main`,
+      schedulerEvidence: schedulerEvidence.summary,
+      migrationPath: migration.relative,
+      safetyDecision: migration.safetyDecision,
+      localChecks: checks.summary,
+      commitResult,
+      pushResult: `pushed origin/${SCHEDULER_BRANCH}`,
+      prResult,
+      prUrl,
+      includedFiles: schedulerFiles,
+      excludedFiles: ["evidence/", "supabase/.temp/"],
+      finalStatus: "Scheduler migration PR opened, not merged",
+    }),
+    localState: finalState.ok ? {
+      branch: finalState.data.branch,
+      status: finalState.data.status,
+      log: finalState.data.log,
+    } : null,
+    exitCode: 0,
+  };
+}
+
+function collectSchedulerDraftRepoState(phase) {
+  if (!fs.existsSync(targetRepo)) {
+    return {
+      ok: false,
+      result: schedulerDraftBlocked("Blocked: target repo missing", `target repo does not exist: ${targetRepo}`),
+    };
+  }
+
+  const status = run("git", ["-C", targetRepo, "status", "--short"]);
+  const branch = run("git", ["-C", targetRepo, "branch", "--show-current"]);
+  const log = run("git", ["-C", targetRepo, "log", "--oneline", "-8"]);
+  const remote = run("git", ["-C", targetRepo, "remote", "-v"]);
+
+  if ([status, branch, log, remote].some((item) => item.code !== 0)) {
+    return {
+      ok: false,
+      result: schedulerDraftBlocked("Blocked: repo evidence failed", `one or more ${phase} repo evidence commands failed`),
+    };
+  }
+
+  const data = {
+    phase,
+    status: status.stdout.trim() || "clean",
+    branch: branch.stdout.trim() || "(detached)",
+    log: log.stdout.trim(),
+    remote: remote.stdout.trim(),
+  };
+  evidence.push(`${phase} branch: ${data.branch}`);
+  evidence.push(`${phase} git status: ${data.status}`);
+  evidence.push(`${phase} recent log: ${firstLine(data.log)}`);
+  evidence.push(`${phase} remote: ${firstLine(data.remote)}`);
+  return { ok: true, data };
+}
+
+function inspectSchedulerSource() {
+  const migrationsDir = path.join(targetRepo, "supabase", "migrations");
+  const docsDir = path.join(targetRepo, "docs");
+  const pattern = "import-reddit-tips|cron.schedule|cron.unschedule|cron.alter_job|pg_cron|net.http_post|http_post|apikey|Authorization|Bearer|x-import-reddit-tips-secret|IMPORT_REDDIT_TIPS_SECRET|vault";
+  const grep = run("grep", ["-RniE", pattern, migrationsDir, docsDir], {
+    allowFailure: true,
+  });
+  const hits = String(grep.stdout || "")
+    .split(/\r?\n/)
+    .map((line) => relativizeLine(targetRepo, line.trim()))
+    .filter(Boolean);
+  const scheduler = classifySupabaseScheduler(hits);
+  const safeSecretStorage = hits.some((line) => /supabase\/migrations/i.test(line) && /\bvault\b|vault\.|decrypted_secret|secrets\.|current_setting\(/i.test(line));
+  const existingHeader = hits.some((line) => /x-import-reddit-tips-secret/i.test(line) && /supabase\/migrations/i.test(line));
+  return {
+    hits,
+    scheduler,
+    safeSecretStorage,
+    existingHeader,
+    summary: [
+      scheduler.summary,
+      safeSecretStorage ? "possible SQL secret-storage pattern found and needs review" : "no proven safe pg_cron SQL secret-storage path found",
+      existingHeader ? "a migration already mentions x-import-reddit-tips-secret" : "no migration evidence found for x-import-reddit-tips-secret header",
+    ].join(" "),
+  };
+}
+
+function createSchedulerMigrationDraft(schedulerEvidence) {
+  const migrationsDir = path.join(targetRepo, "supabase", "migrations");
+  if (!fs.existsSync(migrationsDir)) {
+    throw new Error(`missing migrations directory: ${migrationsDir}`);
+  }
+  const filename = `${timestampForMigration()}_update_import_reddit_tips_scheduler_secret.sql`;
+  const relative = path.join("supabase", "migrations", filename).replaceAll("\\", "/");
+  const full = path.join(targetRepo, relative);
+  if (fs.existsSync(full)) {
+    throw new Error(`migration file already exists: ${relative}`);
+  }
+
+  const jobName = schedulerEvidence.scheduler.jobName || "import-reddit-tips-daily";
+  const safetyDecision = schedulerEvidence.safeSecretStorage
+    ? "guarded draft created; possible secret-storage pattern still requires human review before applying"
+    : "guarded non-executable draft created because no safe pg_cron secret-storage path was proven";
+  const hits = schedulerEvidence.hits.slice(0, 12).map((line) => `-- - ${line}`).join("\n") || "-- - No scheduler source hits captured.";
+  const content = `-- Guarded local draft: update import-reddit-tips scheduler secret header.
+--
+-- REVIEW REQUIRED BEFORE APPLYING:
+-- This migration draft is intentionally non-executable.
+-- Do not apply it until the scheduler secret storage path is confirmed.
+-- Do not hardcode IMPORT_REDDIT_TIPS_SECRET in SQL, migrations, docs, or source.
+-- Remote Supabase secret setup, scheduler secret storage, migration application,
+-- function deployment, and runtime verification are separate permission gates.
+--
+-- Existing scheduled job identified from source review:
+-- - ${jobName}
+--
+-- Required scheduler behavior after import-reddit-tips hardening:
+-- - scheduled calls must include the x-import-reddit-tips-secret header
+-- - the header value must come from a reviewed secure secret-storage path
+-- - anon/apikey/Authorization-only scheduling is insufficient after hardening
+--
+-- Source evidence reviewed:
+${hits}
+--
+-- Draft shape once a safe secret-storage path is approved:
+--
+-- select cron.unschedule('${jobName}');
+--
+-- select cron.schedule(
+--   '${jobName}',
+--   '<reviewed schedule expression>',
+--   $$
+--   select net.http_post(
+--     url := '<existing import-reddit-tips URL>',
+--     headers := jsonb_build_object(
+--       'Content-Type', 'application/json',
+--       'apikey', '<existing public anon key source if still required>',
+--       'Authorization', '<existing bearer anon key source if still required>',
+--       'x-import-reddit-tips-secret', '<secret>'
+--     ),
+--     body := '{}'::jsonb
+--   );
+--   $$
+-- );
+--
+-- Safety decision: ${safetyDecision}.
+`;
+  fs.writeFileSync(full, content, { flag: "wx" });
+  return { relative, full, safetyDecision };
+}
+
+function updateImportTipsSecurityDocs(migrationRelativePath) {
+  const docsFile = path.join(targetRepo, "docs", "import-reddit-tips-security.md");
+  let text = fs.existsSync(docsFile) ? fs.readFileSync(docsFile, "utf8") : "# Import Reddit Tips Security\n";
+  const section = `\n## Scheduler Migration Status\n\n- Local scheduler migration draft created: \`${migrationRelativePath}\`.\n- The draft has not been applied.\n- \`IMPORT_REDDIT_TIPS_SECRET\` must not be hardcoded in SQL, migrations, docs, or source.\n- The old anon/apikey-only scheduler is insufficient after \`import-reddit-tips\` hardening.\n- Remote secret setup, scheduler secret storage, migration application, function deploy, and runtime verification remain separate gates.\n`;
+
+  if (/## Scheduler Migration Status[\s\S]*?(?=\n## |\s*$)/.test(text)) {
+    text = text.replace(/## Scheduler Migration Status[\s\S]*?(?=\n## |\s*$)/, section.trimEnd());
+  } else {
+    if (!text.endsWith("\n")) text += "\n";
+    text += section;
+  }
+  fs.mkdirSync(path.dirname(docsFile), { recursive: true });
+  fs.writeFileSync(docsFile, text.replace(/\n*$/, "\n"));
+  return "scheduler migration status section updated";
+}
+
+function runSchedulerLocalChecks() {
+  const status = run("git", ["-C", targetRepo, "status", "--short"]);
+  const diffStat = run("git", ["-C", targetRepo, "diff", "--stat"]);
+  const diffCheck = run("git", ["-C", targetRepo, "diff", "--check"], { allowFailure: true });
+  const secretScan = run(
+    "grep",
+    [
+      "-RniE",
+      "IMPORT_REDDIT_TIPS_SECRET=.*[A-Za-z0-9_-]{12,}|x-import-reddit-tips-secret.*[A-Za-z0-9_-]{12,}|SUPABASE_SERVICE_ROLE_KEY=.*[A-Za-z0-9_-]{12,}",
+      path.join(targetRepo, "supabase", "migrations"),
+      path.join(targetRepo, "docs"),
+    ],
+    { allowFailure: true },
+  );
+
+  if (status.code !== 0 || diffStat.code !== 0) {
+    return {
+      ok: false,
+      result: schedulerDraftBlocked("Blocked: local check failed", "git status or diff stat failed"),
+    };
+  }
+  if (diffCheck.code !== 0) {
+    return {
+      ok: false,
+      result: schedulerDraftBlocked("Blocked: git diff --check failed", firstLine(diffCheck.stderr || diffCheck.stdout)),
+    };
+  }
+  if (secretScan.stdout.trim()) {
+    return {
+      ok: false,
+      result: schedulerDraftBlocked("Blocked: secret-pattern scan found potential hardcoded value", "secret-pattern scan over docs/migrations returned one or more matches"),
+    };
+  }
+
+  return {
+    ok: true,
+    summary: [
+      `git status: ${status.stdout.trim() || "clean"}`,
+      `diff stat: ${diffStat.stdout.trim() || "(no diff)"}`,
+      "git diff --check passed",
+      "secret-pattern scan over docs/migrations passed",
+    ].join("; "),
+  };
+}
+
+function prepareSchedulerGhEnv() {
+  const envFile = loadEnvFile("/home/johnh/.openclaw/.env");
+  const ghToken = envFile.GH_TOKEN || process.env.GH_TOKEN || "";
+  const githubTokenPresent = Boolean(envFile.GITHUB_TOKEN || process.env.GITHUB_TOKEN);
+  const ghTokenPresent = Boolean(ghToken);
+  evidence.push(`GH_TOKEN presence: ${ghTokenPresent ? "set" : "not set"}`);
+  evidence.push(`GITHUB_TOKEN presence: ${githubTokenPresent ? "set" : "not set"}`);
+
+  if (!ghTokenPresent) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "NEEDS JOHN",
+        ledgerStatus: "Needs John token replacement",
+        summary: "GH_TOKEN is not set in runtime env",
+        nextPermission: "provide valid local GH_TOKEN without pasting it into chat",
+        nextSkill: "github-auth-gate-skill",
+        schedulerDraftPr: buildSchedulerDraftPrReport({
+          branchResult: SCHEDULER_BRANCH,
+          schedulerEvidence: "completed before GitHub auth gate",
+          migrationPath: "created before GitHub auth gate",
+          safetyDecision: "guarded local draft only",
+          localChecks: "passed before GitHub auth gate",
+          commitResult: "completed before GitHub auth gate",
+          pushResult: "not run",
+          prResult: "not run",
+          prUrl: "",
+          includedFiles: [],
+          excludedFiles: ["evidence/", "supabase/.temp/"],
+          finalStatus: "NEEDS JOHN",
+        }),
+        exitCode: 2,
+      },
+    };
+  }
+
+  const ghEnv = buildGhEnv(ghToken);
+  const user = run("gh", ["api", "user", "--jq", ".login"], { env: ghEnv });
+  if (user.code !== 0 || user.stdout.trim() !== EXPECTED_GITHUB_USER) {
+    return {
+      ok: false,
+      result: schedulerDraftBlocked("Needs John token replacement", `GH_TOKEN user check failed: ${firstLine(user.stderr || user.stdout)}`),
+    };
+  }
+  evidence.push(`GH_TOKEN user: ${EXPECTED_GITHUB_USER}`);
+
+  const repoView = run(
+    "gh",
+    ["repo", "view", EXPECTED_GITHUB_REPO, "--json", "nameWithOwner,visibility,viewerPermission"],
+    { env: ghEnv },
+  );
+  if (repoView.code !== 0) {
+    return {
+      ok: false,
+      result: schedulerDraftBlocked("Needs John token permission fix", `repo view failed: ${firstLine(repoView.stderr || repoView.stdout)}`),
+    };
+  }
+  let repoJson;
+  try {
+    repoJson = JSON.parse(repoView.stdout);
+  } catch (error) {
+    return {
+      ok: false,
+      result: schedulerDraftBlocked("Blocked: repo view parse failed", `could not parse repo view JSON: ${error.message}`),
+    };
+  }
+  if (repoJson.nameWithOwner !== EXPECTED_GITHUB_REPO || !["WRITE", "MAINTAIN", "ADMIN"].includes(repoJson.viewerPermission)) {
+    return {
+      ok: false,
+      result: schedulerDraftBlocked("Needs John token permission fix", `repo access check returned ${repoJson.nameWithOwner || "unknown"} ${repoJson.viewerPermission || "unknown"}`),
+    };
+  }
+  evidence.push(`repo access: ${repoJson.nameWithOwner} ${repoJson.viewerPermission}`);
+  return { ok: true, env: ghEnv };
+}
+
+function viewSchedulerPr(ghEnv) {
+  const view = run(
+    "gh",
+    [
+      "pr",
+      "view",
+      "--repo",
+      EXPECTED_GITHUB_REPO,
+      SCHEDULER_BRANCH,
+      "--json",
+      "url,title,state,headRefName,baseRefName",
+    ],
+    { env: ghEnv, allowFailure: true },
+  );
+  if (view.code !== 0) return { ok: false };
+  try {
+    const data = JSON.parse(view.stdout);
+    return { ok: true, url: data.url, data };
+  } catch {
+    return { ok: false };
+  }
+}
+
+function writeSchedulerPrBody() {
+  const body = `## Summary
+
+* Adds a local scheduler migration draft for \`import-reddit-tips\`
+* Documents that scheduled calls must include \`x-import-reddit-tips-secret\`
+* Preserves the safety rule that \`IMPORT_REDDIT_TIPS_SECRET\` must not be hardcoded in SQL
+* Keeps remote secret setup, scheduler application, deploy, and runtime checks as separate gates
+
+## Validation
+
+* \`git diff --check\` passed
+* secret-pattern scan over docs/migrations passed
+* exact-file commit used
+* no secrets printed or committed
+
+## Known Caveats
+
+* migration is a guarded local draft unless a safe scheduler secret-storage path is confirmed
+* no remote Supabase secret was set
+* no migration was applied
+* no function was deployed
+* no production endpoint was called
+
+## Next Gates
+
+* approve reviewed scheduler application path
+* approve remote \`IMPORT_REDDIT_TIPS_SECRET\` setup
+* approve function deploy
+* approve runtime verification
+`;
+  fs.writeFileSync(SCHEDULER_PR_BODY_PATH, body);
+  filesChanged.push(SCHEDULER_PR_BODY_PATH);
+}
+
+function buildSchedulerDraftPrReport({
+  branchResult,
+  schedulerEvidence,
+  migrationPath,
+  safetyDecision,
+  localChecks,
+  commitResult,
+  pushResult,
+  prResult,
+  prUrl,
+  includedFiles,
+  excludedFiles,
+  finalStatus,
+}) {
+  return {
+    branchResult,
+    schedulerEvidence,
+    migrationPath,
+    safetyDecision,
+    localChecks,
+    commitResult,
+    pushResult,
+    prResult,
+    prUrl,
+    includedFiles,
+    excludedFiles,
+    commandsNotRun: [
+      `supabase secrets set ${REQUIRED_IMPORT_SECRET}=<redacted>`,
+      `npx supabase functions deploy ${IMPORT_FUNCTION_NAME}`,
+      "supabase db push",
+      "migration apply",
+      "SQL execution",
+      "scheduler mutation",
+      "Edge Function invoke",
+      "production endpoint curl",
+      "PR merge",
+    ],
+    finalStatus,
+  };
+}
+
+function schedulerDraftBlocked(ledgerStatus, summary) {
+  return {
+    finalStatus: ledgerStatus.startsWith("Needs John") ? "NEEDS JOHN" : "BLOCKED",
+    ledgerStatus,
+    summary,
+    nextPermission: "manual review of scheduler draft workflow",
+    nextSkill: "coding-workflow-orchestrator-skill",
+    schedulerDraftPr: buildSchedulerDraftPrReport({
+      branchResult: "blocked before completion",
+      schedulerEvidence: "see evidence log",
+      migrationPath: "not completed",
+      safetyDecision: "not completed",
+      localChecks: "not completed",
+      commitResult: "not completed",
+      pushResult: "not run",
+      prResult: "not run",
+      prUrl: "",
+      includedFiles: [],
+      excludedFiles: ["evidence/", "supabase/.temp/"],
+      finalStatus: ledgerStatus,
+    }),
+    exitCode: ledgerStatus.startsWith("Needs John") ? 2 : 1,
+  };
+}
+
+function collectSupabaseLinkRepoEvidence(repo, phase) {
+  const status = run("git", ["-C", repo, "status", "--short"]);
+  const branch = run("git", ["-C", repo, "branch", "--show-current"]);
+  const log = run("git", ["-C", repo, "log", "--oneline", "-8"]);
+
+  if ([status, branch, log].some((item) => item.code !== 0)) {
+    return {
+      ok: false,
+      result: linkSecretReadinessBlocked(`${phase} git evidence failed`, "one or more read-only git evidence commands failed"),
+    };
+  }
+
+  const data = {
+    phase,
+    status: status.stdout.trim() || "clean",
+    branch: branch.stdout.trim() || "(detached)",
+    log: log.stdout.trim(),
+  };
+  const unexpected = classifyUnexpectedTargetRepoChanges(data.status);
+  if (unexpected.hasUnexpected) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED: unexpected target repo changes",
+        ledgerStatus: "Blocked: unexpected target repo changes",
+        summary: unexpected.summary,
+        nextPermission: "manual review of target repo changes",
+        nextSkill: "repo-map-skill",
+        supabaseLinkSecretReadiness: buildSupabaseLinkSecretReadinessReport({
+          repo: data,
+          authResult: "not checked",
+          linkResult: "not run",
+          localFilesChangedByLink: "not checked",
+          localSecretReadiness: "not checked",
+          finalStatus: "BLOCKED: unexpected target repo changes",
+        }),
+        exitCode: 1,
+      },
+    };
+  }
+
+  return { ok: true, data };
+}
+
+function classifyUnexpectedTargetRepoChanges(statusText) {
+  const lines = String(statusText || "")
+    .split(/\r?\n/)
+    .map((line) => line.trimEnd())
+    .filter(Boolean);
+  const unexpected = lines.filter((line) => {
+    if (line === "?? evidence/" || line.startsWith("?? evidence/")) return false;
+    if (line === "?? supabase/.temp/" || line.startsWith("?? supabase/.temp/")) return false;
+    return true;
+  });
+
+  return {
+    hasUnexpected: unexpected.length > 0,
+    unexpected,
+    summary: unexpected.length
+      ? `unexpected target repo changes: ${unexpected.join("; ")}`
+      : "no unexpected target repo changes",
+  };
+}
+
+function decideSupabaseLinkAuthFailure({ envShape, projectRef, version, projectAccess }) {
+  const nextSkill = "cloudflare-deploy-skill / Supabase link and local secret readiness";
+  if (projectRef.mismatch) {
+    return {
+      finalStatus: "NEEDS JOHN: Supabase project ref mismatch",
+      ledgerStatus: "Needs John: Supabase project ref mismatch",
+      summary: projectRef.summary,
+      nextPermission: "fix SUPABASE_PROJECT_REF locally or confirm intended project",
+      nextSkill,
+      exitCode: 2,
+    };
+  }
+  if (!envShape.SUPABASE_ACCESS_TOKEN) {
+    return {
+      finalStatus: "NEEDS JOHN: Supabase project access failed",
+      ledgerStatus: "Needs John: Supabase project access failed",
+      summary: "SUPABASE_ACCESS_TOKEN is not set in local runtime env",
+      nextPermission: "add SUPABASE_ACCESS_TOKEN locally without pasting it into chat",
+      nextSkill,
+      exitCode: 2,
+    };
+  }
+  if (!version.ok) {
+    return {
+      finalStatus: "NEEDS JOHN: Supabase project access failed",
+      ledgerStatus: "Needs John: Supabase project access failed",
+      summary: version.summary,
+      nextPermission: "fix local npx Supabase CLI availability",
+      nextSkill,
+      exitCode: 2,
+    };
+  }
+  if (!projectAccess.ok) {
+    return {
+      finalStatus: "NEEDS JOHN: Supabase project access failed",
+      ledgerStatus: "Needs John: Supabase project access failed",
+      summary: projectAccess.summary,
+      nextPermission: "provide Supabase access token with target project access",
+      nextSkill,
+      exitCode: 2,
+    };
+  }
+  return null;
+}
+
+function collectSupabaseTempFiles(repo) {
+  const tempDir = path.join(repo, "supabase", ".temp");
+  const result = run("find", [tempDir, "-maxdepth", "3", "-type", "f"], {
+    allowFailure: true,
+  });
+  return sortedRelativeLines(repo, result.stdout);
+}
+
+function summarizeLinkLocalFiles(statusText, tempFiles) {
+  const status = String(statusText || "").trim() || "clean";
+  const tempSummary = tempFiles.length ? `supabase/.temp files: ${tempFiles.join(", ")}` : "no supabase/.temp files listed";
+  return `git status: ${status}; ${tempSummary}`;
+}
+
+function ensureLocalImportSecret(envFile) {
+  const current = loadEnvFile(envFile);
+  if (current[REQUIRED_IMPORT_SECRET]) {
+    return { changed: false, summary: `${REQUIRED_IMPORT_SECRET} is set` };
+  }
+
+  const generated = require("crypto").randomBytes(32).toString("hex");
+  const existingText = fs.existsSync(envFile) ? fs.readFileSync(envFile, "utf8") : "";
+  const lines = existingText.split(/\r?\n/);
+  let replaced = false;
+  const updatedLines = lines.map((line) => {
+    if (new RegExp(`^(?:export\\s+)?${REQUIRED_IMPORT_SECRET}\\s*=`).test(line.trim())) {
+      replaced = true;
+      return `${REQUIRED_IMPORT_SECRET}=${generated}`;
+    }
+    return line;
+  });
+
+  if (!replaced) {
+    if (updatedLines.length && updatedLines[updatedLines.length - 1] !== "") updatedLines.push("");
+    updatedLines.push(`${REQUIRED_IMPORT_SECRET}=${generated}`);
+  }
+
+  fs.writeFileSync(envFile, updatedLines.join("\n").replace(/\n*$/, "\n"));
+  filesChanged.push(envFile);
+  return { changed: true, summary: `${REQUIRED_IMPORT_SECRET} generated and stored locally` };
+}
+
+function summarizeSupabaseLinkFailure(result) {
+  const first = firstLine(result.stderr || result.stdout);
+  if (/password|credential|interactive|prompt|stdin|db/i.test(first)) {
+    return `link requires interactive project/database credential: ${first}`;
+  }
+  return `link did not complete non-interactively: ${first}`;
+}
+
+function linkSecretReadinessBlocked(ledgerStatus, summary) {
+  return {
+    finalStatus: "BLOCKED: unexpected target repo changes",
+    ledgerStatus: `Blocked: ${ledgerStatus}`,
+    summary,
+    nextPermission: "manual review",
+    nextSkill: "repo-map-skill",
+    supabaseLinkSecretReadiness: buildSupabaseLinkSecretReadinessSkeleton(),
+    exitCode: 1,
+  };
+}
+
+function buildSupabaseLinkSecretReadinessReport({
+  repo,
+  authResult,
+  linkResult,
+  localFilesChangedByLink,
+  localSecretReadiness,
+  finalStatus,
+}) {
+  return {
+    currentLedgerState: "Supabase tooling/auth ready, not linked",
+    targetRepoState: repo
+      ? {
+          repo: targetRepo,
+          branch: repo.branch,
+          status: repo.status,
+          recentLog: repo.log,
+        }
+      : null,
+    authResult,
+    linkResult,
+    localFilesChangedByLink,
+    localSecretReadiness,
+    commandsRun: actions.slice(),
+    commandsNotRun: supabaseLinkSecretReadinessCommandsNotRun(),
+    finalStatus,
+    nextPermission: finalStatus === "Supabase linked and local secret ready, not deployed"
+      ? "approve remote secret setup and scheduler migration draft"
+      : "manual review",
+  };
+}
+
+function buildSupabaseLinkSecretReadinessSkeleton() {
+  return buildSupabaseLinkSecretReadinessReport({
+    repo: null,
+    authResult: "not checked",
+    linkResult: "not run",
+    localFilesChangedByLink: "not checked",
+    localSecretReadiness: "not checked",
+    finalStatus: "DRY RUN PASS",
+  });
+}
+
+function supabaseLinkSecretReadinessCommandsNotRun() {
+  return [
+    `supabase secrets set ${REQUIRED_IMPORT_SECRET}=<redacted>`,
+    `npx supabase secrets set ${REQUIRED_IMPORT_SECRET}=<redacted>`,
+    `supabase functions deploy ${IMPORT_FUNCTION_NAME}`,
+    `npx supabase functions deploy ${IMPORT_FUNCTION_NAME}`,
+    "supabase db push",
+    "Supabase migrations",
+    "SQL execution",
+    "scheduler mutation",
+    "Edge Function invoke",
+    "production endpoint curl",
+    "git push / PR / merge",
+    "staging evidence/",
+  ];
+}
+
+function collectSupabaseToolingRepoEvidence(repo) {
+  const status = run("git", ["-C", repo, "status", "--short"]);
+  const branch = run("git", ["-C", repo, "branch", "--show-current"]);
+  const log = run("git", ["-C", repo, "log", "--oneline", "-8"]);
+
+  if ([status, branch, log].some((item) => item.code !== 0)) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED: Node/npx/Supabase CLI unavailable",
+        ledgerStatus: "Blocked: Supabase tooling/auth git evidence failed",
+        summary: "one or more read-only git evidence commands failed",
+        nextPermission: "manual repo repair",
+        nextSkill: "repo-map-skill",
+        supabaseToolingAuth: buildSupabaseToolingAuthSkeleton(),
+        exitCode: 1,
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      status: status.stdout.trim() || "clean",
+      branch: branch.stdout.trim() || "(detached)",
+      log: log.stdout.trim(),
+    },
+  };
+}
+
+function collectSupabaseToolingAvailability() {
+  const nodeVersion = run("node", ["--version"], { allowFailure: true });
+  const npmVersion = run("npm", ["--version"], { allowFailure: true });
+  const npxVersion = run("npx", ["--version"], { allowFailure: true });
+  const supabasePath = run("bash", ["-lc", "command -v supabase || true"], { allowFailure: true });
+  const npxPath = run("bash", ["-lc", "command -v npx || true"], { allowFailure: true });
+
+  return {
+    nodeVersion: nodeVersion.code === 0 ? nodeVersion.stdout.trim() : "unavailable",
+    npmVersion: npmVersion.code === 0 ? npmVersion.stdout.trim() : "unavailable",
+    npxVersion: npxVersion.code === 0 ? npxVersion.stdout.trim() : "unavailable",
+    supabasePath: supabasePath.stdout.trim() || "not found",
+    npxPath: npxPath.stdout.trim() || "not found",
+    nodeOk: nodeVersion.code === 0,
+    npmOk: npmVersion.code === 0,
+    npxOk: npxVersion.code === 0 && Boolean(npxPath.stdout.trim()),
+  };
+}
+
+function collectSupabaseRuntimeEnvShape(file) {
+  const parsed = loadEnvFile(file);
+  const names = ["SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_REF", REQUIRED_IMPORT_SECRET];
+  const presentNames = names.filter((name) => Boolean(parsed[name]));
+  const shape = names.map((name) => `${name}=${parsed[name] ? "<redacted>" : "<not set>"}`);
+  const summary = fs.existsSync(file)
+    ? `${shape.join("; ")}`
+    : `${file} not found; ${shape.join("; ")}`;
+
+  return {
+    file,
+    presentNames,
+    summary,
+    SUPABASE_ACCESS_TOKEN: parsed.SUPABASE_ACCESS_TOKEN || "",
+    SUPABASE_PROJECT_REF: parsed.SUPABASE_PROJECT_REF || "",
+    IMPORT_REDDIT_TIPS_SECRET: parsed[REQUIRED_IMPORT_SECRET] || "",
+  };
+}
+
+function checkSupabaseProjectRef(envShape) {
+  if (envShape.SUPABASE_PROJECT_REF && envShape.SUPABASE_PROJECT_REF !== EXPECTED_SUPABASE_PROJECT_REF) {
+    return {
+      ok: false,
+      mismatch: true,
+      summary: `NEEDS JOHN: Supabase project ref mismatch; source ref is ${EXPECTED_SUPABASE_PROJECT_REF}`,
+    };
+  }
+
+  if (!envShape.SUPABASE_PROJECT_REF) {
+    return {
+      ok: true,
+      mismatch: false,
+      summary: `SUPABASE_PROJECT_REF not set; source ref is ${EXPECTED_SUPABASE_PROJECT_REF}`,
+    };
+  }
+
+  return {
+    ok: true,
+    mismatch: false,
+    summary: `SUPABASE_PROJECT_REF matches source ref ${EXPECTED_SUPABASE_PROJECT_REF}`,
+  };
+}
+
+function checkNpxSupabaseVersion(tooling) {
+  if (!tooling.nodeOk || !tooling.npmOk || !tooling.npxOk) {
+    return {
+      ok: false,
+      summary: "not run because Node/npm/npx tooling is unavailable",
+    };
+  }
+
+  const version = run("npx", ["supabase", "--version"], {
+    allowFailure: true,
+    timeout: 120000,
+  });
+  if (version.code !== 0) {
+    return {
+      ok: false,
+      summary: `npx supabase --version failed: ${firstLine(version.stderr || version.stdout)}`,
+    };
+  }
+
+  return {
+    ok: true,
+    summary: firstLine(version.stdout || version.stderr),
+  };
+}
+
+function checkSupabaseProjectAccess(envShape, version) {
+  if (!envShape.SUPABASE_ACCESS_TOKEN) {
+    return {
+      ok: false,
+      attempted: false,
+      summary: "not attempted because SUPABASE_ACCESS_TOKEN is not set",
+    };
+  }
+
+  if (!version.ok) {
+    return {
+      ok: false,
+      attempted: false,
+      summary: "not attempted because npx supabase --version did not pass",
+    };
+  }
+
+  const env = {
+    ...process.env,
+    SUPABASE_ACCESS_TOKEN: envShape.SUPABASE_ACCESS_TOKEN,
+  };
+  const projects = run("npx", ["supabase", "projects", "list"], {
+    env,
+    allowFailure: true,
+    timeout: 120000,
+  });
+
+  if (projects.code !== 0) {
+    const line = firstLine(projects.stderr || projects.stdout);
+    const invalid = /auth|token|unauthorized|forbidden|401|403|invalid|expired|not logged/i.test(line);
+    return {
+      ok: false,
+      attempted: true,
+      authInvalid: invalid,
+      summary: invalid
+        ? `NEEDS JOHN: Supabase access token invalid: ${line}`
+        : `NEEDS JOHN: Supabase access token invalid or missing project access: ${line}`,
+    };
+  }
+
+  if (projects.stdout.includes(EXPECTED_SUPABASE_PROJECT_REF)) {
+    return {
+      ok: true,
+      attempted: true,
+      summary: `project ref ${EXPECTED_SUPABASE_PROJECT_REF} appears in read-only projects list`,
+    };
+  }
+
+  return {
+    ok: false,
+    attempted: true,
+    lacksProjectAccess: true,
+    summary: `NEEDS JOHN: Supabase token lacks project access or wrong account; ${EXPECTED_SUPABASE_PROJECT_REF} was not found`,
+  };
+}
+
+function decideSupabaseToolingAuthFinal({ tooling, envShape, projectRef, version, projectAccess }) {
+  const nextSkill = "cloudflare-deploy-skill / Supabase tooling/auth setup";
+
+  if (!tooling.nodeOk || !tooling.npmOk || !tooling.npxOk || !version.ok) {
+    return {
+      status: "BLOCKED: Node/npx/Supabase CLI unavailable",
+      ledgerStatus: "Blocked: Node/npx/Supabase CLI unavailable",
+      summary: "Node/npm/npx or npx Supabase CLI version check is unavailable",
+      nextPermission: "approve Supabase tooling/auth setup",
+      nextSkill,
+      exitCode: 1,
+    };
+  }
+
+  if (projectRef.mismatch) {
+    return {
+      status: "NEEDS JOHN: Supabase project ref mismatch",
+      ledgerStatus: "Needs John: Supabase project ref mismatch",
+      summary: projectRef.summary,
+      nextPermission: "fix SUPABASE_PROJECT_REF locally or confirm intended project",
+      nextSkill,
+      exitCode: 2,
+    };
+  }
+
+  if (!envShape.SUPABASE_ACCESS_TOKEN) {
+    return {
+      status: "NEEDS JOHN: Supabase access token missing",
+      ledgerStatus: "Needs John: Supabase access token missing",
+      summary: "SUPABASE_ACCESS_TOKEN is not set in local runtime env",
+      nextPermission: "add SUPABASE_ACCESS_TOKEN locally without pasting it into chat",
+      nextSkill,
+      exitCode: 2,
+    };
+  }
+
+  if (!projectAccess.ok && projectAccess.lacksProjectAccess) {
+    return {
+      status: "NEEDS JOHN: Supabase token lacks project access",
+      ledgerStatus: "Needs John: Supabase token lacks project access",
+      summary: projectAccess.summary,
+      nextPermission: "provide a Supabase access token with access to the target project",
+      nextSkill,
+      exitCode: 2,
+    };
+  }
+
+  if (!projectAccess.ok) {
+    return {
+      status: "NEEDS JOHN: Supabase access token invalid",
+      ledgerStatus: "Needs John: Supabase access token invalid",
+      summary: projectAccess.summary,
+      nextPermission: "replace SUPABASE_ACCESS_TOKEN locally without pasting it into chat",
+      nextSkill,
+      exitCode: 2,
+    };
+  }
+
+  return {
+    status: "SUPABASE AUTH PASS FOR TOOLING",
+    ledgerStatus: "Supabase tooling/auth ready, not linked",
+    summary: `Supabase token can list project ${EXPECTED_SUPABASE_PROJECT_REF}; no link, secret, deploy, migration, SQL, scheduler, or runtime action was run`,
+    nextPermission: "approve Supabase link/secret readiness",
+    nextSkill: "cloudflare-deploy-skill / Supabase link and secret readiness",
+    exitCode: 0,
+  };
+}
+
+function buildSupabaseToolingAuthSkeleton() {
+  return {
+    currentLedgerState: "Supabase execution preflight ready, not executed",
+    targetRepoState: null,
+    nodeNpmNpxAvailability: "not checked",
+    supabaseCliPath: "not checked",
+    npxSupabaseVersionResult: "not checked",
+    localEnvShape: "not checked",
+    projectRefCheck: `source ref is ${EXPECTED_SUPABASE_PROJECT_REF}`,
+    supabaseAccessTokenPresence: "not checked",
+    supabaseProjectAccessResult: "not checked",
+    finalStatus: "DRY RUN PASS",
+    commandsNotRun: supabaseToolingAuthCommandsNotRun(),
+    nextPermission: "approve Supabase tooling/auth setup",
+  };
+}
+
+function supabaseToolingAuthCommandsNotRun() {
+  return [
+    "npm install -g supabase",
+    "supabase login",
+    "npx supabase login",
+    `npx supabase link --project-ref ${EXPECTED_SUPABASE_PROJECT_REF}`,
+    `supabase link --project-ref ${EXPECTED_SUPABASE_PROJECT_REF}`,
+    `supabase secrets set ${REQUIRED_IMPORT_SECRET}=<redacted>`,
+    `supabase functions deploy ${IMPORT_FUNCTION_NAME}`,
+    "supabase db push",
+    "Supabase migrations",
+    "SQL execution",
+    "scheduler mutation",
+    "Edge Function invoke",
+    "production endpoint curl",
+    "git push / PR / merge",
+  ];
+}
+
+function formatVersionAvailability(tooling) {
+  return [
+    `node: ${tooling.nodeVersion || "unavailable"}`,
+    `npm: ${tooling.npmVersion || "unavailable"}`,
+    `npx: ${tooling.npxVersion || "unavailable"}`,
+    `npx path: ${tooling.npxPath || "not found"}`,
+  ].join("; ");
+}
+
+function collectSupabasePreflightRepoEvidence(repo) {
+  const status = run("git", ["-C", repo, "status", "--short"]);
+  const branch = run("git", ["-C", repo, "branch", "--show-current"]);
+  const log = run("git", ["-C", repo, "log", "--oneline", "-8"]);
+  const remote = run("git", ["-C", repo, "remote", "-v"]);
+
+  if ([status, branch, log, remote].some((item) => item.code !== 0)) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED",
+        ledgerStatus: "Blocked: Supabase preflight git evidence failed",
+        summary: "one or more read-only git evidence commands failed",
+        nextPermission: "manual repo repair",
+        nextSkill: "repo-map-skill",
+        exitCode: 1,
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      status: status.stdout.trim() || "clean",
+      branch: branch.stdout.trim() || "(detached)",
+      log: log.stdout.trim(),
+      remote: remote.stdout.trim(),
+    },
+  };
+}
+
+function collectSupabasePreflightSourceEvidence(repo) {
+  const supabaseDir = path.join(repo, "supabase");
+  const configToml = path.join(repo, "supabase", "config.toml");
+  const functionIndex = path.join(repo, IMPORT_FUNCTION_DIR, "index.ts");
+  const migrationsDir = path.join(repo, "supabase", "migrations");
+  const docsDir = path.join(repo, "docs");
+
+  const supabaseFilesResult = run("find", [supabaseDir, "-maxdepth", "5", "-type", "f"], {
+    allowFailure: true,
+  });
+  const configTomlResult = run("sed", ["-n", "1,240p", configToml], { allowFailure: true });
+  const functionHeadResult = run("sed", ["-n", "1,260p", functionIndex], { allowFailure: true });
+  const functionTailResult = run("sed", ["-n", "260,560p", functionIndex], { allowFailure: true });
+  const schedulerGrep = run(
+    "grep",
+    [
+      "-RniE",
+      "import-reddit-tips|cron\\.schedule|cron\\.unschedule|cron\\.alter_job|pg_cron|net\\.http_post|http_post|x-import-reddit-tips-secret|apikey|Authorization|Bearer|IMPORT_REDDIT_TIPS_SECRET",
+      migrationsDir,
+      docsDir,
+    ],
+    { allowFailure: true },
+  );
+  const envFilesResult = run("find", [
+    repo,
+    "-maxdepth",
+    "3",
+    "-type",
+    "f",
+    "(",
+    "-name",
+    ".env.example",
+    "-o",
+    "-name",
+    "*.example",
+    "-o",
+    "-name",
+    "*.md",
+    ")",
+    "-print",
+  ], {
+    allowFailure: true,
+  });
+  const envGrep = run(
+    "grep",
+    [
+      "-RniE",
+      "SUPABASE_ACCESS_TOKEN|SUPABASE_PROJECT_REF|IMPORT_REDDIT_TIPS_SECRET|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ANON_KEY",
+      path.join(repo, ".env.example"),
+      docsDir,
+    ],
+    { allowFailure: true },
+  );
+
+  const supabaseFiles = sortedRelativeLines(repo, supabaseFilesResult.stdout);
+  const envShapeFiles = sortedRelativeLines(repo, envFilesResult.stdout);
+  const functionText = `${functionHeadResult.stdout}\n${functionTailResult.stdout}`;
+  const schedulerHits = schedulerGrep.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => relativizeLine(repo, line));
+  const envHits = envGrep.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => sanitizeEnvEvidenceLine(relativizeLine(repo, line)));
+
+  return {
+    supabaseFiles,
+    configTomlExists: configTomlResult.code === 0,
+    configTomlText: configTomlResult.stdout,
+    configTomlSummary: summarizeSupabaseConfig(configTomlResult.stdout),
+    functionExists: functionHeadResult.code === 0,
+    functionSummary: summarizeImportFunction(functionText),
+    functionText,
+    schedulerHits,
+    envShapeFiles,
+    envHits,
+  };
+}
+
+function buildSupabasePreflight({ repo, source, cli }) {
+  const skeleton = buildSupabasePreflightSkeleton();
+  const projectRef = extractSupabaseProjectRef(source.configTomlText, source.schedulerHits, repo.remote);
+  const scheduler = classifySupabaseScheduler(source.schedulerHits);
+  const envEvidence = classifySupabaseEnvEvidence(source.envHits, source.functionText);
+  const cliSummary = formatCliAvailability(cli);
+  const supabaseCli = cli.find((item) => item.name === "supabase");
+  const cliDecision = supabaseCli && supabaseCli.path !== "not found"
+    ? "Supabase CLI is available locally; auth/link still require separate permission"
+    : "Supabase CLI is missing; choose install Supabase CLI, use npx supabase only with explicit dependency/tool-execution permission, or use Supabase Dashboard manually";
+
+  const blockers = [];
+  if (!projectRef.value) blockers.push("Needs John: Supabase project ref");
+  if (!envEvidence.secretValueAvailable) blockers.push("Needs John: provide secret value locally or approve secret generation");
+  if (!supabaseCli || supabaseCli.path === "not found") blockers.push("Supabase CLI not installed");
+  if (scheduler.usesAnonOnlyHeaders) blockers.push("old scheduled call will fail after deploy unless updated to send x-import-reddit-tips-secret");
+
+  const recommendedNextPermission = !supabaseCli || supabaseCli.path === "not found"
+    ? "approve Supabase tooling/auth setup"
+    : scheduler.hasSqlScheduler
+      ? "approve local scheduler migration draft"
+      : "approve Supabase tooling/auth setup";
+
+  return {
+    ...skeleton,
+    currentLedgerState: "Deployment plan ready, not deployed",
+    targetRepoState: {
+      repo: targetRepo,
+      branch: repo.branch,
+      status: repo.status,
+      recentLog: repo.log,
+      remote: repo.remote,
+    },
+    supabaseCliAvailability: cliSummary,
+    cliDecision,
+    projectReferenceEvidence: projectRef.summary,
+    projectReference: projectRef.value || null,
+    functionDeploymentEvidence: source.functionExists
+      ? `${IMPORT_FUNCTION_DIR} exists; ${source.functionSummary}`
+      : `${IMPORT_FUNCTION_DIR} not found`,
+    secretSetupEvidence: envEvidence.summary,
+    schedulerSourceEvidence: scheduler.summary,
+    schedulerUpdateDecision: scheduler.updateDecision,
+    executionSequence: buildSupabaseExecutionSequence(scheduler),
+    blockers,
+    recommendedNextPermission,
+    sourceEvidence: {
+      supabaseFiles: source.supabaseFiles,
+      envShapeFiles: source.envShapeFiles,
+      envHits: source.envHits,
+      schedulerHits: source.schedulerHits,
+      configSummary: source.configTomlSummary,
+    },
+  };
+}
+
+function buildSupabasePreflightSkeleton() {
+  return {
+    currentLedgerState: "Deployment plan ready, not deployed",
+    targetRepoState: null,
+    supabaseCliAvailability: "not checked",
+    cliDecision: "not checked",
+    projectReferenceEvidence: "not checked",
+    functionDeploymentEvidence: `${IMPORT_FUNCTION_DIR}`,
+    secretSetupEvidence: `${REQUIRED_IMPORT_SECRET} required; value not available in source and must not be invented`,
+    schedulerSourceEvidence: "not checked",
+    schedulerUpdateDecision: "not checked",
+    executionSequence: buildSupabaseExecutionSequence({ hasSqlScheduler: true }),
+    permissionGates: [
+      "Gate A: Tooling/auth readiness",
+      "Gate B: Secret setup",
+      "Gate C: Scheduler update",
+      "Gate D: Function deploy",
+      "Gate E: Runtime verification",
+    ],
+    commandsDraftedButNotRun: flattenExecutionCommands(buildSupabaseExecutionSequence({ hasSqlScheduler: true })),
+    blockers: [
+      "Needs John: Supabase project ref if not discoverable from source",
+      "Needs John: provide secret value locally or approve secret generation",
+    ],
+    recommendedNextPermission: "approve Supabase tooling/auth setup",
+  };
+}
+
+function buildSupabaseExecutionSequence(scheduler) {
+  const schedulerCommands = scheduler && scheduler.hasSqlScheduler
+    ? [
+        "select cron.unschedule('<existing-job-name>');",
+        "create a new reviewed cron.schedule(...) or cron.alter_job(...) SQL path including x-import-reddit-tips-secret",
+      ]
+    : [
+        "exact scheduler command depends on where scheduler is managed",
+        "if external scheduler is used, update it to send x-import-reddit-tips-secret",
+      ];
+
+  return [
+    {
+      gate: "Gate A: Tooling/auth readiness",
+      commands: [
+        "supabase --version",
+        "supabase login",
+        "supabase link --project-ref <project-ref>",
+      ],
+    },
+    {
+      gate: "Gate B: Secret setup",
+      commands: [`supabase secrets set ${REQUIRED_IMPORT_SECRET}=<redacted>`],
+    },
+    {
+      gate: "Gate C: Scheduler update",
+      commands: schedulerCommands,
+    },
+    {
+      gate: "Gate D: Function deploy",
+      commands: [`supabase functions deploy ${IMPORT_FUNCTION_NAME}`],
+    },
+    {
+      gate: "Gate E: Runtime verification",
+      commands: [
+        "curl -i -X OPTIONS <SUPABASE_FUNCTION_URL>",
+        "curl -i -X GET <SUPABASE_FUNCTION_URL>",
+        "curl -i -X POST <SUPABASE_FUNCTION_URL> -d '<payload-without-auth>'",
+        "curl -i -X POST <SUPABASE_FUNCTION_URL> -H 'Authorization: Bearer <anon-jwt>' -d '<payload>'",
+        "curl -i -X POST <SUPABASE_FUNCTION_URL> -H 'Authorization: Bearer <non-admin-user-jwt>' -d '<payload>'",
+        "curl -i -X POST <SUPABASE_FUNCTION_URL> -H 'x-import-reddit-tips-secret: <redacted>' -d '<payload>'",
+        "curl -i -X POST <SUPABASE_FUNCTION_URL> -H 'x-import-reddit-tips-secret: <invalid>' -d '<payload>'",
+        "repeat authorised request until 429 rate-limit evidence is observed",
+      ],
+    },
+  ];
+}
+
+function flattenExecutionCommands(sequence) {
+  return sequence.flatMap((group) => group.commands);
+}
+
+function collectDeploymentRepoEvidence(repo) {
+  const status = run("git", ["-C", repo, "status", "--short"]);
+  const branch = run("git", ["-C", repo, "branch", "--show-current"]);
+  const log = run("git", ["-C", repo, "log", "--oneline", "-5"]);
+  const remote = run("git", ["-C", repo, "remote", "-v"]);
+  const show = run("git", ["-C", repo, "show", "--stat", "--name-only", EXPECTED_COMMIT]);
+
+  if ([status, branch, log, remote, show].some((item) => item.code !== 0)) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED",
+        ledgerStatus: "Blocked: deployment planning git evidence failed",
+        summary: "one or more read-only git evidence commands failed",
+        nextPermission: "manual repo repair",
+        nextSkill: "repo-map-skill",
+        exitCode: 1,
+      },
+    };
+  }
+
+  const data = {
+    status: status.stdout.trim() || "clean",
+    branch: branch.stdout.trim() || "(detached)",
+    log: log.stdout.trim(),
+    remote: remote.stdout.trim(),
+    commitStat: show.stdout.trim(),
+    commitStatSummary: summarizeCommitShow(show.stdout),
+  };
+
+  return { ok: true, data };
+}
+
+function collectDeploymentSourceEvidence(repo) {
+  const supabaseDir = path.join(repo, "supabase");
+  const workflowsDir = path.join(repo, ".github", "workflows");
+  const configToml = path.join(repo, "supabase", "config.toml");
+  const functionIndex = path.join(repo, IMPORT_FUNCTION_DIR, "index.ts");
+  const packageJson = path.join(repo, "package.json");
+
+  const supabaseFilesResult = run("find", [supabaseDir, "-maxdepth", "4", "-type", "f"], {
+    allowFailure: true,
+  });
+  const workflowFilesResult = run("find", [workflowsDir, "-maxdepth", "1", "-type", "f", "-print"], {
+    allowFailure: true,
+  });
+  const configFilesResult = run("find", [
+    repo,
+    "-maxdepth",
+    "2",
+    "-type",
+    "f",
+    "(",
+    "-name",
+    "wrangler.toml",
+    "-o",
+    "-name",
+    "wrangler.jsonc",
+    "-o",
+    "-name",
+    "netlify.toml",
+    "-o",
+    "-name",
+    "vercel.json",
+    "-o",
+    "-name",
+    "package.json",
+    ")",
+    "-print",
+  ], {
+    allowFailure: true,
+  });
+
+  const configTomlResult = run("sed", ["-n", "1,220p", configToml], { allowFailure: true });
+  const functionHeadResult = run("sed", ["-n", "1,260p", functionIndex], { allowFailure: true });
+  const functionTailResult = run("sed", ["-n", "260,520p", functionIndex], { allowFailure: true });
+  const grepResult = run(
+    "grep",
+    [
+      "-RniE",
+      "import-reddit-tips|cron|schedule|pg_cron|net.http|x-import-reddit-tips-secret|IMPORT_REDDIT_TIPS_SECRET|verify_jwt|service_role|SUPABASE_SERVICE_ROLE_KEY",
+      path.join(repo, "supabase"),
+      path.join(repo, "docs"),
+    ],
+    { allowFailure: true },
+  );
+  const packageResult = run("cat", [packageJson], { allowFailure: true });
+
+  const supabaseFiles = sortedRelativeLines(repo, supabaseFilesResult.stdout);
+  const workflowFiles = sortedRelativeLines(repo, workflowFilesResult.stdout);
+  const configFiles = sortedRelativeLines(repo, configFilesResult.stdout);
+  const grepHits = grepResult.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const functionText = `${functionHeadResult.stdout}\n${functionTailResult.stdout}`;
+  const packageInfo = parsePackageJson(packageResult.stdout);
+
+  return {
+    supabaseFiles,
+    workflowFiles,
+    configFiles,
+    configTomlExists: configTomlResult.code === 0,
+    configTomlSummary: summarizeSupabaseConfig(configTomlResult.stdout),
+    functionExists: functionHeadResult.code === 0,
+    functionSummary: summarizeImportFunction(functionText),
+    grepHits,
+    grepSummary: summarizeList(grepHits.map((line) => relativizeLine(repo, line)), 14),
+    packageExists: packageResult.code === 0,
+    packageInfo,
+  };
+}
+
+function collectCliAvailability(names) {
+  return names.map((name) => {
+    const result = run("bash", ["-lc", `command -v ${name} || true`], { allowFailure: true });
+    return {
+      name,
+      path: result.stdout.trim() || "not found",
+    };
+  });
+}
+
+function buildDeploymentPlan({ repo, source, cli }) {
+  const skeleton = buildDeploymentPlanSkeleton();
+  const schedulerEvidence = classifySchedulerEvidence(source.grepHits);
+  return {
+    ...skeleton,
+    currentState: {
+      repo: targetRepo,
+      branch: repo.branch,
+      status: repo.status,
+      recentLog: repo.log,
+      remote: repo.remote,
+      mergedCommit: repo.commitStatSummary,
+    },
+    sourceEvidence: {
+      supabaseFiles: source.supabaseFiles,
+      workflowFiles: source.workflowFiles,
+      deploymentConfigFiles: source.configFiles,
+      supabaseConfig: source.configTomlSummary,
+      functionSummary: source.functionSummary,
+      packageScripts: source.packageInfo.scripts,
+      grepSummary: source.grepSummary,
+      cliAvailability: formatCliAvailability(cli),
+    },
+    functionToDeploy: IMPORT_FUNCTION_DIR,
+    requiredSecretSetup: `${REQUIRED_IMPORT_SECRET} must be set in Supabase secrets; value must be generated/provided outside chat and is not in source.`,
+    schedulerUpdateRequired: schedulerEvidence.summary,
+    schedulerEvidence,
+  };
+}
+
+function buildDeploymentPlanSkeleton() {
+  return {
+    functionToDeploy: IMPORT_FUNCTION_DIR,
+    requiredSecretSetup: `${REQUIRED_IMPORT_SECRET} must be set in Supabase secrets; value must not be printed or committed.`,
+    schedulerUpdateRequired: "scheduled calls must send x-import-reddit-tips-secret; old anon-key-only scheduled calls are not sufficient",
+    runtimeVerificationMatrix: [
+      "OPTIONS returns CORS",
+      "GET/non-POST returns 405",
+      "POST without auth fails",
+      "POST with anon-only auth fails",
+      "POST with non-admin user fails",
+      "POST with admin user succeeds",
+      "POST with valid scheduler secret succeeds",
+      "POST with missing/invalid scheduler secret fails",
+      "repeated authorised calls hit rate limit",
+      "no service-role work happens before auth/rate gate",
+    ],
+    commandsDraftedButNotRun: [
+      {
+        gate: "Secret setup gate",
+        commands: [`supabase secrets set ${REQUIRED_IMPORT_SECRET}=<redacted>`],
+      },
+      {
+        gate: "Function deploy gate",
+        commands: [`supabase functions deploy ${IMPORT_FUNCTION_NAME}`],
+      },
+      {
+        gate: "Scheduler update gate",
+        commands: [
+          "exact command depends on where scheduler is managed",
+          "if source shows SQL/pg_cron, propose a migration or SQL change but do not create it yet",
+          "if source shows external scheduler, update the external scheduler to send x-import-reddit-tips-secret",
+        ],
+      },
+      {
+        gate: "Runtime verification gate",
+        commands: [
+          "curl -i -X OPTIONS <SUPABASE_FUNCTION_URL>",
+          "curl -i -X GET <SUPABASE_FUNCTION_URL>",
+          "curl -i -X POST <SUPABASE_FUNCTION_URL> -H 'Authorization: Bearer <anon-or-user-jwt>' -d '<payload>'",
+          "curl -i -X POST <SUPABASE_FUNCTION_URL> -H 'x-import-reddit-tips-secret: <redacted>' -d '<payload>'",
+        ],
+      },
+    ],
+    commandsNotRun: [
+      "supabase secrets set",
+      "supabase functions deploy",
+      "supabase db push/pull/reset/migration commands",
+      "Supabase function invoke",
+      "production curl/runtime calls",
+      "Git push, PR creation, or merge",
+      "Cloudflare/Netlify/Vercel deploy commands",
+    ],
+    risks: [
+      "Source-only planning does not prove deployed function code, deployed secrets, scheduler headers, or deployed RLS/grants.",
+      "The scheduler location was not mutated; if external, it must be updated outside this source-only run.",
+      "Runtime 401/403/200/405/429 behavior remains unverified until explicit runtime verification is approved.",
+    ],
+    recommendedNextPermission: "approve Supabase secret/scheduler/deploy execution plan",
+  };
+}
+
+function verifyRepoAccess(ghEnv) {
+  const repoView = run(
+    "gh",
+    ["repo", "view", EXPECTED_GITHUB_REPO, "--json", "nameWithOwner,visibility,viewerPermission"],
+    { env: ghEnv },
+  );
+  if (repoView.code !== 0) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "NEEDS JOHN",
+        ledgerStatus: "Needs John token permission fix",
+        summary: `repo view failed: ${firstLine(repoView.stderr || repoView.stdout)}`,
+        nextPermission: "auth-check",
+        nextSkill: "github-auth-gate-skill",
+        exitCode: 2,
+      },
+    };
+  }
+
+  let repoJson;
+  try {
+    repoJson = JSON.parse(repoView.stdout);
+  } catch (error) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED",
+        ledgerStatus: "Blocked: repo view parse failed",
+        summary: `could not parse repo view JSON: ${error.message}`,
+        nextPermission: "manual review",
+        nextSkill: "github-auth-gate-skill",
+        exitCode: 1,
+      },
+    };
+  }
+
+  if (repoJson.nameWithOwner !== EXPECTED_GITHUB_REPO) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED",
+        ledgerStatus: "Blocked: wrong repo",
+        summary: `repo view returned ${repoJson.nameWithOwner}`,
+        nextPermission: "manual review",
+        nextSkill: "github-auth-gate-skill",
+        exitCode: 1,
+      },
+    };
+  }
+
+  if (!["WRITE", "MAINTAIN", "ADMIN"].includes(repoJson.viewerPermission)) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "NEEDS JOHN",
+        ledgerStatus: "Needs John token permission fix",
+        summary: `viewerPermission is ${repoJson.viewerPermission}`,
+        nextPermission: "token permission fix",
+        nextSkill: "github-auth-gate-skill",
+        exitCode: 2,
+      },
+    };
+  }
+
+  evidence.push(`repo access: ${repoJson.nameWithOwner} ${repoJson.viewerPermission}`);
+  return { ok: true, data: repoJson };
+}
+
+function viewPrReadiness(ghEnv) {
+  const fullFields = "url,title,state,headRefName,baseRefName,mergeable,reviewDecision,files,commits";
+  const full = run(
+    "gh",
+    ["pr", "view", "--repo", EXPECTED_GITHUB_REPO, PR_NUMBER, "--json", fullFields],
+    { env: ghEnv, allowFailure: true },
+  );
+  if (full.code === 0) {
+    try {
+      return { ok: true, data: JSON.parse(full.stdout), fields: fullFields };
+    } catch (error) {
+      return prReadinessUnknown(`could not parse full PR JSON: ${error.message}`);
+    }
+  }
+
+  evidence.push(`full PR JSON fields unavailable: ${firstLine(full.stderr || full.stdout)}`);
+  const fallbackFields = "url,title,state,headRefName,baseRefName,files,commits";
+  const fallback = run(
+    "gh",
+    ["pr", "view", "--repo", EXPECTED_GITHUB_REPO, PR_NUMBER, "--json", fallbackFields],
+    { env: ghEnv, allowFailure: true },
+  );
+  if (fallback.code === 0) {
+    try {
+      const data = JSON.parse(fallback.stdout);
+      data.mergeable = null;
+      data.reviewDecision = null;
+      evidence.push("PR mergeable/reviewDecision unavailable from installed gh field set");
+      return { ok: true, data, fields: fallbackFields };
+    } catch (error) {
+      return prReadinessUnknown(`could not parse fallback PR JSON: ${error.message}`);
+    }
+  }
+
+  return prReadinessUnknown(`PR view failed: ${firstLine(fallback.stderr || fallback.stdout || full.stderr || full.stdout)}`);
+}
+
+function prReadinessUnknown(summary) {
+  return {
+    ok: false,
+    result: {
+      finalStatus: "BLOCKED",
+      ledgerStatus: "PR readiness unknown",
+      summary,
+      nextPermission: "manual PR readiness review",
+      nextSkill: "github-handoff-skill",
+      exitCode: 1,
+    },
+  };
+}
+
+function inspectPrChecks(ghEnv) {
+  const checks = run("gh", ["pr", "checks", "--repo", EXPECTED_GITHUB_REPO, PR_NUMBER], {
+    env: ghEnv,
+    allowFailure: true,
+  });
+  const output = [checks.stdout, checks.stderr].filter(Boolean).join("\n").trim();
+  if (checks.code !== 0) {
+    return {
+      available: false,
+      blocked: false,
+      summary: `checks unavailable: ${firstLine(output)}`,
+      raw: output,
+    };
+  }
+
+  const lines = output ? output.split(/\r?\n/).filter(Boolean) : [];
+  const failing = lines.filter((line) => /\bfail|failing|error|cancel|timed out|action_required\b/i.test(line));
+  const pending = lines.filter((line) => /\bpending|queued|in_progress|waiting|skipping\b/i.test(line));
+  let summary = "checks available";
+  if (!lines.length) summary = "checks available but no check rows returned";
+  else if (failing.length) summary = `checks blocked: ${failing.length} failing/cancelled rows`;
+  else if (pending.length) summary = `checks pending: ${pending.length} pending rows`;
+  else summary = `checks passing or neutral: ${lines.length} rows`;
+
+  return {
+    available: true,
+    blocked: failing.length > 0 || pending.length > 0,
+    summary,
+    raw: output,
+  };
+}
+
+function extractPrFiles(pr) {
+  if (!Array.isArray(pr.files)) return [];
+  return pr.files
+    .map((file) => file.path || file.filename || file.name || "")
+    .filter(Boolean)
+    .sort();
+}
+
+function summarizeCommits(commits) {
+  if (!Array.isArray(commits) || commits.length === 0) return "none";
+  return commits
+    .map((commit) => {
+      const oid = commit.oid || commit.sha || "";
+      const shortOid = oid ? oid.slice(0, 7) : "unknown";
+      const message = commit.messageHeadline || commit.message || commit.subject || "";
+      return message ? `${shortOid} ${message}` : shortOid;
+    })
+    .join("; ");
+}
+
+function collectPrLocalEvidence(repo) {
+  if (!fs.existsSync(repo)) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED",
+        ledgerStatus: "PR readiness unknown",
+        summary: `target repo does not exist: ${repo}`,
+        nextPermission: "manual repo repair",
+        nextSkill: "repo-map-skill",
+        exitCode: 1,
+      },
+    };
+  }
+
+  const status = run("git", ["-C", repo, "status", "--short"]);
+  const branch = run("git", ["-C", repo, "branch", "--show-current"]);
+  const log = run("git", ["-C", repo, "log", "--oneline", "-3"]);
+
+  if ([status, branch, log].some((item) => item.code !== 0)) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED",
+        ledgerStatus: "PR readiness unknown",
+        summary: "one or more local git evidence commands failed",
+        nextPermission: "manual repo repair",
+        nextSkill: "github-handoff-skill",
+        exitCode: 1,
+      },
+    };
+  }
+
+  evidence.push(`local branch: ${branch.stdout.trim() || "(detached)"}`);
+  evidence.push(`local status: ${status.stdout.trim() || "clean"}`);
+  evidence.push(`recent log: ${firstLine(log.stdout)}`);
+
+  const statusLines = status.stdout.trim() ? status.stdout.trim().split(/\r?\n/) : [];
+  const onlyEvidence = statusLines.length === 0 || statusLines.every((line) => line === "?? evidence/");
+  if (!onlyEvidence) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED",
+        ledgerStatus: "PR readiness unknown",
+        summary: `unexpected local git status: ${statusLines.join("; ")}`,
+        nextPermission: "manual repo cleanup",
+        nextSkill: "github-handoff-skill",
+        exitCode: 1,
+      },
+    };
+  }
+
+  return { ok: true, branch: branch.stdout.trim() };
+}
+
+function classifyPrReadiness({ pr, unexpectedFiles, missingFiles, checks }) {
+  if (unexpectedFiles.length || missingFiles.length) {
+    return {
+      status: "PR blocked by unexpected files",
+      summary: `unexpected files: ${unexpectedFiles.join(", ") || "none"}; missing intended files: ${missingFiles.join(", ") || "none"}`,
+      nextPermission: "approve fixing PR blockers",
+    };
+  }
+
+  if (pr.state !== "OPEN") {
+    return {
+      status: "PR readiness unknown",
+      summary: `PR state is ${pr.state || "unknown"}, not OPEN`,
+      nextPermission: "hold",
+    };
+  }
+
+  if (pr.baseRefName !== "main" || pr.headRefName !== FEATURE_BRANCH) {
+    return {
+      status: "PR blocked by unexpected files",
+      summary: `unexpected PR branch routing: base ${pr.baseRefName || "unknown"}, head ${pr.headRefName || "unknown"}`,
+      nextPermission: "approve fixing PR blockers",
+    };
+  }
+
+  if (pr.mergeable && !["MERGEABLE", "UNKNOWN"].includes(pr.mergeable)) {
+    return {
+      status: "PR blocked by mergeability",
+      summary: `mergeable state is ${pr.mergeable}`,
+      nextPermission: "approve fixing PR blockers",
+    };
+  }
+
+  if (checks.available && checks.blocked) {
+    return {
+      status: "PR blocked by checks",
+      summary: checks.summary,
+      nextPermission: "approve fixing PR blockers",
+    };
+  }
+
+  if (!checks.available || !pr.mergeable || pr.mergeable === "UNKNOWN") {
+    return {
+      status: "PR readiness unknown",
+      summary: `${checks.summary}; mergeable ${pr.mergeable || "unavailable"}`,
+      nextPermission: "approve PR merge or hold after manual review",
+    };
+  }
+
+  return {
+    status: "PR ready for merge approval",
+    summary: "PR files match intended scope, checks are not blocking, and mergeable state is acceptable",
+    nextPermission: "approve PR merge",
+  };
+}
+
+function classifyPrMergeSafety({ pr, unexpectedFiles, missingFiles, checks }) {
+  if (unexpectedFiles.length || missingFiles.length) {
+    return {
+      ok: false,
+      status: "PR blocked by unexpected files",
+      summary: `unexpected files: ${unexpectedFiles.join(", ") || "none"}; missing intended files: ${missingFiles.join(", ") || "none"}`,
+      nextPermission: "approve fixing PR blockers",
+    };
+  }
+
+  if (pr.state !== "OPEN") {
+    return {
+      ok: false,
+      status: "PR readiness unknown",
+      summary: `PR state is ${pr.state || "unknown"}, not OPEN`,
+      nextPermission: "hold",
+    };
+  }
+
+  if (pr.baseRefName !== "main" || pr.headRefName !== FEATURE_BRANCH) {
+    return {
+      ok: false,
+      status: "PR blocked by unexpected files",
+      summary: `unexpected PR branch routing: base ${pr.baseRefName || "unknown"}, head ${pr.headRefName || "unknown"}`,
+      nextPermission: "approve fixing PR blockers",
+    };
+  }
+
+  if (pr.mergeable !== "MERGEABLE") {
+    return {
+      ok: false,
+      status: "PR blocked by mergeability",
+      summary: `mergeable state is ${pr.mergeable || "unavailable"}, not MERGEABLE`,
+      nextPermission: "approve fixing PR blockers or hold",
+    };
+  }
+
+  if (!checks.available) {
+    return {
+      ok: false,
+      status: "PR readiness unknown",
+      summary: checks.summary,
+      nextPermission: "hold until PR checks can be verified",
+    };
+  }
+
+  if (checks.blocked) {
+    return {
+      ok: false,
+      status: "PR blocked by checks",
+      summary: checks.summary,
+      nextPermission: "approve fixing PR blockers",
+    };
+  }
+
+  return {
+    ok: true,
+    status: "PR merge safety pass",
+    summary: "PR is open, mergeable, scoped to intended files, and checks are not blocking",
+  };
+}
+
+function inspectLocalWorkflowDeployTriggers(repo) {
+  const workflowsDir = path.join(repo, ".github", "workflows");
+  const grepPattern = "deploy|supabase|cloudflare|wrangler|pages|production|secrets";
+  const externalCaveat = "external provider auto-deploys cannot be fully proven from source-only repo workflow inspection";
+
+  const findResult = run("find", [workflowsDir, "-maxdepth", "1", "-type", "f", "-print"], {
+    allowFailure: true,
+  });
+  const grepResult = run("grep", ["-RniE", grepPattern, workflowsDir], {
+    allowFailure: true,
+  });
+
+  const files = findResult.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const grepHits = grepResult.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  evidence.push(`workflow files: ${files.length ? files.map((file) => path.relative(repo, file)).join(", ") : "none"}`);
+  evidence.push(`workflow deployment-keyword grep hits: ${summarizeList(grepHits, 6)}`);
+  evidence.push(externalCaveat);
+
+  const blockingFiles = [];
+  const deploymentKeyword = /\b(deploy|supabase|cloudflare|wrangler|pages|production)\b/i;
+  for (const file of files) {
+    let text = "";
+    try {
+      text = fs.readFileSync(file, "utf8");
+    } catch (error) {
+      evidence.push(`workflow read failed: ${path.relative(repo, file)}: ${error.message}`);
+      continue;
+    }
+
+    const hasDeploymentKeyword = deploymentKeyword.test(text);
+    const hasPushTrigger = /(^|\n)\s*on:\s*(?:\[.*\bpush\b.*\]|push\b)|(^|\n)\s*push:\s*(?:\n|$)/i.test(text);
+    const hasBranchFilter = /(^|\n)\s*branches(?:-ignore)?:/i.test(text);
+    const hasMainBranch = /(^|\n)\s*branches:\s*(?:\[.*\bmain\b.*\]|.*\bmain\b)|(^|\n)\s*-\s*main\s*$/im.test(text);
+    const pushCouldIncludeMain = hasPushTrigger && (hasMainBranch || !hasBranchFilter);
+
+    if (hasDeploymentKeyword && pushCouldIncludeMain) {
+      blockingFiles.push(path.relative(repo, file));
+    }
+  }
+
+  if (blockingFiles.length) {
+    return {
+      blocking: true,
+      files,
+      grepHits,
+      blockingFiles,
+      summary: `repo-local workflow evidence suggests merging main may deploy: ${blockingFiles.join(", ")}`,
+      caveat: externalCaveat,
+    };
+  }
+
+  return {
+    blocking: false,
+    files,
+    grepHits,
+    blockingFiles,
+    summary: grepHits.length
+      ? "workflow keyword hits were found, but no clear repo-local push-to-main deployment trigger was detected"
+      : "no repo-local GitHub workflow deployment evidence was detected",
+    caveat: externalCaveat,
+  };
+}
+
+function viewPrFinal(ghEnv) {
+  const fields = "url,title,state,mergedAt,baseRefName,headRefName";
+  const view = run("gh", ["pr", "view", "--repo", EXPECTED_GITHUB_REPO, PR_NUMBER, "--json", fields], {
+    env: ghEnv,
+    allowFailure: true,
+  });
+  if (view.code !== 0) {
+    return { ok: false, summary: firstLine(view.stderr || view.stdout) };
+  }
+  try {
+    return { ok: true, data: JSON.parse(view.stdout) };
+  } catch (error) {
+    return { ok: false, summary: `could not parse final PR JSON: ${error.message}` };
+  }
+}
+
+function collectPostMergeLocalEvidence(repo) {
+  if (!fs.existsSync(repo)) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED",
+        ledgerStatus: "Blocked: post-merge repo evidence failed",
+        summary: `target repo does not exist: ${repo}`,
+        nextPermission: "manual repo repair",
+        nextSkill: "repo-map-skill",
+        exitCode: 1,
+      },
+    };
+  }
+
+  const status = run("git", ["-C", repo, "status", "--short"]);
+  const branch = run("git", ["-C", repo, "branch", "--show-current"]);
+  const log = run("git", ["-C", repo, "log", "--oneline", "-5"]);
+
+  if ([status, branch, log].some((item) => item.code !== 0)) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED",
+        ledgerStatus: "Blocked: post-merge repo evidence failed",
+        summary: "one or more post-merge git evidence commands failed",
+        nextPermission: "manual repo repair",
+        nextSkill: "github-handoff-skill",
+        exitCode: 1,
+      },
+    };
+  }
+
+  const data = {
+    status: status.stdout.trim() || "clean",
+    branch: branch.stdout.trim() || "(detached)",
+    log: log.stdout.trim(),
+  };
+
+  evidence.push(`post-merge local branch: ${data.branch}`);
+  evidence.push(`post-merge local status: ${data.status}`);
+  evidence.push(`post-merge recent log: ${firstLine(data.log)}`);
+
+  return { ok: true, data };
+}
+
+function collectLocalRepoEvidence(repo) {
+  if (!fs.existsSync(repo)) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED",
+        ledgerStatus: "Blocked: target repo missing",
+        summary: `target repo does not exist: ${repo}`,
+        nextPermission: "manual repo repair",
+        nextSkill: "repo-map-skill",
+        exitCode: 1,
+      },
+    };
+  }
+
+  const status = run("git", ["-C", repo, "status", "--short"]);
+  const branch = run("git", ["-C", repo, "branch", "--show-current"]);
+  const log = run("git", ["-C", repo, "log", "--oneline", "-3"]);
+  const staged = run("git", ["-C", repo, "diff", "--cached", "--name-only"]);
+  const commitSubject = run("git", ["-C", repo, "show", "--quiet", "--format=%s", EXPECTED_COMMIT]);
+
+  if ([status, branch, log, staged, commitSubject].some((item) => item.code !== 0)) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED",
+        ledgerStatus: "Blocked: local repo evidence failed",
+        summary: "one or more git evidence commands failed",
+        nextPermission: "manual repo repair",
+        nextSkill: "github-handoff-skill",
+        exitCode: 1,
+      },
+    };
+  }
+
+  evidence.push(`local branch: ${branch.stdout.trim() || "(detached)"}`);
+  evidence.push(`local status: ${status.stdout.trim() || "clean"}`);
+  evidence.push(`recent log: ${firstLine(log.stdout)}`);
+
+  if (!commitSubject.stdout.includes(EXPECTED_COMMIT_SUBJECT)) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED",
+        ledgerStatus: "Blocked: expected commit missing",
+        summary: `${EXPECTED_COMMIT} does not have expected subject`,
+        nextPermission: "manual repo repair",
+        nextSkill: "github-handoff-skill",
+        exitCode: 1,
+      },
+    };
+  }
+
+  if (staged.stdout.trim() !== "") {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED",
+        ledgerStatus: "Blocked: staged files present",
+        summary: "staged area is not empty",
+        nextPermission: "manual repo cleanup",
+        nextSkill: "github-handoff-skill",
+        exitCode: 1,
+      },
+    };
+  }
+
+  const statusLines = status.stdout.trim() ? status.stdout.trim().split(/\r?\n/) : [];
+  const onlyEvidence = statusLines.length === 0 || statusLines.every((line) => line === "?? evidence/");
+  if (!onlyEvidence) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED",
+        ledgerStatus: "Blocked: unexpected dirty state",
+        summary: `unexpected git status: ${statusLines.join("; ")}`,
+        nextPermission: "manual repo cleanup",
+        nextSkill: "github-handoff-skill",
+        exitCode: 1,
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    branch: branch.stdout.trim(),
+  };
+}
+
+function createOrSwitchBranch() {
+  const branchList = run("git", ["-C", targetRepo, "branch", "--list", FEATURE_BRANCH]);
+  if (branchList.code !== 0) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED",
+        ledgerStatus: "Blocked: branch check failed",
+        summary: firstLine(branchList.stderr || branchList.stdout),
+        nextPermission: "manual branch repair",
+        nextSkill: "github-handoff-skill",
+        exitCode: 1,
+      },
+    };
+  }
+
+  if (branchList.stdout.trim()) {
+    const switched = run("git", ["-C", targetRepo, "switch", FEATURE_BRANCH]);
+    if (switched.code !== 0) {
+      return {
+        ok: false,
+        result: {
+          finalStatus: "BLOCKED",
+          ledgerStatus: "Blocked: branch switch failed",
+          summary: firstLine(switched.stderr || switched.stdout),
+          nextPermission: "manual branch repair",
+          nextSkill: "github-handoff-skill",
+          exitCode: 1,
+        },
+      };
+    }
+    return { ok: true, action: `switched to ${FEATURE_BRANCH}` };
+  }
+
+  const created = run("git", ["-C", targetRepo, "switch", "-c", FEATURE_BRANCH]);
+  if (created.code !== 0) {
+    return {
+      ok: false,
+      result: {
+        finalStatus: "BLOCKED",
+        ledgerStatus: "Blocked: branch creation failed",
+        summary: firstLine(created.stderr || created.stdout),
+        nextPermission: "manual branch repair",
+        nextSkill: "github-handoff-skill",
+        exitCode: 1,
+      },
+    };
+  }
+  return { ok: true, action: `created ${FEATURE_BRANCH}` };
+}
+
+function viewPr(ghEnv) {
+  const view = run(
+    "gh",
+    [
+      "pr",
+      "view",
+      "--repo",
+      EXPECTED_GITHUB_REPO,
+      FEATURE_BRANCH,
+      "--json",
+      "url,title,state,headRefName,baseRefName",
+    ],
+    { env: ghEnv, allowFailure: true },
+  );
+  if (view.code !== 0) return { ok: false };
+  try {
+    const data = JSON.parse(view.stdout);
+    return {
+      ok: true,
+      url: data.url,
+      data,
+    };
+  } catch {
+    return { ok: false };
+  }
+}
+
+function writePrBody() {
+  const body = `## Summary
+
+* Adds server-side authorization boundary to \`import-reddit-tips\`
+* Supports authenticated admin callers
+* Supports scheduled calls with \`x-import-reddit-tips-secret\`
+* Delays service-role usage until after authorization and rate limiting
+* Documents required Supabase secret and scheduler update
+
+## Validation
+
+* \`npm ci\` passed
+* \`npm run build\` passed
+* \`git diff --check\` passed
+* exact-file commit completed
+* secret scan passed with runtime secret access treated as safe
+
+## Known Caveats
+
+* \`npm run lint\` still fails on unrelated pre-existing issues
+* Vitest still fails because \`vitest.config.ts\` imports \`@vitejs/plugin-react\` while the repo has \`@vitejs/plugin-react-swc\`
+* no deployment was run
+* no Supabase migration was run
+* no production endpoint was called
+
+## Post-Merge / Deployment Requirements
+
+* deploy the Supabase Edge Function
+* set \`IMPORT_REDDIT_TIPS_SECRET\` in Supabase secrets
+* update the scheduler to send \`x-import-reddit-tips-secret\`
+* verify unauthenticated request fails
+* verify anon-only request fails
+* verify non-admin request fails
+* verify admin request succeeds
+* verify scheduled valid-secret request succeeds
+* verify invalid/missing scheduler secret fails
+* verify repeated calls hit rate limit
+* verify deployed RLS/grants
+`;
+  fs.writeFileSync(PR_BODY_PATH, body);
+  filesChanged.push(PR_BODY_PATH);
+}
+
+function loadEnvFile(file) {
+  const result = {};
+  if (!fs.existsSync(file)) return result;
+  const text = fs.readFileSync(file, "utf8");
+  for (const line of text.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const match = trimmed.match(/^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (!match) continue;
+    let value = match[2].trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    result[match[1]] = value;
+  }
+  return result;
+}
+
+function buildGhEnv(ghToken) {
+  const env = { ...process.env, GH_TOKEN: ghToken, GIT_TERMINAL_PROMPT: "0" };
+  delete env.GITHUB_TOKEN;
+  return env;
+}
+
+function run(command, commandArgs, options = {}) {
+  const result = spawnSync(command, commandArgs, {
+    cwd: options.cwd || LIBRARY_ROOT,
+    env: options.env || process.env,
+    encoding: "utf8",
+    timeout: options.timeout || 0,
+    input: options.input,
+  });
+
+  const stdout = sanitize(result.stdout || "");
+  const stderr = sanitize(result.stderr || "");
+  const code = typeof result.status === "number" ? result.status : result.error ? 1 : 0;
+
+  const printable = [command].concat(commandArgs).join(" ");
+  actions.push(`${printable}: exit ${code}`);
+
+  if (code !== 0 && !options.allowFailure) {
+    evidence.push(`${printable}: failed`);
+  }
+
+  return { code, stdout, stderr };
+}
+
+function appendLedger({ status, result, route }) {
+  const entry = `
+## ${today()} - run-next Autonomous Work Loop
+
+* Active repo: \`${targetRepo}\`.
+* Current objective: Run \`scripts/run-next\` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: ${Array.from(args.allow).join(", ") || "no explicit allow flags"}${dryRun ? "; dry-run" : ""}. ${permissionBoundarySummary()}.
+* Current status: ${status}.
+* Selected skill: ${route.skill}.
+* Last commands run: \`scripts/run-next ${process.argv.slice(2).join(" ")}\`.
+* Files changed: ${filesChanged.length ? filesChanged.map((file) => `\`${file}\``).join("; ") : "local library records only; no target repo files edited"}.
+* Validation evidence: ${evidence.join("; ") || "runner stopped before external evidence was needed"}.
+* Blockers: ${blockerSummary(result)}.
+* Next recommended skill: ${result.nextSkill || route.skill}.
+* Exact next action: ${result.nextPermission || route.nextAction || "manual review"}.
+* Whether John is needed: ${johnNeededSummary(result)}.
+`;
+  fs.appendFileSync(path.join(LIBRARY_ROOT, "work-ledger.md"), entry);
+  filesChanged.push("work-ledger.md");
+}
+
+function appendRunLog({ dryRun: isDryRun, status, result, route }) {
+  const entry = `
+## ${today()} - run-next Autonomous Work Loop${isDryRun ? " Dry Run" : ""}
+
+* Skill used: coding-workflow-orchestrator-skill; selected next skill was ${route.skill || "unknown"}.
+* Goal: Read \`work-ledger.md\`, classify status \`${status}\`, check permission flags, and run only the next safe action.
+* Starting state: Target repo \`${targetRepo}\`; permission flags \`${Array.from(args.allow).join(", ") || "none"}\`; dry-run \`${isDryRun ? "yes" : "no"}\`.
+* Commands/tools used: \`scripts/run-next ${process.argv.slice(2).join(" ")}\`.
+* Files inspected: \`AGENTS.md\`; \`tools.md\`; \`work-ledger.md\`; selected ledger entry for \`${targetRepo}\`.
+* Files changed: ${formatRunLogFilesChanged(isDryRun)}.
+* Evidence collected: ${evidence.join("; ") || "no additional evidence required before boundary"}.
+* Result: ${result.finalStatus}: ${result.summary}.
+* Failure/recovery notes: ${result.finalStatus === "BLOCKED" ? result.summary : forbiddenActionSummary()}.
+* Follow-up skill needed: ${result.nextSkill || route.skill || "coding-workflow-orchestrator-skill"}.
+* Upgrade idea: Add more executable paths to \`scripts/run-next\` for auth-check, exact-file commit, and local-validation states.
+`;
+  fs.appendFileSync(path.join(LIBRARY_ROOT, "runs/skill-runs.md"), entry);
+}
+
+function printReport(result, active, route) {
+  if (result.schedulerDraftPr) {
+    printSchedulerDraftPrReport(result, active, route);
+    return;
+  }
+
+  if (result.supabaseLinkSecretReadiness) {
+    printSupabaseLinkSecretReadinessReport(result, active, route);
+    return;
+  }
+
+  if (result.supabaseToolingAuth) {
+    printSupabaseToolingAuthReport(result, active, route);
+    return;
+  }
+
+  if (result.supabasePreflight) {
+    printSupabasePreflightReport(result, active, route);
+    return;
+  }
+
+  if (result.deploymentPlan) {
+    printDeploymentPlanningReport(result, active, route);
+    return;
+  }
+
+  console.log("# run-next report");
+  console.log("");
+  console.log(`Mode: ${dryRun ? "dry-run" : "real"}`);
+  console.log(`Target repo: ${targetRepo}`);
+  console.log(`Ledger item: ${active.heading || "unknown"}`);
+  console.log(`Current status: ${active.currentStatus || "unknown"}`);
+  console.log(`Selected skill: ${route.skill || "unknown"}`);
+  console.log(`Required permission: ${route.permission || "none"}`);
+  console.log(`Final status: ${result.finalStatus}`);
+  console.log(`Summary: ${result.summary}`);
+  if (result.branch) console.log(`Branch: ${result.branch}`);
+  if (result.prUrl) console.log(`PR URL: ${result.prUrl}`);
+  if (result.autoDeploy) {
+    console.log(`Auto-deploy source check: ${result.autoDeploy.summary}`);
+    console.log(`Auto-deploy caveat: ${result.autoDeploy.caveat}`);
+    if (result.autoDeploy.blockingFiles && result.autoDeploy.blockingFiles.length) {
+      console.log(`Auto-deploy blocking files: ${result.autoDeploy.blockingFiles.join(", ")}`);
+    }
+  }
+  if (result.prMetadata) {
+    console.log(`PR title: ${result.prMetadata.title || "unknown"}`);
+    console.log(`PR state: ${result.prMetadata.state || "unknown"}`);
+    console.log(`PR base/head: ${result.prMetadata.baseRefName || "unknown"}/${result.prMetadata.headRefName || "unknown"}`);
+    console.log(`PR mergeable: ${result.prMetadata.mergeable || "unavailable"}`);
+    console.log(`PR review decision: ${result.prMetadata.reviewDecision || "unavailable"}`);
+  }
+  if (result.finalPrMetadata) {
+    console.log(`PR final state: ${result.finalPrMetadata.state || "unknown"}`);
+    console.log(`PR merged at: ${result.finalPrMetadata.mergedAt || "unavailable"}`);
+    console.log(`PR final base/head: ${result.finalPrMetadata.baseRefName || "unknown"}/${result.finalPrMetadata.headRefName || "unknown"}`);
+  }
+  if (result.checks) console.log(`PR checks: ${result.checks.summary}`);
+  if (result.changedFiles) console.log(`Changed files: ${result.changedFiles.join(", ") || "none"}`);
+  if (result.unexpectedFiles) console.log(`Unexpected files: ${result.unexpectedFiles.join(", ") || "none"}`);
+  if (result.missingFiles) console.log(`Missing intended files: ${result.missingFiles.join(", ") || "none"}`);
+  if (result.commits) console.log(`Commits: ${summarizeCommits(result.commits)}`);
+  if (result.localState) {
+    console.log(`Local branch: ${result.localState.branch}`);
+    console.log(`Local status: ${result.localState.status}`);
+    console.log(`Local recent log: ${firstLine(result.localState.log)}`);
+  }
+  if (result.nextPermission) console.log(`Next permission: ${result.nextPermission}`);
+  console.log("");
+  console.log("Actions:");
+  for (const action of actions) console.log(`- ${action}`);
+  console.log("");
+  console.log("Evidence:");
+  for (const item of evidence) console.log(`- ${item}`);
+}
+
+function printSchedulerDraftPrReport(result, active, route) {
+  const draft = result.schedulerDraftPr;
+  console.log("# Scheduler Migration Draft + PR Report");
+  console.log("");
+  console.log("## Current Ledger State");
+  console.log(`Mode: ${dryRun ? "dry-run" : "real"}`);
+  console.log(`Target repo: ${targetRepo}`);
+  console.log(`Ledger item: ${active.heading || "unknown"}`);
+  console.log(`Current status: ${active.currentStatus || "unknown"}`);
+  console.log(`Selected skill: ${route.skill || "unknown"}`);
+  console.log(`Required permission: ${route.permission || "none"}`);
+  console.log("");
+  console.log("## Branch Result");
+  console.log(draft.branchResult);
+  console.log("");
+  console.log("## Scheduler Evidence");
+  console.log(draft.schedulerEvidence);
+  console.log("");
+  console.log("## Migration Draft");
+  console.log(draft.migrationPath);
+  console.log("");
+  console.log("## Migration Safety Decision");
+  console.log(draft.safetyDecision);
+  console.log("");
+  console.log("## Local Checks");
+  console.log(draft.localChecks);
+  console.log("");
+  console.log("## Commit Result");
+  console.log(draft.commitResult);
+  console.log("");
+  console.log("## Push Result");
+  console.log(draft.pushResult);
+  console.log("");
+  console.log("## PR Result");
+  console.log(draft.prResult);
+  if (draft.prUrl) console.log(`PR URL: ${draft.prUrl}`);
+  console.log("");
+  console.log("## Files Included");
+  for (const file of draft.includedFiles || []) console.log(`- ${file}`);
+  if (!draft.includedFiles || !draft.includedFiles.length) console.log("- none");
+  console.log("");
+  console.log("## Files Excluded");
+  for (const file of draft.excludedFiles || []) console.log(`- ${file}`);
+  console.log("");
+  console.log("## Commands Not Run");
+  for (const command of draft.commandsNotRun || []) console.log(`- ${command}`);
+  console.log("");
+  console.log("## Final Status");
+  console.log(result.finalStatus);
+  console.log("");
+  console.log("## Ledger Update");
+  console.log(dryRun ? "Dry-run only; ledger not updated." : (result.ledgerStatus || result.finalStatus));
+  console.log("");
+  console.log("## Run Log Update");
+  console.log(dryRun ? "Dry-run entry appended." : "Run entry appended.");
+  console.log("");
+  console.log("## Next Permission Needed From John");
+  console.log(result.nextPermission || "hold");
+  console.log("");
+  console.log("Actions:");
+  for (const action of actions) console.log(`- ${action}`);
+  console.log("");
+  console.log("Evidence:");
+  for (const item of evidence) console.log(`- ${item}`);
+}
+
+function printSupabaseLinkSecretReadinessReport(result, active, route) {
+  const readiness = result.supabaseLinkSecretReadiness;
+  console.log("# Supabase Link + Secret Readiness Report");
+  console.log("");
+  console.log("## Current Ledger State");
+  console.log(`Mode: ${dryRun ? "dry-run" : "real"}`);
+  console.log(`Target repo: ${targetRepo}`);
+  console.log(`Ledger item: ${active.heading || "unknown"}`);
+  console.log(`Current status: ${active.currentStatus || "unknown"}`);
+  console.log(`Selected skill: ${route.skill || "unknown"}`);
+  console.log(`Required permission: ${route.permission || "none"}`);
+  console.log("");
+  console.log("## Target Repo State");
+  if (readiness.targetRepoState) {
+    console.log(`Branch: ${readiness.targetRepoState.branch}`);
+    console.log(`Git status: ${readiness.targetRepoState.status}`);
+    console.log(`Recent log: ${firstLine(readiness.targetRepoState.recentLog)}`);
+  } else {
+    console.log("Dry-run: repo state would be inspected.");
+  }
+  console.log("");
+  console.log("## Supabase Auth Result");
+  console.log(readiness.authResult);
+  console.log("");
+  console.log("## Link Result");
+  console.log(readiness.linkResult);
+  console.log("");
+  console.log("## Local Files Changed By Link");
+  console.log(readiness.localFilesChangedByLink);
+  console.log("");
+  console.log("## Local Secret Readiness");
+  console.log(readiness.localSecretReadiness);
+  console.log("");
+  console.log("## Commands Run");
+  for (const action of actions) console.log(`- ${action}`);
+  console.log("");
+  console.log("## Commands Not Run");
+  for (const command of readiness.commandsNotRun) console.log(`- ${command}`);
+  console.log("");
+  console.log("## Final Status");
+  console.log(result.finalStatus);
+  console.log("");
+  console.log("## Ledger Update");
+  console.log(dryRun ? "Dry-run only; ledger not updated." : (result.ledgerStatus || result.finalStatus));
+  console.log("");
+  console.log("## Run Log Update");
+  console.log(dryRun ? "Dry-run entry appended." : "Run entry appended.");
+  console.log("");
+  console.log("## Next Permission Needed From John");
+  console.log(result.nextPermission || readiness.nextPermission || "hold");
+  console.log("");
+  console.log("Evidence:");
+  for (const item of evidence) console.log(`- ${item}`);
+}
+
+function printSupabaseToolingAuthReport(result, active, route) {
+  const auth = result.supabaseToolingAuth;
+  console.log("# Supabase Tooling/Auth Report");
+  console.log("");
+  console.log("## Current Ledger State");
+  console.log(`Mode: ${dryRun ? "dry-run" : "real"}`);
+  console.log(`Target repo: ${targetRepo}`);
+  console.log(`Ledger item: ${active.heading || "unknown"}`);
+  console.log(`Current status: ${active.currentStatus || "unknown"}`);
+  console.log(`Selected skill: ${route.skill || "unknown"}`);
+  console.log(`Required permission: ${route.permission || "none"}`);
+  console.log("");
+  console.log("## Target Repo State");
+  if (auth.targetRepoState) {
+    console.log(`Branch: ${auth.targetRepoState.branch}`);
+    console.log(`Git status: ${auth.targetRepoState.status}`);
+    console.log(`Recent log: ${firstLine(auth.targetRepoState.recentLog)}`);
+  } else {
+    console.log("Dry-run: repo state would be inspected.");
+  }
+  console.log("");
+  console.log("## Node/npm/npx Availability");
+  console.log(auth.nodeNpmNpxAvailability);
+  console.log("");
+  console.log("## Supabase CLI Path");
+  console.log(auth.supabaseCliPath);
+  console.log("");
+  console.log("## npx Supabase Version Result");
+  console.log(auth.npxSupabaseVersionResult);
+  console.log("");
+  console.log("## Local Env Shape");
+  console.log(auth.localEnvShape);
+  console.log("");
+  console.log("## Project Ref Check");
+  console.log(auth.projectRefCheck);
+  console.log("");
+  console.log("## Supabase Access Token Presence");
+  console.log(auth.supabaseAccessTokenPresence);
+  console.log("");
+  console.log("## Supabase Project Access Result");
+  console.log(auth.supabaseProjectAccessResult);
+  console.log("");
+  console.log("## Final Status");
+  console.log(result.finalStatus);
+  console.log("");
+  console.log("## Commands Not Run");
+  for (const command of auth.commandsNotRun) console.log(`- ${command}`);
+  console.log("");
+  console.log("## Ledger Update");
+  console.log(dryRun ? "Dry-run only; ledger not updated." : (result.ledgerStatus || result.finalStatus));
+  console.log("");
+  console.log("## Run Log Update");
+  console.log(dryRun ? "Dry-run entry appended." : "Run entry appended.");
+  console.log("");
+  console.log("## Next Permission Needed From John");
+  console.log(result.nextPermission || auth.nextPermission || "hold");
+  console.log("");
+  console.log("Actions:");
+  for (const action of actions) console.log(`- ${action}`);
+  console.log("");
+  console.log("Evidence:");
+  for (const item of evidence) console.log(`- ${item}`);
+}
+
+function printSupabasePreflightReport(result, active, route) {
+  const preflight = result.supabasePreflight;
+  console.log("# Supabase Execution Preflight Report");
+  console.log("");
+  console.log("## Current Ledger State");
+  console.log(`Mode: ${dryRun ? "dry-run" : "real"}`);
+  console.log(`Target repo: ${targetRepo}`);
+  console.log(`Ledger item: ${active.heading || "unknown"}`);
+  console.log(`Current status: ${active.currentStatus || "unknown"}`);
+  console.log(`Selected skill: ${route.skill || "unknown"}`);
+  console.log(`Required permission: ${route.permission || "none"}`);
+  console.log(`Final status: ${result.finalStatus}`);
+  console.log(`Summary: ${result.summary}`);
+  console.log("");
+  console.log("## Target Repo State");
+  if (preflight.targetRepoState) {
+    console.log(`Branch: ${preflight.targetRepoState.branch}`);
+    console.log(`Git status: ${preflight.targetRepoState.status}`);
+    console.log(`Recent log: ${firstLine(preflight.targetRepoState.recentLog)}`);
+  } else {
+    console.log("Dry-run: repo state would be inspected.");
+  }
+  console.log("");
+  console.log("## Supabase CLI Availability");
+  console.log(preflight.supabaseCliAvailability);
+  console.log(preflight.cliDecision);
+  console.log("");
+  console.log("## Project Reference Evidence");
+  console.log(preflight.projectReferenceEvidence);
+  console.log("");
+  console.log("## Function Deployment Evidence");
+  console.log(preflight.functionDeploymentEvidence);
+  console.log("");
+  console.log("## Secret Setup Evidence");
+  console.log(preflight.secretSetupEvidence);
+  console.log("");
+  console.log("## Scheduler Source Evidence");
+  console.log(preflight.schedulerSourceEvidence);
+  console.log("");
+  console.log("## Scheduler Update Decision");
+  console.log(preflight.schedulerUpdateDecision);
+  console.log("");
+  console.log("## Execution Sequence");
+  for (const group of preflight.executionSequence) {
+    console.log(`${group.gate}:`);
+    for (const command of group.commands) console.log(`- ${command}`);
+  }
+  console.log("");
+  console.log("## Permission Gates");
+  for (const gate of preflight.permissionGates) console.log(`- ${gate}`);
+  console.log("");
+  console.log("## Commands Drafted But Not Run");
+  for (const command of flattenExecutionCommands(preflight.executionSequence)) console.log(`- ${command}`);
+  console.log("");
+  console.log("## Blockers");
+  if (preflight.blockers.length) {
+    for (const blocker of preflight.blockers) console.log(`- ${blocker}`);
+  } else {
+    console.log("- none from source-only preflight");
+  }
+  console.log("");
+  console.log("## Recommended Next Permission");
+  console.log(preflight.recommendedNextPermission || result.nextPermission || "hold");
+  console.log("");
+  console.log("Actions:");
+  for (const action of actions) console.log(`- ${action}`);
+  console.log("");
+  console.log("Evidence:");
+  for (const item of evidence) console.log(`- ${item}`);
+}
+
+function printDeploymentPlanningReport(result, active, route) {
+  const plan = result.deploymentPlan;
+  console.log("# Deployment Planning Report");
+  console.log("");
+  console.log("## Current State");
+  console.log(`Mode: ${dryRun ? "dry-run" : "real"}`);
+  console.log(`Target repo: ${targetRepo}`);
+  console.log(`Ledger item: ${active.heading || "unknown"}`);
+  console.log(`Current status: ${active.currentStatus || "unknown"}`);
+  console.log(`Selected skill: ${route.skill || "unknown"}`);
+  console.log(`Required permission: ${route.permission || "none"}`);
+  console.log(`Final status: ${result.finalStatus}`);
+  console.log(`Summary: ${result.summary}`);
+  if (plan.currentState) {
+    console.log(`Branch: ${plan.currentState.branch}`);
+    console.log(`Git status: ${plan.currentState.status}`);
+    console.log(`Merged commit: ${plan.currentState.mergedCommit}`);
+  }
+  console.log("");
+  console.log("## Source Evidence");
+  if (plan.sourceEvidence) {
+    console.log(`Supabase files: ${plan.sourceEvidence.supabaseFiles.length}`);
+    console.log(`Workflow files: ${plan.sourceEvidence.workflowFiles.length ? plan.sourceEvidence.workflowFiles.join(", ") : "none"}`);
+    console.log(`Deployment config files: ${plan.sourceEvidence.deploymentConfigFiles.length ? plan.sourceEvidence.deploymentConfigFiles.join(", ") : "none"}`);
+    console.log(`Supabase config: ${plan.sourceEvidence.supabaseConfig}`);
+    console.log(`Function summary: ${plan.sourceEvidence.functionSummary}`);
+    console.log(`Package scripts: ${plan.sourceEvidence.packageScripts.length ? plan.sourceEvidence.packageScripts.join(", ") : "none"}`);
+    console.log(`Relevant grep hits: ${plan.sourceEvidence.grepSummary}`);
+    console.log(`CLI availability: ${plan.sourceEvidence.cliAvailability}`);
+  } else {
+    console.log("Dry-run: source evidence would be collected from local files only.");
+  }
+  console.log("");
+  console.log("## Function To Deploy");
+  console.log(plan.functionToDeploy);
+  console.log("");
+  console.log("## Required Secret Setup");
+  console.log(plan.requiredSecretSetup);
+  console.log("");
+  console.log("## Scheduler Update Required");
+  console.log(plan.schedulerUpdateRequired);
+  console.log("");
+  console.log("## Runtime Verification Matrix");
+  for (const item of plan.runtimeVerificationMatrix) console.log(`- ${item}`);
+  console.log("");
+  console.log("## Commands That Would Be Needed Later");
+  for (const group of plan.commandsDraftedButNotRun) {
+    console.log(`${group.gate}:`);
+    for (const command of group.commands) console.log(`- ${command}`);
+  }
+  console.log("");
+  console.log("## Commands Not Run");
+  for (const command of plan.commandsNotRun) console.log(`- ${command}`);
+  console.log("");
+  console.log("## Risks");
+  for (const risk of plan.risks) console.log(`- ${risk}`);
+  console.log("");
+  console.log("## Recommended Next Permission");
+  console.log(plan.recommendedNextPermission || result.nextPermission || "hold");
+  console.log("");
+  console.log("Actions:");
+  for (const action of actions) console.log(`- ${action}`);
+  console.log("");
+  console.log("Evidence:");
+  for (const item of evidence) console.log(`- ${item}`);
+}
+
+function formatRunLogFilesChanged(isDryRun) {
+  if (isDryRun) return "`runs/skill-runs.md` dry-run entry only";
+  const changed = filesChanged.concat(["runs/skill-runs.md"]);
+  return Array.from(new Set(changed)).map((file) => `\`${file}\``).join("; ");
+}
+
+function permissionBoundarySummary() {
+  if (args.allow.has("scheduler-draft-pr")) {
+    return "Combined scheduler draft/PR gate permitted only for local scheduler migration drafting, local checks, exact-file commit, feature-branch push, and PR creation; no remote Supabase secret write, function deploy, database migration application, SQL execution, scheduler mutation, Edge Function invoke, production endpoint call, direct `main` push, force push, PR merge, token/secret printing, unrelated staging, `evidence/`, or `supabase/.temp/` inclusion";
+  }
+  if (args.allow.has("supabase-link-secret-readiness")) {
+    return "Supabase link/local secret readiness permitted only for repo cleanliness checks, local env presence checks, read-only project access confirmation, local Supabase link, and storing a generated import secret only in `/home/johnh/.openclaw/.env` if missing; no remote secret write, function deploy, database migration, SQL execution, scheduler mutation, Edge Function invoke, production endpoint call, direct `main` push, force push, merge, branch deletion, token/secret printing, token/secret file write to target repo, unrelated staging, or `evidence/` inclusion";
+  }
+  if (args.allow.has("supabase-tooling-auth")) {
+    return "Supabase tooling/auth setup permitted only for local tooling checks, npx supabase --version, env variable-name/presence checks, and read-only project list when SUPABASE_ACCESS_TOKEN is set; no CLI install, login, link, secret write, function deploy, database migration, SQL execution, scheduler mutation, Edge Function invoke, production endpoint call, direct `main` push, force push, merge, branch deletion, token printing, token file write, unrelated staging, or `evidence/` inclusion";
+  }
+  if (args.allow.has("supabase-preflight")) {
+    return "Supabase execution preflight permitted as local/source inspection only; no CLI install, npx Supabase execution, login, link, secret write, function deploy, database migration, SQL execution, scheduler mutation, production endpoint call, direct `main` push, force push, merge, branch deletion, token printing, token file write, unrelated staging, or `evidence/` inclusion";
+  }
+  if (args.allow.has("deployment-plan")) {
+    return "Deployment planning permitted as local/source inspection only; no deploy, Supabase migration, Supabase mutation, Supabase secret write, scheduler mutation, production endpoint call, direct `main` push, force push, merge, branch deletion, token printing, token file write, unrelated staging, or `evidence/` inclusion";
+  }
+  if (args.allow.has("pr-merge")) {
+    return "PR merge permitted only for PR #11 after safety gates; no deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, branch deletion, token printing, token file write, unrelated staging, or `evidence/` inclusion";
+  }
+  return "No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion";
+}
+
+function forbiddenActionSummary() {
+  if (args.allow.has("scheduler-draft-pr")) {
+    return "No forbidden remote Supabase secret setup, function deploy, database migration application, SQL execution, scheduler mutation, Edge Function invoke, production endpoint call, direct main push, force push, PR merge, token/secret printing, unrelated staging, evidence inclusion, or supabase/.temp inclusion occurred.";
+  }
+  if (args.allow.has("supabase-link-secret-readiness")) {
+    return "No forbidden remote secret setup, function deploy, database migration, SQL execution, scheduler mutation, Edge Function invoke, production endpoint call, direct main push, force push, merge, branch deletion, token/secret printing, target-repo secret write, unrelated staging, or evidence inclusion occurred.";
+  }
+  if (args.allow.has("supabase-tooling-auth")) {
+    return "No forbidden CLI install, login, link, secret write, function deploy, database migration, SQL execution, scheduler mutation, Edge Function invoke, production endpoint call, direct main push, force push, merge, branch deletion, token printing, token file write, unrelated staging, or evidence inclusion occurred.";
+  }
+  if (args.allow.has("supabase-preflight")) {
+    return "No forbidden CLI install, npx Supabase execution, login, link, secret write, function deploy, database migration, SQL execution, scheduler mutation, production endpoint call, direct main push, force push, merge, branch deletion, token printing, token file write, unrelated staging, or evidence inclusion occurred.";
+  }
+  if (args.allow.has("deployment-plan")) {
+    return "No forbidden deploy, migration, Supabase mutation, Supabase secret write, scheduler mutation, production endpoint call, direct main push, force push, merge, branch deletion, token printing, token file write, unrelated staging, or evidence inclusion occurred.";
+  }
+  if (args.allow.has("pr-merge")) {
+    return "No forbidden deploy, migration, Supabase mutation, production endpoint call, direct main push, force push, branch deletion, token printing, token file write, unrelated staging, or evidence inclusion occurred.";
+  }
+  return "No forbidden deploy, migration, Supabase mutation, production endpoint call, direct main push, force push, merge, token printing, token file write, unrelated staging, or evidence inclusion occurred.";
+}
+
+function blockerSummary(result) {
+  if (result.finalStatus === "Scheduler migration PR opened, not merged") {
+    return "None for local scheduler draft/PR handoff; remote secret setup, reviewed scheduler application, function deploy, runtime verification, deployed RLS/grants, and PR merge remain gated.";
+  }
+  if (result.finalStatus === "Supabase linked and local secret ready, not deployed") {
+    return "None for local link/secret readiness; remote secret setup, scheduler migration draft, function deploy, runtime verification, and deployed RLS/grants remain gated.";
+  }
+  if (
+    result.finalStatus === "NEEDS JOHN: Supabase link requires interactive credential" ||
+    result.finalStatus === "NEEDS JOHN: Supabase project access failed" ||
+    result.finalStatus === "NEEDS JOHN: Supabase project ref mismatch" ||
+    result.finalStatus === "BLOCKED: unexpected target repo changes"
+  ) {
+    return result.summary;
+  }
+  if (result.finalStatus === "SUPABASE AUTH PASS FOR TOOLING") {
+    return "None for tooling/auth; Supabase link, secret setup, scheduler update, function deploy, runtime verification, and deployed RLS/grants remain gated.";
+  }
+  if (
+    result.finalStatus === "NEEDS JOHN: Supabase access token missing" ||
+    result.finalStatus === "NEEDS JOHN: Supabase access token invalid" ||
+    result.finalStatus === "NEEDS JOHN: Supabase token lacks project access" ||
+    result.finalStatus === "NEEDS JOHN: Supabase project ref mismatch" ||
+    result.finalStatus === "BLOCKED: Node/npx/Supabase CLI unavailable"
+  ) {
+    return result.summary;
+  }
+  if (result.finalStatus === "Supabase execution preflight ready, not executed") {
+    return "None for source-only preflight; Supabase tooling/auth setup, project link, secret setup, scheduler update, function deploy, runtime verification, and deployed RLS/grants remain gated.";
+  }
+  if (result.finalStatus === "Deployment plan ready, not deployed") {
+    return "None for source-only planning; Supabase secret setup, scheduler update, function deploy, runtime verification, and deployed RLS/grants remain gated.";
+  }
+  if (result.finalStatus === "Merged, not deployed") {
+    return "None for the merge; deployment planning, Supabase secret setup, scheduler update, runtime verification, and deployed RLS/grants remain gated.";
+  }
+  if (isNonBlockingResult(result.finalStatus)) {
+    return "None for the inspected boundary; merge/deploy planning remains gated.";
+  }
+  return result.summary;
+}
+
+function johnNeededSummary(result) {
+  if (result.finalStatus === "Scheduler migration PR opened, not merged") {
+    return "Yes for scheduler migration PR readiness/merge decision, remote secret setup, reviewed scheduler application, function deploy, runtime verification, or hold.";
+  }
+  if (result.finalStatus === "Supabase linked and local secret ready, not deployed") {
+    return "Yes for remote secret setup and scheduler migration draft, function deploy, runtime verification, unrelated validation fixes, or hold.";
+  }
+  if (
+    result.finalStatus === "NEEDS JOHN: Supabase link requires interactive credential" ||
+    result.finalStatus === "NEEDS JOHN: Supabase project access failed" ||
+    result.finalStatus === "NEEDS JOHN: Supabase project ref mismatch" ||
+    result.finalStatus === "BLOCKED: unexpected target repo changes"
+  ) {
+    return "Yes for the reported Supabase link/local secret readiness boundary.";
+  }
+  if (result.finalStatus === "SUPABASE AUTH PASS FOR TOOLING") {
+    return "Yes for Supabase link/secret readiness, local scheduler migration draft, runtime verification, unrelated validation fixes, or hold.";
+  }
+  if (
+    result.finalStatus === "NEEDS JOHN: Supabase access token missing" ||
+    result.finalStatus === "NEEDS JOHN: Supabase access token invalid" ||
+    result.finalStatus === "NEEDS JOHN: Supabase token lacks project access" ||
+    result.finalStatus === "NEEDS JOHN: Supabase project ref mismatch" ||
+    result.finalStatus === "BLOCKED: Node/npx/Supabase CLI unavailable"
+  ) {
+    return "Yes for the reported Supabase tooling/auth fix.";
+  }
+  if (result.finalStatus === "Supabase execution preflight ready, not executed") {
+    return "Yes for Supabase tooling/auth setup, local scheduler migration draft, runtime verification, unrelated validation fixes, or hold.";
+  }
+  if (result.finalStatus === "Deployment plan ready, not deployed") {
+    return "Yes for Supabase secret/scheduler/deploy execution planning, runtime verification, unrelated validation fixes, or hold.";
+  }
+  if (result.finalStatus === "Merged, not deployed") {
+    return "Yes for deployment planning, unrelated validation fixes, or hold.";
+  }
+  if (isNonBlockingResult(result.finalStatus)) {
+    return "Yes for merge, deployment planning, or unrelated validation fixes.";
+  }
+  return "Yes for the next permission boundary.";
+}
+
+function summarizeList(items, limit) {
+  if (!items.length) return "none";
+  const shown = items.slice(0, limit).join(" | ");
+  const suffix = items.length > limit ? ` | ... ${items.length - limit} more` : "";
+  return shown + suffix;
+}
+
+function summarizeCommitShow(text) {
+  const lines = String(text || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const commitLine = lines.find((line) => /^commit\s+/i.test(line));
+  const subjectLine = lines.find((line) => line === EXPECTED_COMMIT_SUBJECT) || lines.find((line) => !/^(commit|author:|date:)/i.test(line));
+  const files = lines.filter((line) => INTENDED_PR_FILES.includes(line));
+  const statLine = lines.find((line) => /\bfile(s)? changed\b/.test(line));
+  return [commitLine ? commitLine.replace(/^commit\s+/, "").slice(0, 7) : EXPECTED_COMMIT, subjectLine, files.length ? `files: ${files.join(", ")}` : "", statLine]
+    .filter(Boolean)
+    .join("; ");
+}
+
+function sortedRelativeLines(repo, text) {
+  return String(text || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => path.isAbsolute(line) ? path.relative(repo, line) : line)
+    .sort();
+}
+
+function relativizeLine(repo, line) {
+  return String(line || "").replace(new RegExp(escapeRegExp(`${repo}/`), "g"), "");
+}
+
+function parsePackageJson(text) {
+  try {
+    const parsed = JSON.parse(text || "{}");
+    const scripts = parsed && parsed.scripts && typeof parsed.scripts === "object"
+      ? Object.keys(parsed.scripts).sort()
+      : [];
+    return { ok: true, scripts };
+  } catch (error) {
+    return { ok: false, scripts: [`package.json parse failed: ${error.message}`] };
+  }
+}
+
+function summarizeSupabaseConfig(text) {
+  if (!text) return "not found or unreadable";
+  const lines = text.split(/\r?\n/);
+  const functionSection = lines.find((line) => line.includes(`[functions.${IMPORT_FUNCTION_NAME}]`));
+  const verifyJwt = lines.find((line) => /verify_jwt\s*=/.test(line));
+  return [
+    functionSection ? `${IMPORT_FUNCTION_NAME} section present` : `${IMPORT_FUNCTION_NAME} section not found`,
+    verifyJwt ? verifyJwt.trim() : "verify_jwt not found in captured config excerpt",
+  ].join("; ");
+}
+
+function summarizeImportFunction(text) {
+  if (!text) return "not found or unreadable";
+  const markers = [];
+  if (text.includes(REQUIRED_IMPORT_SECRET)) markers.push(`${REQUIRED_IMPORT_SECRET} referenced`);
+  if (text.includes("x-import-reddit-tips-secret")) markers.push("x-import-reddit-tips-secret header referenced");
+  if (text.includes("SUPABASE_SERVICE_ROLE_KEY")) markers.push("SUPABASE_SERVICE_ROLE_KEY referenced");
+  if (/auth\.getUser|is_admin|admin/i.test(text)) markers.push("admin/auth check evidence present");
+  if (/rateLimit|rate limit|429/i.test(text)) markers.push("rate-limit evidence present");
+  if (/pet_tips/.test(text) && /\.(insert|upsert|update|delete)\s*\(/.test(text)) markers.push("pet_tips write evidence present");
+  return markers.length ? markers.join("; ") : "function source read, but expected security markers were not summarized";
+}
+
+function classifySchedulerEvidence(grepHits) {
+  const relativeHits = grepHits.map((line) => relativizeLine(targetRepo, line));
+  const hasSqlScheduler = relativeHits.some((line) => /pg_cron|cron|net\.http/i.test(line) && /supabase\/migrations/i.test(line));
+  const hasDocsScheduler = relativeHits.some((line) => /schedule|scheduler|cron|x-import-reddit-tips-secret/i.test(line) && /docs\//i.test(line));
+  const hasFunctionSecretHeader = relativeHits.some((line) => /x-import-reddit-tips-secret|IMPORT_REDDIT_TIPS_SECRET/i.test(line) && /supabase\/functions/i.test(line));
+
+  let summary = "scheduled calls must send x-import-reddit-tips-secret; old anon-key-only scheduled calls are not sufficient";
+  if (hasSqlScheduler) {
+    summary += "; source suggests a SQL/pg_cron scheduler path exists and needs a reviewed migration or SQL update later";
+  } else if (hasDocsScheduler) {
+    summary += "; source docs mention scheduler requirements, but no SQL/pg_cron scheduler definition was confirmed in this planning run";
+  } else {
+    summary += "; no scheduler definition was found in inspected source, so an external scheduler update may be required";
+  }
+
+  return {
+    summary,
+    sqlSchedulerEvidence: hasSqlScheduler,
+    docsSchedulerEvidence: hasDocsScheduler,
+    functionHeaderEvidence: hasFunctionSecretHeader,
+    hits: relativeHits,
+  };
+}
+
+function extractSupabaseProjectRef(configText, schedulerHits, remoteText) {
+  const configMatch = String(configText || "").match(/project_id\s*=\s*["']?([a-z0-9-]+)["']?/i);
+  if (configMatch) {
+    return {
+      value: configMatch[1],
+      summary: `project ref found in supabase/config.toml as project_id (${configMatch[1]})`,
+    };
+  }
+
+  const urlHit = schedulerHits.find((line) => /https:\/\/([a-z0-9-]+)\.supabase\.co/i.test(line));
+  if (urlHit) {
+    const match = urlHit.match(/https:\/\/([a-z0-9-]+)\.supabase\.co/i);
+    if (match) {
+      return {
+        value: match[1],
+        summary: `project ref inferred from source Supabase URL (${match[1]}); verify before linking`,
+      };
+    }
+  }
+
+  if (/AyobamiH\/wagging-web-wins/i.test(remoteText || "")) {
+    return {
+      value: null,
+      summary: "Needs John: Supabase project ref; GitHub remote does not prove Supabase project ref",
+    };
+  }
+
+  return {
+    value: null,
+    summary: "Needs John: Supabase project ref",
+  };
+}
+
+function classifySupabaseScheduler(schedulerHits) {
+  const hasSqlScheduler = schedulerHits.some((line) => /cron\.schedule|pg_cron|net\.http_post|http_post/i.test(line) && /supabase\/migrations/i.test(line));
+  const hasUnschedule = schedulerHits.some((line) => /cron\.unschedule/i.test(line));
+  const hasAlterJob = schedulerHits.some((line) => /cron\.alter_job/i.test(line));
+  const hasSecretHeader = schedulerHits.some((line) => /x-import-reddit-tips-secret/i.test(line));
+  const hasAuthorization = schedulerHits.some((line) => /authorization|bearer|apikey/i.test(line));
+  const usesAnonOnlyHeaders = hasSqlScheduler && !hasSecretHeader;
+  const jobNameHit = schedulerHits.find((line) => /import-reddit-tips-daily/i.test(line));
+  const jobName = jobNameHit ? "import-reddit-tips-daily" : "<existing-job-name>";
+
+  let summary = "No scheduler source was confirmed in inspected migrations/docs.";
+  if (hasSqlScheduler) {
+    summary = `SQL/pg_cron scheduler evidence found in migrations; existing job name appears to be ${jobName}.`;
+    if (usesAnonOnlyHeaders) summary += " Existing source does not show x-import-reddit-tips-secret in scheduler headers.";
+    if (hasAuthorization || schedulerHits.some((line) => /apikey/i.test(line))) summary += " Existing source references Authorization/apikey style headers.";
+  }
+
+  let updateDecision = "Scheduler location unclear; determine source of scheduled calls before execution.";
+  if (hasSqlScheduler) {
+    updateDecision = "Do not edit old applied migration directly; draft a new reviewed migration or use Dashboard/Cron update to add x-import-reddit-tips-secret. Old scheduled call will fail after deploy unless updated.";
+    if (hasAlterJob) updateDecision += " Source mentions cron.alter_job, so verify support before choosing unschedule/reschedule.";
+    if (hasUnschedule) updateDecision += " Source already mentions cron.unschedule, so a replacement migration may follow that pattern.";
+  }
+
+  return {
+    hasSqlScheduler,
+    hasSecretHeader,
+    hasAuthorization,
+    hasUnschedule,
+    hasAlterJob,
+    usesAnonOnlyHeaders,
+    jobName,
+    summary,
+    updateDecision,
+  };
+}
+
+function classifySupabaseEnvEvidence(envHits, functionText) {
+  const variableNames = Array.from(new Set(envHits
+    .map((line) => {
+      const match = line.match(/(SUPABASE_ACCESS_TOKEN|SUPABASE_PROJECT_REF|IMPORT_REDDIT_TIPS_SECRET|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_ANON_KEY)/);
+      return match ? match[1] : null;
+    })
+    .filter(Boolean)))
+    .sort();
+  const functionRequiresSecret = String(functionText || "").includes(REQUIRED_IMPORT_SECRET);
+  const hasSecretName = variableNames.includes(REQUIRED_IMPORT_SECRET) || functionRequiresSecret;
+  const summaryParts = [];
+
+  if (variableNames.length) summaryParts.push(`env/docs mention variable names: ${variableNames.join(", ")}`);
+  else summaryParts.push("no requested Supabase env variable names found in .env.example/docs");
+  if (hasSecretName) summaryParts.push(`${REQUIRED_IMPORT_SECRET} name is present, but no value was inspected or printed`);
+  else summaryParts.push(`${REQUIRED_IMPORT_SECRET} name not confirmed in env docs`);
+
+  return {
+    variableNames,
+    secretValueAvailable: false,
+    summary: `${summaryParts.join("; ")}; Needs John: provide secret value locally or approve secret generation`,
+  };
+}
+
+function sanitizeEnvEvidenceLine(line) {
+  return String(line || "")
+    .replace(/=(['"]?)[^'"\s]+/g, "=<redacted>")
+    .replace(/:\s*(gh[pousr]_|github_pat_|sk-|eyJ)[^\s]+/g, ": <redacted>");
+}
+
+function formatCliAvailability(items) {
+  return items.map((item) => `${item.name}: ${item.path}`).join("; ");
+}
+
+function sanitize(text) {
+  return String(text)
+    .replace(/gh[pousr]_[A-Za-z0-9_]+/g, "[github-token-redacted]")
+    .replace(/github_pat_[A-Za-z0-9_]+/g, "[github-token-redacted]")
+    .replace(/sbp_[A-Za-z0-9_]+/g, "[supabase-token-redacted]")
+    .replace(/sk-[A-Za-z0-9_-]+/g, "[secret-key-redacted]")
+    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, "[jwt-redacted]");
+}
+
+function firstLine(text) {
+  return String(text || "")
+    .trim()
+    .split(/\r?\n/)[0] || "(no output)";
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function timestampForMigration() {
+  const now = new Date();
+  const pad = (value) => String(value).padStart(2, "0");
+  return [
+    now.getFullYear(),
+    pad(now.getMonth() + 1),
+    pad(now.getDate()),
+    pad(now.getHours()),
+    pad(now.getMinutes()),
+    pad(now.getSeconds()),
+  ].join("");
+}
+
+function isNonBlockingResult(status) {
+  return [
+    "PR opened, not merged",
+    "PR ready for merge approval",
+    "Merged, not deployed",
+    "Deployment plan ready, not deployed",
+    "Supabase execution preflight ready, not executed",
+    "SUPABASE AUTH PASS FOR TOOLING",
+    "Supabase linked and local secret ready, not deployed",
+    "Scheduler migration PR opened, not merged",
+    "DRY RUN PASS",
+  ].includes(status);
+}
+
+function die(message) {
+  throw new Error(message);
+}

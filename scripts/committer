@@ -1,0 +1,604 @@
+#!/usr/bin/env node
+
+const { execFileSync } = require("child_process");
+const fs = require("fs");
+const path = require("path");
+
+function usage(exitCode = 0) {
+  const text = `
+Usage:
+  ./scripts/committer --repo /path/to/repo --message "commit message" --files path/a path/b
+  ./scripts/committer --repo /path/to/repo --message "commit message" --files path/a path/b --dry-run
+  ./scripts/committer --repo /path/to/repo --message "commit message" --files path/a path/b --no-commit
+  ./scripts/committer --self-test
+
+Modes:
+  --dry-run    Inspect and report only. Does not stage or commit.
+  --no-commit  Stage exact listed files and print the suggested git commit command.
+  default      Stage exact listed files and commit with the provided message.
+  --self-test  Run scanner fixtures without touching any repo.
+
+Safety:
+  Refuses broad paths, globs, unrelated staged files, non-git repos, diff-check
+  failures, and secret-shaped markers in the staged diff. Never pushes.
+`;
+  console.log(text.trim());
+  process.exit(exitCode);
+}
+
+function parseArgs(argv) {
+  const args = { files: [], dryRun: false, noCommit: false, selfTest: false };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--help" || arg === "-h") usage(0);
+    if (arg === "--self-test") {
+      args.selfTest = true;
+      continue;
+    }
+    if (arg === "--dry-run") {
+      args.dryRun = true;
+      continue;
+    }
+    if (arg === "--no-commit") {
+      args.noCommit = true;
+      continue;
+    }
+    if (arg === "--repo") {
+      args.repo = argv[++i];
+      continue;
+    }
+    if (arg === "--message") {
+      args.message = argv[++i];
+      continue;
+    }
+    if (arg === "--files") {
+      while (i + 1 < argv.length && !argv[i + 1].startsWith("--")) {
+        args.files.push(argv[++i]);
+      }
+      continue;
+    }
+    fail(`unknown argument: ${arg}`);
+  }
+  return args;
+}
+
+function fail(message, evidence) {
+  console.error(`committer refusal: ${message}`);
+  if (evidence) console.error(evidence);
+  process.exit(1);
+}
+
+function git(repo, args, options = {}) {
+  try {
+    return execFileSync("git", ["-C", repo, ...args], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      ...options,
+    }).trimEnd();
+  } catch (error) {
+    const stdout = error.stdout ? String(error.stdout) : "";
+    const stderr = error.stderr ? String(error.stderr) : "";
+    const detail = [stdout.trim(), stderr.trim()].filter(Boolean).join("\n");
+    const rendered = detail || error.message;
+    const wrapped = new Error(rendered);
+    wrapped.status = error.status || 1;
+    throw wrapped;
+  }
+}
+
+function tryGit(repo, args) {
+  try {
+    return { ok: true, output: git(repo, args) };
+  } catch (error) {
+    return { ok: false, output: error.message };
+  }
+}
+
+function quote(value) {
+  return JSON.stringify(value);
+}
+
+function normalizeRel(value) {
+  return value.replaceAll("\\", "/");
+}
+
+function isBroadPath(file) {
+  if (!file || file === ".") return "path must not be .";
+  if (file === "*" || file.includes("*") || file.includes("?") || /[\[\]{}]/.test(file)) return "glob paths are refused";
+  if (file.endsWith("/*") || file.includes(":/*")) return "broad path suffix is refused";
+  if (file.endsWith("/")) return "directory paths are refused; list exact files";
+  return "";
+}
+
+function validateFiles(repoRoot, files) {
+  const seen = new Set();
+  return files.map((file) => {
+    const broadReason = isBroadPath(file);
+    if (broadReason) fail(`${file}: ${broadReason}`);
+
+    const resolved = path.resolve(repoRoot, file);
+    const relative = normalizeRel(path.relative(repoRoot, resolved));
+
+    if (relative.startsWith("../") || relative === ".." || path.isAbsolute(relative)) {
+      fail(`${file}: path resolves outside repo`);
+    }
+    if (seen.has(relative)) fail(`${file}: duplicate requested file`);
+    seen.add(relative);
+
+    return { input: file, relative, absolute: resolved };
+  });
+}
+
+function tracked(repoRoot, relative) {
+  const result = tryGit(repoRoot, ["ls-files", "--error-unmatch", "--", relative]);
+  return result.ok;
+}
+
+function assertFilesExistOrTracked(repoRoot, entries) {
+  for (const entry of entries) {
+    if (fs.existsSync(entry.absolute)) continue;
+    if (tracked(repoRoot, entry.relative)) continue;
+    fail(`${entry.relative}: file does not exist and is not tracked`);
+  }
+}
+
+function pathIsRisky(relative) {
+  const parts = relative.split("/");
+  const base = parts[parts.length - 1].toLowerCase();
+  if (parts.includes("node_modules")) return "node_modules path";
+  if ([".env", ".env.local", ".dev.vars"].includes(base)) return "secret-bearing env file";
+  if (/\.(pem|key|p12|pfx)$/i.test(base)) return "private key or certificate file";
+  return "";
+}
+
+function isLockfile(relative) {
+  return /(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb|bun\.lock)$/.test(relative);
+}
+
+function stagedNames(repoRoot) {
+  const output = git(repoRoot, ["diff", "--cached", "--name-only"]);
+  return output ? output.split(/\r?\n/).filter(Boolean).map(normalizeRel) : [];
+}
+
+function status(repoRoot) {
+  return git(repoRoot, ["status", "--short"]) || "(clean)";
+}
+
+function diffStat(repoRoot, mode, files = []) {
+  const args = mode === "cached" ? ["diff", "--cached", "--stat", "--"] : ["diff", "--stat", "--"];
+  const output = git(repoRoot, [...args, ...files]);
+  return output || "(no diff)";
+}
+
+function runDiffCheck(repoRoot, mode, files = []) {
+  const args = mode === "cached" ? ["diff", "--cached", "--check", "--"] : ["diff", "--check", "--"];
+  const result = tryGit(repoRoot, [...args, ...files]);
+  if (!result.ok) fail("git diff --check failed", result.output);
+  return "pass";
+}
+
+function requestedDiff(repoRoot, entries) {
+  const files = entries.map((entry) => entry.relative);
+  let diff = "";
+  const trackedDiff = tryGit(repoRoot, ["diff", "--", ...files]);
+  if (trackedDiff.ok && trackedDiff.output) diff += `${trackedDiff.output}\n`;
+
+  for (const entry of entries) {
+    if (tracked(repoRoot, entry.relative)) continue;
+    if (!fs.existsSync(entry.absolute) || !fs.statSync(entry.absolute).isFile()) continue;
+    const content = fs.readFileSync(entry.absolute, "utf8");
+    const lines = content.split(/\r?\n/);
+    diff += `diff --git a/${entry.relative} b/${entry.relative}\n`;
+    diff += `+++ b/${entry.relative}\n`;
+    diff += `@@ -0,0 +1,${Math.max(lines.length, 1)} @@\n`;
+    for (const line of lines) diff += `+${line}\n`;
+  }
+  return diff;
+}
+
+function stagedDiff(repoRoot) {
+  return git(repoRoot, ["diff", "--cached"]);
+}
+
+function isPlaceholder(value) {
+  const clean = String(value || "").trim().replace(/^['"]|['"]$/g, "").toLowerCase();
+  if (!clean) return true;
+  if (/^<[^>]+>$/.test(clean)) return true;
+  return [
+    "example",
+    "placeholder",
+    "your-secret-here",
+    "your_secret_here",
+    "set-in-provider",
+    "set_in_provider",
+    "replace-me",
+    "replace_me",
+  ].includes(clean);
+}
+
+function assignmentExpression(line) {
+  const trimmed = line.trim();
+  const patterns = [
+    /^(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*(?:KEY|TOKEN|SECRET|PASSWORD|DATABASE_URL|WEBHOOK)[A-Za-z0-9_$]*)\s*(?::[^=]+)?=\s*(.+)$/i,
+    /^(?:this\.)?([A-Za-z_$][A-Za-z0-9_$]*(?:KEY|TOKEN|SECRET|PASSWORD|DATABASE_URL|WEBHOOK)[A-Za-z0-9_$]*)\s*=\s*(.+)$/i,
+    /^([A-Z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD|DATABASE_URL|WEBHOOK)[A-Z0-9_]*)\s*=\s*(.*)$/i,
+    /^([A-Za-z_$][A-Za-z0-9_$]*(?:KEY|TOKEN|SECRET|PASSWORD|DATABASE_URL|WEBHOOK)[A-Za-z0-9_$]*)\s*:\s*(.+?)\s*,?$/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = trimmed.match(pattern);
+    if (!match) continue;
+    return {
+      key: match[1],
+      expression: match[2].trim().replace(/[;,]\s*$/, ""),
+    };
+  }
+
+  return null;
+}
+
+function literalValue(expression) {
+  const clean = String(expression || "").trim();
+  if (!clean) return "";
+
+  const quoted = clean.match(/^(['"`])([\s\S]*?)\1$/);
+  if (quoted) return quoted[2];
+
+  if (/^[^\s()[\]{}$]+$/.test(clean)) return clean;
+  return null;
+}
+
+function isRuntimeSecretAccess(expression) {
+  return /\bDeno\.env\.get\s*\(/.test(expression)
+    || /\bprocess\.env\.[A-Za-z0-9_]+/.test(expression)
+    || /\bimport\.meta\.env\.[A-Za-z0-9_]+/.test(expression)
+    || /\b(?:req|request|headers)\.headers\.get\s*\(/i.test(expression)
+    || /\bheaders\.get\s*\(/i.test(expression);
+}
+
+function isJwt(value) {
+  return /^eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}$/.test(value);
+}
+
+function isOpenAiStyleKey(value) {
+  return /^sk-[A-Za-z0-9_-]{10,}$/.test(value);
+}
+
+function isStripeSecret(value) {
+  return /^sk_(?:live|test)_[A-Za-z0-9_]{8,}$/.test(value);
+}
+
+function isGitHubToken(value) {
+  return /^(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{20,}$/.test(value);
+}
+
+function isDatabaseUrlWithCredential(value) {
+  return /^postgres(?:ql)?:\/\/[^:\s"']+:[^@\s"']+@/i.test(value)
+    || /^mysql:\/\/[^:\s"']+:[^@\s"']+@/i.test(value)
+    || /^mongodb(?:\+srv)?:\/\/[^:\s"']+:[^@\s"']+@/i.test(value);
+}
+
+function isSuspiciousLiteral(value) {
+  const clean = String(value || "").trim();
+  if (isPlaceholder(clean)) return false;
+  if (isOpenAiStyleKey(clean) || isStripeSecret(clean) || isGitHubToken(clean) || isJwt(clean)) return true;
+  if (isDatabaseUrlWithCredential(clean)) return true;
+  if (/^whsec_[A-Za-z0-9_/-]{8,}$/.test(clean)) return true;
+  if (/^(?:cf|cloudflare)[A-Za-z0-9_-]{20,}$/i.test(clean)) return true;
+  if (/\b(?:secret|token|password|apikey|api-key)\b/i.test(clean) && !/your-secret-here/i.test(clean)) return true;
+
+  const compact = /^[A-Za-z0-9_./+=-]+$/.test(clean);
+  const mixed = /[a-z]/.test(clean) && /[A-Z]/.test(clean) && /\d/.test(clean);
+  return compact && ((clean.length >= 32 && mixed) || clean.length >= 48);
+}
+
+function maskPreview(line) {
+  let preview = String(line || "").trim();
+  const assigned = assignmentExpression(preview);
+  const literal = assigned ? literalValue(assigned.expression) : null;
+
+  preview = preview.replace(/sk-[A-Za-z0-9_-]{8,}/g, (value) => `${value.slice(0, 5)}...${value.slice(-4)}`);
+  preview = preview.replace(/sk_(?:live|test)_[A-Za-z0-9_]{8,}/g, (value) => `${value.slice(0, 7)}...${value.slice(-4)}`);
+  preview = preview.replace(/\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{12,}\b/g, (value) => `${value.slice(0, 4)}...${value.slice(-4)}`);
+  preview = preview.replace(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, "[JWT redacted]");
+  preview = preview.replace(/(postgres(?:ql)?:\/\/)[^\s"']+/gi, "$1[database-url redacted]");
+  preview = preview.replace(/(mysql:\/\/)[^\s"']+/gi, "$1[database-url redacted]");
+  preview = preview.replace(/(mongodb(?:\+srv)?:\/\/)[^\s"']+/gi, "$1[database-url redacted]");
+  preview = preview.replace(/BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY/g, "[private-key-block redacted]");
+
+  if (assigned && literal && isSuspiciousLiteral(literal)) {
+    preview = `${assigned.key}=[redacted ${literal.length} chars]`;
+  }
+
+  if (preview.length > 140) preview = `${preview.slice(0, 137)}...`;
+  return preview;
+}
+
+function formatFinding(finding) {
+  return `${finding.file}:${finding.line}: ${finding.category}; key=${finding.key}; preview=${finding.preview}`;
+}
+
+function scanDiffForSecrets(diffText) {
+  const findings = [];
+  const safeNotes = [];
+  let currentFile = "unknown";
+  let currentLine = 0;
+
+  function addFinding(category, line, lineNo, assigned) {
+    const key = assigned?.key || assignmentExpression(line)?.key || "unknown";
+    const id = `${currentFile}:${lineNo}:${category}:${key}`;
+    if (!findings.some((finding) => finding.id === id)) {
+      findings.push({ id, file: currentFile, line: lineNo || "unknown", category, key, preview: maskPreview(line) });
+    }
+  }
+
+  function addSafeNote(category, line, lineNo, assigned) {
+    const key = assigned?.key || "unknown";
+    const id = `${currentFile}:${lineNo}:${category}:${key}`;
+    if (!safeNotes.some((note) => note.id === id)) {
+      safeNotes.push({ id, file: currentFile, line: lineNo || "unknown", category, key, preview: maskPreview(line) });
+    }
+  }
+
+  for (const line of diffText.split(/\r?\n/)) {
+    const fileMatch = line.match(/^\+\+\+ b\/(.+)$/) || line.match(/^diff --git a\/.+ b\/(.+)$/);
+    if (fileMatch) {
+      currentFile = fileMatch[1];
+      currentLine = 0;
+      continue;
+    }
+
+    const hunkMatch = line.match(/^@@ .* \+(\d+)(?:,\d+)? @@/);
+    if (hunkMatch) {
+      currentLine = Number(hunkMatch[1]);
+      continue;
+    }
+
+    if (line.startsWith(" ") && currentLine) {
+      currentLine += 1;
+      continue;
+    }
+
+    if (line.startsWith("-") && !line.startsWith("---")) continue;
+    if (!line.startsWith("+") || line.startsWith("+++")) continue;
+
+    const added = line.slice(1);
+    const lineNo = currentLine || "unknown";
+    const assigned = assignmentExpression(added);
+    const expression = assigned?.expression || "";
+    const literal = assigned ? literalValue(expression) : null;
+
+    if (assigned && isRuntimeSecretAccess(expression)) {
+      addSafeNote("runtime secret access", added, lineNo, assigned);
+    }
+
+    if (/\bsk-[A-Za-z0-9_-]{10,}\b/.test(added)) addFinding("OpenAI-style key", added, lineNo, assigned);
+    if (/BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY/.test(added)) addFinding("private key block", added, lineNo, assigned);
+    if (/\bsk_(?:live|test)_[A-Za-z0-9_]{8,}\b/.test(added)) addFinding("Stripe secret assignment", added, lineNo, assigned);
+    if (/\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{20,}\b/.test(added)) addFinding("GitHub token", added, lineNo, assigned);
+    if (/(?:postgres|postgresql|mysql|mongodb(?:\+srv)?):\/\/[^:\s"'<>()]+:[^@\s"'<>()]+@/i.test(added)) {
+      addFinding("database URL", added, lineNo, assigned);
+    }
+
+    if (assigned && literal !== null && !isPlaceholder(literal)) {
+      if (/SUPABASE_SERVICE_ROLE_KEY|service[_-]?role/i.test(added) && isJwt(literal)) {
+        addFinding("Supabase service-role JWT value", added, lineNo, assigned);
+      }
+      if (/STRIPE_[A-Z0-9_]*(?:SECRET|KEY)/i.test(assigned.key) && isSuspiciousLiteral(literal)) {
+        addFinding("Stripe secret assignment", added, lineNo, assigned);
+      }
+      if (/WEBHOOK|whsec/i.test(assigned.key) && isSuspiciousLiteral(literal)) {
+        addFinding("webhook secret", added, lineNo, assigned);
+      }
+      if (/CLOUDFLARE/i.test(assigned.key) && isSuspiciousLiteral(literal)) {
+        addFinding("Cloudflare token", added, lineNo, assigned);
+      }
+      if (/(TOKEN|PASSWORD|SECRET|KEY)/i.test(assigned.key) && isSuspiciousLiteral(literal)) {
+        addFinding("generic token/password/secret assignment", added, lineNo, assigned);
+      }
+    }
+
+    if (currentLine) currentLine += 1;
+  }
+
+  return { findings, safeNotes };
+}
+
+function printEvidence(label, value) {
+  console.log(`\n## ${label}`);
+  if (Array.isArray(value)) {
+    console.log(value.length ? value.map((item) => `- ${item}`).join("\n") : "- None");
+  } else {
+    console.log(value || "(none)");
+  }
+}
+
+function fixtureDiff(name, lines) {
+  return [
+    `diff --git a/${name} b/${name}`,
+    `+++ b/${name}`,
+    `@@ -0,0 +1,${lines.length} @@`,
+    ...lines.map((line) => `+${line}`),
+    "",
+  ].join("\n");
+}
+
+function runSelfTest() {
+  const openAiLooking = "sk-" + "real-looking-value";
+  const privateKeyBlock = "BEGIN " + "PRIVATE KEY";
+  const cases = [
+    {
+      name: "hardcoded OpenAI-style key fails",
+      diff: fixtureDiff("hardcoded-openai.ts", [`const apiKey = "${openAiLooking}";`]),
+      expectFatal: true,
+    },
+    {
+      name: "runtime Supabase service key access passes",
+      diff: fixtureDiff("runtime-service-key.ts", ['const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");']),
+      expectFatal: false,
+      expectSafeNote: true,
+    },
+    {
+      name: "runtime secret header access passes",
+      diff: fixtureDiff("runtime-header.ts", ['const scheduledSecretHeader = req.headers.get("x-import-reddit-tips-secret");']),
+      expectFatal: false,
+      expectSafeNote: true,
+    },
+    {
+      name: "placeholder docs pass",
+      diff: fixtureDiff("placeholder-docs.md", ['WEBHOOK_SECRET=<set-in-provider>', 'API_KEY=your-secret-here', 'TOKEN=example']),
+      expectFatal: false,
+    },
+    {
+      name: "private key block fails",
+      diff: fixtureDiff("private-key.txt", [privateKeyBlock]),
+      expectFatal: true,
+    },
+  ];
+
+  const failures = [];
+  for (const testCase of cases) {
+    const result = scanDiffForSecrets(testCase.diff);
+    const hasFatal = result.findings.length > 0;
+    const hasSafeNote = result.safeNotes.length > 0;
+    if (hasFatal !== testCase.expectFatal) {
+      failures.push(`${testCase.name}: expected fatal=${testCase.expectFatal}, got fatal=${hasFatal}`);
+      continue;
+    }
+    if (testCase.expectSafeNote && !hasSafeNote) {
+      failures.push(`${testCase.name}: expected safe runtime note`);
+    }
+  }
+
+  console.log("# Committer Secret Scanner Self-Test");
+  if (failures.length) {
+    printEvidence("Failures", failures);
+    process.exit(1);
+  }
+  printEvidence("Result", "PASS");
+}
+
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  if (args.selfTest) {
+    runSelfTest();
+    return;
+  }
+  if (!args.repo) fail("missing --repo");
+  if (!args.message) fail("missing --message");
+  if (!args.files.length) fail("missing --files");
+  if (args.dryRun && args.noCommit) fail("choose only one of --dry-run or --no-commit");
+
+  const repoInput = path.resolve(args.repo);
+  if (!fs.existsSync(repoInput)) fail(`repo path does not exist: ${repoInput}`);
+
+  const topResult = tryGit(repoInput, ["rev-parse", "--show-toplevel"]);
+  if (!topResult.ok) fail("target is not a Git repo", topResult.output);
+  const repoRoot = topResult.output.trim();
+
+  const entries = validateFiles(repoRoot, args.files);
+  const requested = entries.map((entry) => entry.relative);
+  assertFilesExistOrTracked(repoRoot, entries);
+
+  const riskyRequested = entries.map((entry) => [entry.relative, pathIsRisky(entry.relative)]).filter(([, reason]) => reason);
+  if (riskyRequested.length) {
+    fail(
+      "refusing sensitive or broad file path",
+      riskyRequested.map(([file, reason]) => `${file}: ${reason}`).join("\n")
+    );
+  }
+
+  const preStaged = stagedNames(repoRoot);
+  if (preStaged.length) {
+    fail("unrelated staged files already exist; resolve them before using committer", preStaged.join("\n"));
+  }
+
+  const branch = git(repoRoot, ["branch", "--show-current"]) || "(detached HEAD)";
+  const preStatus = status(repoRoot);
+  const preDiffStat = diffStat(repoRoot, "worktree");
+
+  console.log("# Exact-File Committer Evidence");
+  printEvidence("Mode", args.dryRun ? "dry-run" : args.noCommit ? "no-commit" : "commit");
+  printEvidence("Repo Path", repoRoot);
+  printEvidence("Branch", branch);
+  printEvidence("Pre-status", preStatus);
+  printEvidence("Pre-diff stat", preDiffStat);
+  printEvidence("Exact files requested", requested);
+
+  runDiffCheck(repoRoot, "worktree", requested);
+  printEvidence("git diff --check result", "pass");
+
+  const dryRunDiff = requestedDiff(repoRoot, entries);
+  const dryRunScan = scanDiffForSecrets(dryRunDiff);
+  if (dryRunScan.safeNotes.length) {
+    printEvidence(
+      "Safe runtime secret access notes",
+      dryRunScan.safeNotes.map(formatFinding)
+    );
+  }
+  if (dryRunScan.findings.length) {
+    printEvidence(
+      "Secret-shaped requested diff scan result",
+      dryRunScan.findings.map(formatFinding)
+    );
+    fail("secret-shaped marker found in requested diff");
+  }
+
+  if (args.dryRun) {
+    printEvidence("Exact files staged", []);
+    printEvidence("Staged diff stat", "(dry-run: no staging performed)");
+    printEvidence("Secret-shaped staged diff scan result", "pass (dry-run requested diff scan)");
+    printEvidence("Final status", status(repoRoot));
+    printEvidence("Commit hash", "(dry-run: no commit)");
+    return;
+  }
+
+  git(repoRoot, ["add", "--", ...requested]);
+
+  const staged = stagedNames(repoRoot);
+  const unexpected = staged.filter((file) => !requested.includes(file));
+  if (unexpected.length) {
+    fail("unexpected staged files appeared after exact git add", unexpected.join("\n"));
+  }
+  if (!staged.length) fail("no files staged after exact git add");
+
+  const unintendedLockfiles = staged.filter((file) => isLockfile(file) && !requested.includes(file));
+  if (unintendedLockfiles.length) {
+    fail("lockfile changes staged unintentionally", unintendedLockfiles.join("\n"));
+  }
+
+  runDiffCheck(repoRoot, "cached", requested);
+  const cachedDiff = stagedDiff(repoRoot);
+  const cachedScan = scanDiffForSecrets(cachedDiff);
+  if (cachedScan.safeNotes.length) {
+    printEvidence(
+      "Safe runtime secret access notes",
+      cachedScan.safeNotes.map(formatFinding)
+    );
+  }
+  if (cachedScan.findings.length) {
+    printEvidence(
+      "Secret-shaped staged diff scan result",
+      cachedScan.findings.map(formatFinding)
+    );
+    fail("secret-shaped marker found in staged diff");
+  }
+
+  printEvidence("Exact files staged", staged);
+  printEvidence("Staged diff stat", diffStat(repoRoot, "cached", requested));
+  printEvidence("Secret-shaped staged diff scan result", "pass");
+
+  if (args.noCommit) {
+    printEvidence("Suggested commit command", `git commit -m ${quote(args.message)}`);
+    printEvidence("Final status", status(repoRoot));
+    printEvidence("Commit hash", "(no-commit mode: no commit)");
+    return;
+  }
+
+  git(repoRoot, ["commit", "-m", args.message]);
+  const commitHash = git(repoRoot, ["rev-parse", "--short", "HEAD"]);
+  printEvidence("Final status", status(repoRoot));
+  printEvidence("Commit hash", commitHash);
+}
+
+main();

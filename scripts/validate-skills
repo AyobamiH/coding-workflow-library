@@ -1,0 +1,324 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+
+const root = process.cwd();
+
+const requiredRootFiles = [
+  "AGENTS.md",
+  "README.md",
+  "RUNBOOK.md",
+  "skills-index.md",
+  "build-queue.md",
+  "command-library.md",
+  "tool-patterns.md",
+  "evidence-checklist.md",
+  "work-ledger.md",
+];
+
+const requiredSections = [
+  "Purpose",
+  "When to Use",
+  "Inputs Required",
+  "Commands",
+  "Procedure",
+  "Evidence Required",
+  "Safety Rules",
+  "Common Failures",
+  "Output Format",
+  "Upgrade Ideas",
+];
+
+const approvedCategories = new Set([
+  "orchestration",
+  "repo-inspection",
+  "security",
+  "verification",
+  "deployment",
+  "github",
+  "migration",
+  "documentation",
+  "skill-system",
+  "debugging",
+  "automation",
+]);
+
+const approvedStatuses = new Set(["active", "draft", "deprecated"]);
+
+const errors = [];
+const warnings = [];
+let filesChecked = 0;
+let skillsChecked = 0;
+
+function rel(file) {
+  return path.relative(root, file).replaceAll(path.sep, "/") || ".";
+}
+
+function exists(relativePath) {
+  return fs.existsSync(path.join(root, relativePath));
+}
+
+function addError(message) {
+  errors.push(message);
+}
+
+function addWarning(message) {
+  warnings.push(message);
+}
+
+function parseFrontmatter(text) {
+  if (!text.startsWith("---\n")) return null;
+  const end = text.indexOf("\n---", 4);
+  if (end === -1) return null;
+  const raw = text.slice(4, end).trimEnd();
+  const body = text.slice(end + 4).replace(/^\n/, "");
+  const data = {};
+  let currentList = null;
+
+  for (const line of raw.split(/\r?\n/)) {
+    const listMatch = line.match(/^\s*-\s+(.*)$/);
+    if (listMatch && currentList) {
+      data[currentList].push(listMatch[1].trim());
+      continue;
+    }
+
+    const keyMatch = line.match(/^([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$/);
+    if (!keyMatch) continue;
+
+    const key = keyMatch[1];
+    const value = keyMatch[2].trim();
+    if (value === "") {
+      data[key] = [];
+      currentList = key;
+    } else {
+      data[key] = value;
+      currentList = null;
+    }
+  }
+
+  return { raw, body, data };
+}
+
+function walk(dir, result = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if ([".git", "node_modules", "dist", "build"].includes(entry.name)) continue;
+      walk(full, result);
+    } else {
+      result.push(full);
+    }
+  }
+  return result;
+}
+
+function isLikelyTextFile(file) {
+  const name = path.basename(file);
+  const ext = path.extname(file);
+  if (!ext && name === "validate-skills") return true;
+  return [
+    ".md",
+    ".txt",
+    ".js",
+    ".mjs",
+    ".cjs",
+    ".json",
+    ".yml",
+    ".yaml",
+    ".toml",
+    ".sh",
+  ].includes(ext);
+}
+
+function shouldIgnoreMarkerLine(relativePath, line, markerType) {
+  if (relativePath === "scripts/validate-skills") return true;
+  if (relativePath === "tests/library-validation-checklist.md") return true;
+  if (relativePath === "templates/new-skill-template.md" && markerType === "placeholder") return true;
+
+  if (
+    relativePath === "command-library.md" &&
+    /grep -R/.test(line) &&
+    /(TODO|TBD|lorem|changeme|sk-\[A-Za-z0-9\]|BEGIN RSA|BEGIN OPENSSH|PRIVATE KEY)/i.test(line)
+  ) {
+    return true;
+  }
+
+  if (
+    relativePath === "runs/skill-runs.md" &&
+    /(redacted|masked|placeholder|pattern)/i.test(line)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function maskPreview(line) {
+  let preview = line.trim();
+  preview = preview.replace(/sk-[A-Za-z0-9_-]{8,}/g, (value) => {
+    return `${value.slice(0, 5)}...${value.slice(-4)}`;
+  });
+  preview = preview.replace(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, "[JWT redacted]");
+  preview = preview.replace(/(postgres(?:ql)?:\/\/)[^\s"']+/gi, "$1[database-url redacted]");
+  preview = preview.replace(/(https?:\/\/[^:\s"']+):[^@\s"']+@/gi, "$1:[credential redacted]@");
+  if (preview.length > 140) preview = `${preview.slice(0, 137)}...`;
+  return preview;
+}
+
+function keyName(line) {
+  const match = line.match(/\b([A-Z][A-Z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD|URL)[A-Z0-9_]*)\b/);
+  return match ? match[1] : "unknown";
+}
+
+for (const file of requiredRootFiles) {
+  filesChecked += 1;
+  if (!exists(file)) addError(`missing required root file: ${file}`);
+}
+
+const skillDir = path.join(root, "skill-files");
+if (!fs.existsSync(skillDir) || !fs.statSync(skillDir).isDirectory()) {
+  addError("missing required directory: skill-files/");
+} else {
+  const skillFiles = fs
+    .readdirSync(skillDir)
+    .filter((file) => file.endsWith(".md"))
+    .sort();
+  const names = new Map();
+  const skillsIndex = exists("skills-index.md")
+    ? fs.readFileSync(path.join(root, "skills-index.md"), "utf8")
+    : "";
+
+  for (const fileName of skillFiles) {
+    const filePath = path.join(skillDir, fileName);
+    const relativePath = rel(filePath);
+    const text = fs.readFileSync(filePath, "utf8");
+    const expectedName = fileName.replace(/\.md$/, "");
+    const parsed = parseFrontmatter(text);
+    skillsChecked += 1;
+    filesChecked += 1;
+
+    if (!parsed) {
+      addError(`${relativePath}: missing YAML frontmatter`);
+      continue;
+    }
+
+    const data = parsed.data;
+    for (const field of ["name", "description", "category", "routing_triggers", "status"]) {
+      if (!(field in data)) addError(`${relativePath}: missing frontmatter field ${field}`);
+    }
+
+    if (data.name !== expectedName) {
+      addError(`${relativePath}: name must match filename (${expectedName})`);
+    }
+
+    if (typeof data.description !== "string" || data.description.trim() === "") {
+      addError(`${relativePath}: description must not be empty`);
+    }
+
+    if (!approvedCategories.has(data.category)) {
+      addError(`${relativePath}: category must be one of ${Array.from(approvedCategories).join(", ")}`);
+    }
+
+    if (!Array.isArray(data.routing_triggers)) {
+      addError(`${relativePath}: routing_triggers must be a list`);
+    } else if (data.routing_triggers.length < 2 || data.routing_triggers.length > 6) {
+      addError(`${relativePath}: routing_triggers must contain 2 to 6 entries`);
+    }
+
+    if (!approvedStatuses.has(data.status)) {
+      addError(`${relativePath}: status must be active, draft, or deprecated`);
+    }
+
+    if (data.name) {
+      if (names.has(data.name)) {
+        addError(`${relativePath}: duplicate skill name also used by ${names.get(data.name)}`);
+      } else {
+        names.set(data.name, relativePath);
+      }
+    }
+
+    for (const section of requiredSections) {
+      if (!new RegExp(`^## ${section}$`, "m").test(parsed.body)) {
+        addError(`${relativePath}: missing required section ## ${section}`);
+      }
+    }
+
+    if (data.status === "active") {
+      const filenameReferenced = skillsIndex.includes(fileName);
+      const nameReferenced = skillsIndex.includes(data.name);
+      if (!filenameReferenced && !nameReferenced) {
+        addError(`${relativePath}: active skill is not referenced in skills-index.md`);
+      }
+    }
+  }
+}
+
+const placeholderPatterns = [
+  { category: "todo-marker", re: /\bTODO\b/i },
+  { category: "tbd-marker", re: /\bTBD\b/i },
+  { category: "lorem-marker", re: /\blorem\b/i },
+  { category: "changeme-marker", re: /\bchangeme\b/i },
+  { category: "replace-me-marker", re: /\bREPLACE_ME\b/i },
+];
+
+const secretPatterns = [
+  { category: "openai-key-shape", re: /sk-[A-Za-z0-9_-]{12,}/ },
+  { category: "private-key-header", re: /BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY/ },
+  { category: "jwt-shape", re: /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/ },
+  { category: "database-url-with-credential", re: /postgres(?:ql)?:\/\/[^:\s"']+:[^@\s"']+@/i },
+];
+
+for (const file of walk(root)) {
+  const relativePath = rel(file);
+  if (!isLikelyTextFile(file)) continue;
+  filesChecked += 1;
+
+  let text;
+  try {
+    text = fs.readFileSync(file, "utf8");
+  } catch (error) {
+    addWarning(`${relativePath}: could not read for marker scan (${error.message})`);
+    continue;
+  }
+
+  text.split(/\r?\n/).forEach((line, index) => {
+    const lineNo = index + 1;
+    for (const marker of placeholderPatterns) {
+      if (marker.re.test(line) && !shouldIgnoreMarkerLine(relativePath, line, "placeholder")) {
+        addError(`${relativePath}:${lineNo}: placeholder marker ${marker.category}: ${maskPreview(line)}`);
+      }
+    }
+
+    for (const marker of secretPatterns) {
+      if (marker.re.test(line) && !shouldIgnoreMarkerLine(relativePath, line, "secret")) {
+        addError(
+          `${relativePath}:${lineNo}: secret-shaped marker ${marker.category}; key=${keyName(line)}; preview=${maskPreview(line)}`
+        );
+      }
+    }
+  });
+}
+
+console.log("Skill validation summary");
+console.log(`files checked: ${filesChecked}`);
+console.log(`skills checked: ${skillsChecked}`);
+console.log(`errors: ${errors.length}`);
+console.log(`warnings: ${warnings.length}`);
+
+if (errors.length) {
+  console.log("\nErrors:");
+  for (const error of errors) console.log(`- ${error}`);
+}
+
+if (warnings.length) {
+  console.log("\nWarnings:");
+  for (const warning of warnings) console.log(`- ${warning}`);
+}
+
+if (errors.length) {
+  console.log("\nResult: FAIL");
+  process.exit(1);
+}
+
+console.log("\nResult: PASS");
