@@ -1139,3 +1139,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: github-handoff-skill / release-preflight-skill.
 * Exact next action: exact-file commit `Prepare v0.1.0 release`, push `main`, wait for exact-commit CI success, then tag `v0.1.0`.
 * Whether John is needed: No; permission for this first-version gate was granted.
+
+## 2026-06-19 - v0.1.0 First Version Tag Evidence
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Record post-tag evidence for the first open-source source tag while keeping npm publication and GitHub release creation blocked.
+* Current permission level: post-tag bookkeeping under first-version-tag. Allowed: update ledger/run-log/build-queue evidence, exact-file bookkeeping commit, and non-force `main` push. Forbidden: npm publish, `npm version`, GitHub release creation, deploy, Supabase, Cloudflare, production endpoint calls, secret printing, force push, history rewrite, broad staging, and excluded-file staging.
+* Current status: v0.1.0 tagged and pushed, npm unpublished.
+* Selected skill: release-preflight-skill / github-handoff-skill / skills-library-packaging-skill.
+* Last commands run: `git push origin main`; GitHub Actions read-only run inspection; `git tag -a v0.1.0 -m "v0.1.0"`; `git push origin v0.1.0`; remote tag verification.
+* Files changed: `work-ledger.md`; `runs/skill-runs.md`; `build-queue.md`.
+* Validation evidence: release commit `73cafb4d0a7b52793e1cd708bff3843ce8925077` pushed to `main`; remote `main` matched the release commit before tagging; GitHub Actions Validate run `27821005700` completed with conclusion `success` for the exact release commit; local annotated tag `v0.1.0` resolves to `73cafb4d0a7b52793e1cd708bff3843ce8925077`; remote tag object `caacaefd2c875cb5b3d0bd5ef0a8747c01bbd727` dereferences to `73cafb4d0a7b52793e1cd708bff3843ce8925077`.
+* Blockers: npm publication and GitHub release creation remain unapproved; package name ownership/future availability remains unproven until a separate npm publication gate.
+* Next recommended skill: release-preflight-skill / npm-package-readiness-skill / github-handoff-skill.
+* Exact next action: prepare GitHub release or npm publication gate, or run scheduled-run recheck.
+* Whether John is needed: Yes for the next permission boundary.

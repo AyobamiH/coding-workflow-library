@@ -1242,3 +1242,17 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: No forbidden npm publish, `npm version`, GitHub release, deploy, Supabase, Cloudflare, production endpoint call, secret printing, force push, history rewrite, broad staging, or excluded-file staging occurred.
 * Follow-up skill needed: github-handoff-skill / release-preflight-skill.
 * Upgrade idea: Keep first-version tag route idempotent so reruns verify existing tag and CI evidence instead of recreating release artifacts.
+
+## 2026-06-19 - v0.1.0 First Version Tag Evidence
+
+* Skill used: release-preflight-skill / github-handoff-skill / skills-library-packaging-skill.
+* Goal: Verify the exact release commit, successful CI, annotated tag push, and remote tag target before recording post-tag bookkeeping.
+* Starting state: Release commit `73cafb4d0a7b52793e1cd708bff3843ce8925077` was pushed to `main`; working tree was clean; no local `v0.1.0` tag existed before tag creation.
+* Commands/tools used: `git push origin main`; `git rev-parse HEAD`; `git ls-remote origin refs/heads/main`; `gh run list --repo AyobamiH/coding-workflow-library --workflow validate.yml --branch main --commit 73cafb4d0a7b52793e1cd708bff3843ce8925077`; `git tag -a v0.1.0 -m "v0.1.0"`; `git push origin v0.1.0`; `git rev-list -n 1 v0.1.0`; remote tag verification commands.
+* Files inspected: Git commit history; remote main ref; GitHub Actions run metadata; local and remote tag refs.
+* Files changed: `work-ledger.md`; `runs/skill-runs.md`; `build-queue.md`.
+* Evidence collected: remote `main` matched release commit; GitHub Actions run `27821005700` completed successfully; local tag `v0.1.0` resolves to release commit; remote annotated tag object dereferences to release commit; npm publish and GitHub release creation were not run.
+* Result: v0.1.0 tagged and pushed, npm unpublished.
+* Failure/recovery notes: No forbidden npm publish, `npm version`, GitHub release, deploy, Supabase, Cloudflare, production endpoint call, secret printing, force push, history rewrite, broad staging, or excluded-file staging occurred.
+* Follow-up skill needed: release-preflight-skill / npm-package-readiness-skill / github-handoff-skill.
+* Upgrade idea: Add a later GitHub release gate that consumes the verified source tag without creating or moving tags.

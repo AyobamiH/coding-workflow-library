@@ -1,16 +1,16 @@
 # Immediate
 
-## First version tag v0.1.0
+## Post-tag publication/release gate selection
 
-- Why it matters: the public source handoff is complete, so the next reusable release boundary is a first annotated source tag without conflating that with npm publication or GitHub release creation.
-- Evidence from current files/logs: `AyobamiH/coding-workflow-library` exists publicly; `main` was pushed; package candidate `autonomous-coding-workflow-library`, CLI `coding-workflow`, MIT license, `package-lock.json`, route audit, package smoke, and validation have passed locally; `routes/skill-routes.json` now owns `first-version-tag`.
-- Permission boundary: version/changelog/release-note edits, local validation, clean-temp tarball smoke, exact-file release commit, non-force `main` push, read-only GitHub Actions inspection, annotated tag `v0.1.0`, tag push, and post-tag bookkeeping only; no npm publish, `npm version`, GitHub release, deploy, Supabase, Cloudflare, production endpoints, secret printing, broad staging, force push, or history rewrite.
-- Done definition: package and lockfile are `0.1.0`, changelog and release notes exist, local validation and tarball smoke pass, release commit is pushed, CI passes for that exact commit, `v0.1.0` remote tag dereferences to that commit, post-tag bookkeeping is pushed, and ledger/log record `v0.1.0 tagged and pushed, npm unpublished`.
+- Why it matters: `v0.1.0` is tagged and pushed as a source release, but npm publication and GitHub release creation remain separate gates.
+- Evidence from current files/logs: release commit `73cafb4d0a7b52793e1cd708bff3843ce8925077` pushed to `main`; GitHub Actions run `27821005700` passed for that exact commit; remote annotated tag `v0.1.0` dereferences to the release commit; package candidate `autonomous-coding-workflow-library` remains npm-unpublished.
+- Permission boundary: planning or one selected next gate only. Npm publish, `npm version`, GitHub release creation, tags beyond `v0.1.0`, deploys, Supabase, Cloudflare, production endpoint calls, secret printing, force push, history rewrite, broad staging, and excluded-file staging remain blocked until explicitly approved.
+- Done definition: John chooses one next route: prepare GitHub release, prepare npm publication gate, run scheduled-run recheck, or hold.
 
 ## GitHub open-source handoff follow-up
 
 - Why it matters: the public source handoff is now a proven base state and should be monitored as a prerequisite for tag/release gates rather than rebuilt.
-- Evidence from current files/logs: `work-ledger.md` records `GitHub open-source handoff complete`; `routes/skill-routes.json` owns `github-open-source-handoff`.
+- Evidence from current files/logs: `work-ledger.md` records `GitHub open-source handoff complete` and `v0.1.0 tagged and pushed, npm unpublished`; `routes/skill-routes.json` owns `github-open-source-handoff` and `first-version-tag`.
 - Permission boundary: verification and repair only if repository evidence drifts; no npm publish, `npm version`, tags, GitHub release, deploy, or remote mutation without a fresh gate.
 - Done definition: keep route metadata and CI evidence current while the active lane moves to the first-version tag gate.
 
