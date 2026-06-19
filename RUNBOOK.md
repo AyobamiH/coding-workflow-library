@@ -263,6 +263,16 @@ GitHub open-source handoff sequence when the ledger status is `CLI entrypoint pa
 3. Confirm GitHub auth is `AyobamiH`, verify or create `AyobamiH/coding-workflow-library`, exact-file commit only, push `main` once, and verify local HEAD equals remote `main`.
 4. Stop at `GitHub open-source handoff complete`; do not publish to npm, run `npm version`, create tags, create GitHub releases, deploy, run Supabase/Cloudflare commands, print secrets, force-push, or stage broad/excluded paths.
 
+First version tag sequence when the ledger status is `GitHub open-source handoff complete`:
+
+1. Run `scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow first-version-tag`.
+2. Prepare package version `0.1.0`, `CHANGELOG.md`, and `docs/releases/v0.1.0.md` without running `npm version`.
+3. Run local validation, package readiness, release preflight, `npm pack --dry-run`, and clean-temp tarball install smoke.
+4. Exact-file commit the release files, push `main` non-force, and wait for GitHub Actions `validate.yml` to pass for that release commit.
+5. Create and push annotated tag `v0.1.0` only after the exact release commit CI passes, then verify the remote tag dereferences to the release commit.
+6. Record post-tag bookkeeping in a second exact-file commit and push `main`; it is acceptable for `main` to be one bookkeeping commit ahead of the tag.
+7. Stop at `v0.1.0 tagged and pushed, npm unpublished`; do not publish to npm, run `npm version`, create a GitHub release, deploy, force-push, rewrite history, or stage broad/excluded paths.
+
 ## Missing Skill Handling
 
 If a mapped skill file is missing:

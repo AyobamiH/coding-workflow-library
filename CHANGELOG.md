@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- No unreleased changes yet.
+
+## 0.1.0 - 2026-06-19
+
 - Local coding workflow skills library remains under active development.
 - Route metadata, validation helpers, packaging checks, and autonomous runner routes are being hardened for local reuse.
 - MIT was selected for the initial open-source/package-readiness path.
@@ -11,8 +15,16 @@
 - A local CLI entrypoint candidate `coding-workflow` was added with a package smoke route for local CLI checks, npm pack dry-run, clean-temp tarball install, installed CLI verification, and validation.
 - Public repository hardening files, truthful package validation scripts, and a GitHub Actions validation workflow were added for the open-source handoff path.
 - A `github-open-source-handoff` route was added for exact-file commit, public GitHub repo verification/creation, one `main` push, and remote HEAD verification.
-- Public/open-source release has not been approved.
-- NPM publish, package release, versioning, tags, pushes, and releases have not been approved.
+- Added the ledger-driven `scripts/run-next` autonomous work loop with permission-gated execution.
+- Added reusable skill files, route metadata, route audit, skill validation, and skill cleanup helpers.
+- Added evidence-pack generation and failure evidence classification helpers.
+- Added GitHub auth and exact-file handoff workflows.
+- Added Supabase production-lane skills for RLS/source audits, Edge Function deploy boundaries, scheduler/Vault/pg_cron safety, runtime verification, and production handoff.
+- Added Cloudflare deployment planning and Opstruth runtime-truth workflow support.
+- Added package/release readiness helpers and the `coding-workflow` CLI command.
+- Verified clean-temp portability and local tarball install smoke during package candidate work.
+- This release is source/package-candidate only: npm publication and GitHub release creation have not occurred.
+- Not all routes have been production-tested across arbitrary repositories.
 
 ## Release Requirements Before Public Distribution
 

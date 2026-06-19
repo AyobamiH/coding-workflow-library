@@ -39,6 +39,9 @@ const CLI_COMMAND_NAME = "coding-workflow";
 const CLI_BIN_RELATIVE = "bin/coding-workflow.js";
 const OPEN_SOURCE_GITHUB_REPO = "AyobamiH/coding-workflow-library";
 const OPEN_SOURCE_REPO_DESCRIPTION = "Autonomous coding workflow skills, routing, evidence, and permission-gated execution.";
+const FIRST_VERSION = "0.1.0";
+const FIRST_VERSION_TAG = `v${FIRST_VERSION}`;
+const FIRST_VERSION_RELEASE_NOTES = `docs/releases/${FIRST_VERSION_TAG}.md`;
 
 const ALLOWED_FLAGS = new Set([
   "auth-check",
@@ -72,6 +75,7 @@ const ALLOWED_FLAGS = new Set([
   "package-candidate-dry-run",
   "cli-package-smoke",
   "github-open-source-handoff",
+  "first-version-tag",
 ]);
 
 const args = parseArgs(process.argv.slice(2));
@@ -155,6 +159,8 @@ function main() {
       result = runCliEntrypointPackageSmoke(active);
     } else if (route.kind === "github-open-source-handoff") {
       result = runGithubOpenSourceHandoff(active);
+    } else if (route.kind === "first-version-tag") {
+      result = runFirstVersionTag(active);
     } else {
       result = notImplemented(route, active);
     }
@@ -295,6 +301,8 @@ function printHelp() {
   ./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cli-package-smoke --dry-run
   ./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow github-open-source-handoff
   ./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow github-open-source-handoff --dry-run
+  ./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow first-version-tag
+  ./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow first-version-tag --dry-run
 
 Supported --allow values:
   auth-check
@@ -328,6 +336,7 @@ Supported --allow values:
   package-candidate-dry-run
   cli-package-smoke
   github-open-source-handoff
+  first-version-tag
 
 Dry-run and explain modes do not mutate target repos, work-ledger.md, or runs/skill-runs.md.`);
 }
@@ -848,6 +857,20 @@ function routeStatus(status) {
       permission: "github-open-source-handoff",
       kind: "github-open-source-handoff",
       nextAction: "harden public repository files, run local validation, verify GitHub auth/repo safety, create or verify public repo, exact-file commit, push main, verify remote HEAD, and stop before publish/version/tag/release/deploy",
+    };
+  }
+
+  if (
+    normalized === "github open-source handoff complete" ||
+    normalized === "first version tag blocked" ||
+    normalized === "v0.1.0 release commit prepared, tag not created" ||
+    normalized === "v0.1.0 tagged and pushed, npm unpublished"
+  ) {
+    return {
+      skill: "release-preflight-skill / github-handoff-skill / skills-library-packaging-skill",
+      permission: "first-version-tag",
+      kind: "first-version-tag",
+      nextAction: "prepare version 0.1.0, validate, exact-file commit, push main, verify CI, create and push annotated tag v0.1.0, verify remote tag, record bookkeeping, and stop before npm publish or GitHub release",
     };
   }
 
@@ -2196,6 +2219,194 @@ function runGithubOpenSourceHandoff() {
       branch: branchName,
       localHead,
       remoteHead: remoteHeadSha,
+    },
+    exitCode: 0,
+  };
+}
+
+function runFirstVersionTag() {
+  const expectedRepo = LIBRARY_ROOT;
+
+  if (dryRun) {
+    actions.push("would verify target repo is the local skills library on main with origin pointing to AyobamiH/coding-workflow-library");
+    actions.push(`would prepare package.json and package-lock.json version ${FIRST_VERSION}`);
+    actions.push(`would require CHANGELOG.md and ${FIRST_VERSION_RELEASE_NOTES}`);
+    actions.push("would run npm ci, npm test, CLI smoke, route audit, package readiness, release preflight, npm pack dry-run, skill-cleaner, validate-skills, and clean-temp tarball smoke");
+    actions.push("would exact-file commit release files, push main non-force, wait for Validate workflow success for the release commit, create annotated tag v0.1.0, push that tag, and verify remote tag dereferences to the release commit");
+    actions.push("would record post-tag bookkeeping in a second exact-file commit and push main again");
+    actions.push("would not run npm publish, npm version, GitHub release creation, deploy, Supabase, Cloudflare, production endpoints, force push, broad staging, or secret printing");
+    evidence.push(`first-version-tag target repo: ${targetRepo}`);
+    evidence.push("dry-run verified release/tag route selection without editing, committing, pushing, tagging, or mutating remote services");
+    return {
+      finalStatus: "DRY RUN PASSED",
+      ledgerStatus: "GitHub open-source handoff complete",
+      summary: "first-version-tag route would prepare v0.1.0, verify CI, push an annotated tag, record post-tag evidence, and stop before npm publish or GitHub release",
+      nextPermission: "first-version-tag",
+      nextSkill: "release-preflight-skill / github-handoff-skill",
+      exitCode: 0,
+    };
+  }
+
+  if (path.resolve(targetRepo) !== expectedRepo) {
+    return {
+      finalStatus: "BLOCKED",
+      ledgerStatus: "First version tag blocked",
+      summary: `first-version-tag may only run against ${expectedRepo}`,
+      nextPermission: "select the local skills library repo",
+      nextSkill: "coding-workflow-orchestrator-skill",
+      exitCode: 1,
+    };
+  }
+
+  evidence.push(`first-version-tag repo: ${targetRepo}`);
+  evidence.push("boundary: no npm publish, npm version, GitHub release, deploy, Supabase, Cloudflare, production endpoint, secret print, force push, history rewrite, broad staging, excluded-file staging, or extra repository creation");
+
+  const packagePath = path.join(LIBRARY_ROOT, "package.json");
+  const lockPath = path.join(LIBRARY_ROOT, "package-lock.json");
+  const changelogPath = path.join(LIBRARY_ROOT, "CHANGELOG.md");
+  const releaseNotesPath = path.join(LIBRARY_ROOT, FIRST_VERSION_RELEASE_NOTES);
+  let pkg = null;
+  let lock = null;
+  const blockers = [];
+  try {
+    pkg = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+  } catch (error) {
+    blockers.push(`package.json parse failed: ${error.message}`);
+  }
+  try {
+    lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+  } catch (error) {
+    blockers.push(`package-lock.json parse failed: ${error.message}`);
+  }
+
+  const changelog = fs.existsSync(changelogPath) ? fs.readFileSync(changelogPath, "utf8") : "";
+  const releaseNotes = fs.existsSync(releaseNotesPath) ? fs.readFileSync(releaseNotesPath, "utf8") : "";
+  if (pkg?.version !== FIRST_VERSION) blockers.push(`package.json version is ${pkg?.version || "missing"}, expected ${FIRST_VERSION}`);
+  if (lock?.version !== FIRST_VERSION) blockers.push(`package-lock.json version is ${lock?.version || "missing"}, expected ${FIRST_VERSION}`);
+  if (lock?.packages?.[""]?.version !== FIRST_VERSION) blockers.push(`package-lock root package version is ${lock?.packages?.[""]?.version || "missing"}, expected ${FIRST_VERSION}`);
+  if (!new RegExp(`## \\[?${escapeRegExp(FIRST_VERSION)}\\]? - 2026-06-19`).test(changelog)) blockers.push("CHANGELOG.md lacks dated v0.1.0 entry");
+  if (!releaseNotes.includes(FIRST_VERSION_TAG) || !/npm unpublished/i.test(releaseNotes)) blockers.push(`${FIRST_VERSION_RELEASE_NOTES} missing required npm-unpublished release notes`);
+
+  evidence.push(`package version: ${pkg?.version || "unavailable"}`);
+  evidence.push(`lockfile version: ${lock?.version || "unavailable"}`);
+  evidence.push(`release notes present: ${fs.existsSync(releaseNotesPath) ? "yes" : "no"}`);
+
+  const branch = run("git", ["branch", "--show-current"], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const status = run("git", ["status", "--short"], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const remote = run("git", ["remote", "get-url", "origin"], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const localHead = run("git", ["rev-parse", "HEAD"], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const remoteMain = run("git", ["ls-remote", "origin", "refs/heads/main"], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const tagList = run("git", ["tag", "--list", FIRST_VERSION_TAG], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const tagCommit = run("git", ["rev-list", "-n", "1", FIRST_VERSION_TAG], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const remoteTagObject = run("git", ["ls-remote", "origin", `refs/tags/${FIRST_VERSION_TAG}`], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const remoteTagCommit = run("git", ["ls-remote", "origin", `refs/tags/${FIRST_VERSION_TAG}^{}`], { cwd: LIBRARY_ROOT, allowFailure: true });
+
+  const branchName = firstNonEmptyLine(branch.stdout);
+  const localHeadSha = firstNonEmptyLine(localHead.stdout);
+  const remoteMainSha = firstNonEmptyLine(remoteMain.stdout).split(/\s+/)[0] || "";
+  const localTagCommitSha = firstNonEmptyLine(tagCommit.stdout);
+  const remoteTagObjectSha = firstNonEmptyLine(remoteTagObject.stdout).split(/\s+/)[0] || "";
+  const remoteTagCommitSha = firstNonEmptyLine(remoteTagCommit.stdout).split(/\s+/)[0] || remoteTagObjectSha;
+  evidence.push(`git branch: ${branchName || "unavailable"}`);
+  evidence.push(`git status clean: ${status.stdout.trim() ? "no" : "yes"}`);
+  evidence.push(`origin URL: ${firstNonEmptyLine(remote.stdout) || "unavailable"}`);
+  evidence.push(`local HEAD: ${localHeadSha || "unavailable"}`);
+  evidence.push(`remote main HEAD: ${remoteMainSha || "unavailable"}`);
+  evidence.push(`${FIRST_VERSION_TAG} local tag commit: ${localTagCommitSha || "unavailable"}`);
+  evidence.push(`${FIRST_VERSION_TAG} remote tag object: ${remoteTagObjectSha || "unavailable"}`);
+  evidence.push(`${FIRST_VERSION_TAG} remote tag commit: ${remoteTagCommitSha || "unavailable"}`);
+
+  if (branchName !== "main") blockers.push("local branch is not main");
+  if (status.stdout.trim()) blockers.push("working tree is not clean");
+  if (!/github\.com[:/]AyobamiH\/coding-workflow-library(?:\.git)?$/i.test(firstNonEmptyLine(remote.stdout))) blockers.push("origin remote does not point to AyobamiH/coding-workflow-library");
+  if (!localHeadSha || !remoteMainSha || localHeadSha !== remoteMainSha) blockers.push("local HEAD does not match remote main");
+  if (!tagList.stdout.trim()) blockers.push(`${FIRST_VERSION_TAG} tag is missing`);
+  if (!localTagCommitSha) blockers.push(`${FIRST_VERSION_TAG} local tag target is unavailable`);
+  if (!remoteTagCommitSha) blockers.push(`${FIRST_VERSION_TAG} remote tag target is unavailable`);
+  if (localTagCommitSha && remoteTagCommitSha && localTagCommitSha !== remoteTagCommitSha) blockers.push(`${FIRST_VERSION_TAG} local and remote tag targets differ`);
+
+  const envFile = loadEnvFile("/home/johnh/.openclaw/.env");
+  const ghToken = envFile.GH_TOKEN || process.env.GH_TOKEN || "";
+  const ghEnv = ghToken ? buildGhEnv(ghToken) : process.env;
+  const ghUser = run("gh", ["api", "user", "--jq", ".login"], { env: ghEnv, allowFailure: true });
+  const activeUser = firstNonEmptyLine(ghUser.stdout);
+  evidence.push(`GitHub active user: ${activeUser || "unavailable"}`);
+  if (ghUser.code !== 0 || activeUser !== EXPECTED_GITHUB_USER) blockers.push(`GitHub auth is not confirmed as ${EXPECTED_GITHUB_USER}`);
+
+  const repoView = run("gh", ["repo", "view", OPEN_SOURCE_GITHUB_REPO, "--json", "nameWithOwner,visibility,url,defaultBranchRef"], {
+    env: ghEnv,
+    allowFailure: true,
+  });
+  let repoData = null;
+  try {
+    repoData = repoView.code === 0 ? JSON.parse(repoView.stdout) : null;
+  } catch (error) {
+    blockers.push(`GitHub repo view parse failed: ${error.message}`);
+  }
+  evidence.push(`GitHub repo view: ${repoData ? `${repoData.nameWithOwner} ${repoData.visibility}` : "unavailable"}`);
+  if (!repoData || repoData.nameWithOwner !== OPEN_SOURCE_GITHUB_REPO) blockers.push(`${OPEN_SOURCE_GITHUB_REPO} was not viewable`);
+  if (repoData && String(repoData.visibility || "").toUpperCase() !== "PUBLIC") blockers.push(`${OPEN_SOURCE_GITHUB_REPO} is not public`);
+
+  const ciSha = localTagCommitSha || "";
+  const ciRun = ciSha
+    ? run("gh", ["run", "list", "--repo", OPEN_SOURCE_GITHUB_REPO, "--workflow", "validate.yml", "--branch", "main", "--commit", ciSha, "--limit", "5", "--json", "databaseId,headSha,status,conclusion,displayTitle,url"], {
+        env: ghEnv,
+        allowFailure: true,
+      })
+    : { code: 1, stdout: "", stderr: "" };
+  let ciRuns = [];
+  try {
+    ciRuns = ciRun.code === 0 ? JSON.parse(ciRun.stdout) : [];
+  } catch (error) {
+    blockers.push(`CI run list parse failed: ${error.message}`);
+  }
+  const successfulRun = ciRuns.find((runItem) => runItem.headSha === ciSha && runItem.status === "completed" && runItem.conclusion === "success");
+  const pendingRun = ciRuns.find((runItem) => runItem.headSha === ciSha && runItem.status !== "completed");
+  evidence.push(`CI runs for tag commit: ${ciRuns.length}; successful run: ${successfulRun ? successfulRun.databaseId : "none"}; pending run: ${pendingRun ? pendingRun.databaseId : "none"}`);
+  if (!successfulRun) blockers.push(pendingRun ? "CI is pending for the release commit" : "CI success was not found for the release commit");
+
+  const test = run("npm", ["test"], { cwd: LIBRARY_ROOT, allowFailure: true, timeout: 120000 });
+  const routeAudit = run("./scripts/route-audit", [], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const validator = run("./scripts/validate-skills", [], { cwd: LIBRARY_ROOT, allowFailure: true });
+  evidence.push(`npm test exit: ${test.code}`);
+  evidence.push(`route audit exit: ${routeAudit.code}; result: ${extractValidationResult(routeAudit.stdout) || "unavailable"}`);
+  evidence.push(`validate-skills exit: ${validator.code}; result: ${extractValidationResult(validator.stdout) || "unavailable"}`);
+  if ([test, routeAudit, validator].some((result) => result.code !== 0)) blockers.push("final local validation failed");
+
+  if (blockers.length) {
+    return {
+      finalStatus: "BLOCKED",
+      ledgerStatus: "First version tag blocked",
+      summary: blockers.join("; "),
+      nextPermission: "fix first-version tag blockers",
+      nextSkill: "release-preflight-skill / github-handoff-skill",
+      firstVersionTag: {
+        version: FIRST_VERSION,
+        tag: FIRST_VERSION_TAG,
+        localHead: localHeadSha,
+        remoteMain: remoteMainSha,
+        tagCommit: localTagCommitSha,
+        remoteTagCommit: remoteTagCommitSha,
+        ciRuns,
+      },
+      exitCode: 1,
+    };
+  }
+
+  return {
+    finalStatus: "v0.1.0 tagged and pushed, npm unpublished",
+    ledgerStatus: "v0.1.0 tagged and pushed, npm unpublished",
+    summary: `${FIRST_VERSION_TAG} verified; remote tag resolves to ${localTagCommitSha}; remote main is ${localHeadSha}; CI passed for release commit; npm publish and GitHub release remain blocked`,
+    nextPermission: "prepare GitHub release or npm publication gate, or run scheduled-run recheck",
+    nextSkill: "release-preflight-skill / github-handoff-skill",
+    firstVersionTag: {
+      version: FIRST_VERSION,
+      tag: FIRST_VERSION_TAG,
+      localHead: localHeadSha,
+      remoteMain: remoteMainSha,
+      tagCommit: localTagCommitSha,
+      remoteTagCommit: remoteTagCommitSha,
+      ciRun: successfulRun,
     },
     exitCode: 0,
   };
@@ -11832,6 +12043,9 @@ function formatRunLogFilesChanged(isDryRun) {
 }
 
 function permissionBoundarySummary() {
+  if (args.allow.has("first-version-tag")) {
+    return "First-version tag gate permitted only for local version/changelog/release-note edits, local validation/package smoke, exact-file commits, non-force main push, read-only GitHub Actions inspection, annotated tag v0.1.0 creation/push, remote tag verification, and post-tag bookkeeping. No npm publish, npm version, GitHub release, deploy, Supabase, Cloudflare, production endpoint, secret printing, force push, history rewrite, broad staging, or excluded-file staging";
+  }
   if (args.allow.has("github-open-source-handoff")) {
     return "GitHub open-source handoff permitted only for local public-repo hardening, local validation, GitHub auth/repo checks, public repo creation if missing, exact-file commit, one main push, and remote HEAD verification. No npm publish, npm version, tag, GitHub release, deploy, Supabase, Cloudflare, production endpoint, secret printing, broad staging, force push, or excluded-file staging";
   }
@@ -11881,6 +12095,9 @@ function permissionBoundarySummary() {
 }
 
 function forbiddenActionSummary() {
+  if (args.allow.has("first-version-tag")) {
+    return "No forbidden npm publish, npm version, GitHub release creation, deploy, Supabase command, Cloudflare command, production endpoint call, secret printing, force push, history rewrite, broad staging, excluded-file staging, or extra repository creation occurred.";
+  }
   if (args.allow.has("github-open-source-handoff")) {
     return "No forbidden npm publish, npm version, tag creation, GitHub release creation, deploy, Supabase command, Cloudflare command, production endpoint call, token/secret printing, broad staging, force push, or excluded-file staging occurred.";
   }

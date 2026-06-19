@@ -41,7 +41,13 @@ jobs:
         run: |
           node - <<'NODE'
           const fs = require("fs");
-          const pack = JSON.parse(fs.readFileSync("/tmp/coding-workflow-pack.json", "utf8"));
+          const raw = fs.readFileSync("/tmp/coding-workflow-pack.json", "utf8");
+          const match = raw.match(/\[\s*\{[\s\S]*\}\s*\]\s*$/);
+          if (!match) {
+            console.error("Could not find npm pack JSON payload");
+            process.exit(1);
+          }
+          const pack = JSON.parse(match[0]);
           const files = (Array.isArray(pack) ? pack[0]?.files : pack?.files) || [];
           const names = files.map((file) => file.path || "");
           const blocked = [

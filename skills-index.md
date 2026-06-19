@@ -200,3 +200,13 @@ Use for read-only migration review until repo-specific apply commands are confir
 - Success state: `GitHub open-source handoff complete`
 - Scope: local public repo hardening, local validation, exact-file commit, public GitHub repo creation/verification, one `main` push, and remote HEAD verification.
 - Boundaries: no npm publish, versioning, tags, GitHub releases, deploys, Supabase/Cloudflare commands, production calls, secret printing, force push, or broad/excluded staging.
+
+# First Version Tag Route
+
+- Route id: `first-version-tag`
+- Primary skills: `release-preflight-skill`, `github-handoff-skill`, `skills-library-packaging-skill`
+- Trigger state: `GitHub open-source handoff complete`
+- Permission flag: `--allow first-version-tag`
+- Success state: `v0.1.0 tagged and pushed, npm unpublished`
+- Scope: version `0.1.0`, changelog, release notes, validation, package smoke, exact release commit, non-force `main` push, exact-commit CI verification, annotated tag `v0.1.0`, tag push, remote tag verification, and post-tag bookkeeping.
+- Boundaries: no npm publish, `npm version`, GitHub release creation, deploys, Supabase/Cloudflare commands, production calls, secret printing, force push, history rewrite, or broad/excluded staging.

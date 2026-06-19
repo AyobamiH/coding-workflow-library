@@ -611,6 +611,72 @@
       "provenance": "John-approved open-source GitHub handoff route for AyobamiH/coding-workflow-library"
     },
     {
+      "id": "first-version-tag",
+      "skill_file": "skill-files/release-preflight-skill.md",
+      "ledger_states_handled": [
+        "GitHub open-source handoff complete",
+        "First version tag blocked",
+        "v0.1.0 release commit prepared, tag not created",
+        "v0.1.0 tagged and pushed, npm unpublished"
+      ],
+      "permission_flag": "first-version-tag",
+      "helper_scripts": [
+        "scripts/run-next",
+        "scripts/committer",
+        "scripts/check-js",
+        "scripts/npm-package-readiness",
+        "scripts/release-preflight",
+        "scripts/library-packaging-readiness",
+        "scripts/route-audit",
+        "scripts/validate-skills",
+        "external:git",
+        "external:gh",
+        "external:npm"
+      ],
+      "permission_level": "local-edit, local-validation, exact-file-commit, git-push-main, git-tag, github-actions-read",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "npm publish",
+        "npm version",
+        "GitHub release creation",
+        "git add .",
+        "git add -A",
+        "force push",
+        "history rewrite",
+        "deploy",
+        "Supabase commands",
+        "Cloudflare commands",
+        "production endpoint calls",
+        "token or secret value printing",
+        "evidence staging",
+        "temp/cache/tarball staging",
+        "private runtime config staging"
+      ],
+      "success_ledger_state": "v0.1.0 tagged and pushed, npm unpublished",
+      "blocked_ledger_state": "First version tag blocked",
+      "next_permission": "prepare GitHub release or npm publication gate, or run scheduled-run recheck",
+      "evidence_required": [
+        "repository state and remote parity",
+        "GitHub auth account",
+        "existing tag check",
+        "package version 0.1.0",
+        "changelog entry",
+        "release notes",
+        "local validation",
+        "clean-temp tarball smoke",
+        "exact release files committed",
+        "release commit hash",
+        "release commit pushed",
+        "CI success for release commit",
+        "annotated tag creation",
+        "tag push result",
+        "remote tag dereference to release commit",
+        "post-tag bookkeeping commit",
+        "commands deliberately not run"
+      ],
+      "provenance": "John-approved first open-source version tag route for v0.1.0"
+    },
+    {
       "id": "cloudflare-deploy-proof-planning",
       "skill_file": "skill-files/cloudflare-deploy-skill.md",
       "ledger_states_handled": [

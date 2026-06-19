@@ -183,3 +183,4 @@ supabase functions deploy
 - Add optional registry read-only version check after explicit network permission.
 - Add integration with GitHub handoff and evidence-pack reports.
 - Add GitHub source handoff mode that proves public repository files, CI, exact-file commit scope, and remote HEAD parity while still blocking publish/version/tag/release.
+- Add first-version tag mode that requires package version/changelog/release notes, clean local validation, package smoke, exact release commit CI success, annotated tag verification, and explicit exclusion of npm publish and GitHub release creation.

@@ -1214,3 +1214,31 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: No forbidden deploy, migration, Supabase mutation, production endpoint call, direct main push, force push, merge, token printing, token file write, unrelated staging, or evidence inclusion occurred..
 * Follow-up skill needed: skills-library-packaging-skill / production-handoff-skill / github-handoff-skill.
 * Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.
+
+## 2026-06-19 - run-next Autonomous Work Loop
+
+* Skill used: coding-workflow-orchestrator-skill; selected next skill was github-handoff-skill / skills-library-packaging-skill / release-preflight-skill.
+* Goal: Read `work-ledger.md`, classify status `CLI entrypoint package smoke complete`, check permission flags, and run only the next safe action.
+* Starting state: Target repo `/home/johnh/.openclaw/skills/coding-workflow-library`; permission flags `github-open-source-handoff`; dry-run `no`.
+* Commands/tools used: `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow github-open-source-handoff`.
+* Files inspected: `AGENTS.md`; `RUNBOOK.md`; `tools.md`; `work-ledger.md`; selected ledger entry for `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Files changed: `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; GitHub open-source handoff repo: /home/johnh/.openclaw/skills/coding-workflow-library; boundary: no npm publish, npm version, git tag, GitHub release, deploy, Supabase, Cloudflare, secret read/print, production call, force push, broad staging, or excluded-file staging; public hardening files: present; package.json exists: PASS; package.json parses: PASS; package name: PASS; package version: PASS; package license: PASS; repository owner/name: PASS; CLI bin mapping: PASS; CLI bin file exists: PASS; CLI bin executable: PASS; package files allowlist includes bin: PASS; description says autonomous workflow: PASS; npm test exit: 0; npm package readiness exit: 0; classification: PASS; release preflight cli exit: 0; classification: NOT_VERIFIED; route audit exit: 0; result: PASS; validate-skills exit: 0; result: PASS; GH_TOKEN presence: not set; GitHub active user: AyobamiH; GitHub repo view: AyobamiH/coding-workflow-library PUBLIC; git branch: main; git status clean: yes; origin URL: https://github.com/AyobamiH/coding-workflow-library.git; local HEAD: 87e5b03b4be25e7c406bb60a508cc265d592e115; remote main HEAD: 87e5b03b4be25e7c406bb60a508cc265d592e115.
+* Result: GitHub open-source handoff complete: AyobamiH/coding-workflow-library verified public; local HEAD matches remote main; package/route/skill validation passed; publish/version/tag/release/deploy remain blocked.
+* Failure/recovery notes: No forbidden npm publish, npm version, tag creation, GitHub release creation, deploy, Supabase command, Cloudflare command, production endpoint call, token/secret printing, broad staging, force push, or excluded-file staging occurred..
+* Follow-up skill needed: release-preflight-skill / github-handoff-skill.
+* Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.
+
+## 2026-06-19 - v0.1.0 First Version Preparation
+
+* Skill used: release-preflight-skill / github-handoff-skill / skills-library-packaging-skill.
+* Goal: Prepare package version `0.1.0`, changelog, release notes, first-version route metadata, and local/package smoke evidence before the exact release commit and tag.
+* Starting state: Target repo `/home/johnh/.openclaw/skills/coding-workflow-library`; ledger status `GitHub open-source handoff complete`; permission flag `first-version-tag`; current remote main `87e5b03b4be25e7c406bb60a508cc265d592e115`; no existing `v0.1.0` tag.
+* Commands/tools used: `git fetch origin --tags --prune`; GitHub auth/repo/run inspection; read-only npm name check; `npm ci`; `npm test`; CLI help/routes/validate; route audit; package readiness; release preflight; `npm pack --dry-run`; clean-temp tarball install smoke; `scripts/skill-cleaner`; `scripts/validate-skills`; `scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow first-version-tag`.
+* Files inspected: package files; changelog; release notes; route metadata; runner; README/RUNBOOK/tools/command/evidence/index docs; relevant release, packaging, GitHub, and orchestrator skill files.
+* Files changed: `package.json`; `package-lock.json`; `CHANGELOG.md`; `docs/releases/v0.1.0.md`; `.github/workflows/validate.yml`; `routes/skill-routes.json`; `scripts/run-next`; README/RUNBOOK/tools/command/evidence/index docs; relevant skill files; `build-queue.md`; `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: GitHub account `AyobamiH`; repo `AyobamiH/coding-workflow-library` public; previous CI failure cause fixed locally in workflow parser; npm name check returned `E404 Not Found`; local validation and package smoke passed; clean-temp installed CLI help/routes/validate passed; release preflight warning was limited to expected dirty tree/no tag before commit.
+* Result: v0.1.0 release commit prepared, tag not created.
+* Failure/recovery notes: No forbidden npm publish, `npm version`, GitHub release, deploy, Supabase, Cloudflare, production endpoint call, secret printing, force push, history rewrite, broad staging, or excluded-file staging occurred.
+* Follow-up skill needed: github-handoff-skill / release-preflight-skill.
+* Upgrade idea: Keep first-version tag route idempotent so reruns verify existing tag and CI evidence instead of recreating release artifacts.

@@ -299,6 +299,8 @@ If a workflow clearly indicates merging `main` may deploy, the runner must stop 
 
 `Package candidate dry-run complete` routes to CLI entrypoint package smoke with `--allow cli-package-smoke`. It verifies `coding-workflow` package `bin` metadata, local CLI help/routes/package-readiness/release-preflight behavior, package readiness with `--expect-cli`, release preflight CLI mode, `npm pack --dry-run`, clean-temp local tarball install, installed CLI help/routes/validate behavior, route audit, cleanup, and validation, then records `CLI entrypoint package smoke complete` if safe. This flag is not publish, version, tag, push, PR, GitHub release, deploy, registry mutation, secret, external-service, product-repo, production-endpoint, remote dependency install, or remote mutation permission.
 
+`GitHub open-source handoff complete` routes to first version tag work with `--allow first-version-tag`. It verifies package/lockfile version `0.1.0`, changelog, release notes, local validation, clean-temp package smoke, exact release commit, non-force `main` push, GitHub Actions success for that exact commit, annotated tag `v0.1.0`, remote tag dereference, and post-tag bookkeeping. This flag is not npm publish, `npm version`, GitHub release, deploy, Supabase, Cloudflare, production endpoint, secret, force-push, history rewrite, broad staging, or excluded-file staging permission.
+
 Read-only planning commands:
 
 ```bash

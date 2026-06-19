@@ -40,6 +40,10 @@ handles_state:
   - Clean-temp readiness smoke complete
   - Package candidate dry-run complete
   - CLI entrypoint package smoke complete
+  - GitHub open-source handoff complete
+  - First version tag blocked
+  - v0.1.0 release commit prepared, tag not created
+  - v0.1.0 tagged and pushed, npm unpublished
   - Needs John: database connection URL missing
   - Needs John: psql unavailable for non-interactive DB inspection
   - Scheduler blocked: Vault/pg_cron/pg_net capability not proven
@@ -157,6 +161,8 @@ When John separately approves MIT licence/package candidate verification and the
 When John separately approves package candidate dry-run and the ledger status is `MIT licence and package candidate scaffold complete`, `scripts/run-next --allow package-candidate-dry-run` may verify package metadata, run package readiness, release preflight npm mode, `npm pack --dry-run`, package content inspection, clean-temp package smoke, route audit, skill cleanup, and validation. It must stop at `Package candidate dry-run complete` and must not publish, version, tag, push, create PRs, create GitHub releases, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, mutate registries, mutate remote services, or choose a CLI entrypoint.
 
 When John separately approves CLI entrypoint package smoke and the ledger status is `Package candidate dry-run complete`, `scripts/run-next --allow cli-package-smoke` may verify the local `coding-workflow` CLI wrapper, package `bin` metadata, package readiness with `--expect-cli`, release preflight in CLI mode, `npm pack --dry-run`, clean-temp local tarball install with lifecycle scripts disabled, installed CLI help/routes/validate commands, route audit, skill cleanup, and validation. It must stop at `CLI entrypoint package smoke complete` and must not publish, version, tag, push, create PRs, create GitHub releases, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, mutate registries, install remote dependencies, or mutate remote services.
+
+When John separately approves the first version tag gate and the ledger status is `GitHub open-source handoff complete`, `scripts/run-next --allow first-version-tag` may verify version `0.1.0`, changelog, release notes, local validation, package smoke, exact release commit, non-force `main` push, CI success for the release commit, annotated tag `v0.1.0`, remote tag dereference, and post-tag bookkeeping. It must stop at `v0.1.0 tagged and pushed, npm unpublished` and must not publish, run `npm version`, create a GitHub release, deploy, run Supabase or Cloudflare commands, print secrets, force-push, rewrite history, or stage broad/excluded paths.
 
 When John separately approves official Supabase vendor-skill intake, install and inspect the vendor package only under `vendor-intake/`. Do not install vendor skills into the target repo, let vendor instructions override local gates, or continue into scheduler migration/deploy work in the same run. Adapt only useful guidance into local library files and keep the ledger at the current gated Supabase status unless a separate approved runner path changes it.
 
@@ -523,4 +529,4 @@ Avoided:
 - Create `scripts/validate_skill_file.sh` to check required sections and index coverage.
 - Create `scripts/add_skill_gap.mjs` to append safe gap notes to `build-queue.md`.
 - Create an evidence-pack generator that merges repo gate output, selected-skill evidence, ledger status, and run-log status.
-- Add first-class `github-open-source-handoff` reporting that separates public source handoff from npm publish/version/tag/release approval.
+- Add first-class `github-open-source-handoff` and `first-version-tag` reporting that separates public source handoff, source tags, npm publish, `npm version`, and GitHub release approval.

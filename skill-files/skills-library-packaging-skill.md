@@ -233,3 +233,4 @@ gh release create
 - Add route metadata packaging exporter.
 - Add open-source readiness checklist.
 - Add package-manifest generator behind a separate John-approved local-edit gate.
+- Add first-version package source tag checklist that keeps local tarball/package smoke separate from npm publish, GitHub release creation, and production deployment.

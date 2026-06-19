@@ -307,6 +307,19 @@ node scripts/validate-skills
 
 `scripts/run-next --allow github-open-source-handoff` records and verifies the public GitHub handoff only after explicit approval. It must not publish to npm, create versions or tags, create GitHub releases, deploy, run Supabase/Cloudflare commands, print secrets, force-push, or stage broad/excluded paths.
 
+## v0.1.0 First Version Tag Gate
+
+The first source tag route is `first-version-tag`.
+
+```bash
+./scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow first-version-tag
+./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow first-version-tag
+```
+
+This gate prepares and verifies package version `0.1.0`, `CHANGELOG.md`, `docs/releases/v0.1.0.md`, local validation, package smoke, exact-file release commit, non-force `main` push, GitHub Actions success for the release commit, annotated tag `v0.1.0`, remote tag verification, and post-tag bookkeeping.
+
+It is not npm publication, `npm version`, GitHub release creation, deployment, production verification, or permission to broaden staging.
+
 ## Important Boundaries
 
 - Cloudflare, Supabase, migration, and GitHub CLI workflows were not confirmed in the extracted chat logs. Their skill files are inspection-first and forbid invented deployment/database/PR commands.

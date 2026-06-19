@@ -1,11 +1,18 @@
 # Immediate
 
-## GitHub open-source handoff
+## First version tag v0.1.0
 
-- Why it matters: the package/CLI candidate has passed local smoke tests and now needs a public source handoff without conflating that with npm publication.
-- Evidence from current files/logs: package candidate `autonomous-coding-workflow-library`, CLI `coding-workflow`, MIT license, `package-lock.json`, route audit, package smoke, and validation have passed locally; `routes/skill-routes.json` now owns `github-open-source-handoff`.
-- Permission boundary: exact-file commit, public GitHub repo creation/verification, one non-force `main` push, and remote HEAD verification only; no npm publish, versioning, tags, GitHub release, deploy, Supabase, Cloudflare, production endpoints, secret printing, broad staging, or excluded-file staging.
-- Done definition: `AyobamiH/coding-workflow-library` exists publicly, local validation passes, exact-file commit exists, `main` is pushed, remote HEAD matches local HEAD, and ledger/log record `GitHub open-source handoff complete`.
+- Why it matters: the public source handoff is complete, so the next reusable release boundary is a first annotated source tag without conflating that with npm publication or GitHub release creation.
+- Evidence from current files/logs: `AyobamiH/coding-workflow-library` exists publicly; `main` was pushed; package candidate `autonomous-coding-workflow-library`, CLI `coding-workflow`, MIT license, `package-lock.json`, route audit, package smoke, and validation have passed locally; `routes/skill-routes.json` now owns `first-version-tag`.
+- Permission boundary: version/changelog/release-note edits, local validation, clean-temp tarball smoke, exact-file release commit, non-force `main` push, read-only GitHub Actions inspection, annotated tag `v0.1.0`, tag push, and post-tag bookkeeping only; no npm publish, `npm version`, GitHub release, deploy, Supabase, Cloudflare, production endpoints, secret printing, broad staging, force push, or history rewrite.
+- Done definition: package and lockfile are `0.1.0`, changelog and release notes exist, local validation and tarball smoke pass, release commit is pushed, CI passes for that exact commit, `v0.1.0` remote tag dereferences to that commit, post-tag bookkeeping is pushed, and ledger/log record `v0.1.0 tagged and pushed, npm unpublished`.
+
+## GitHub open-source handoff follow-up
+
+- Why it matters: the public source handoff is now a proven base state and should be monitored as a prerequisite for tag/release gates rather than rebuilt.
+- Evidence from current files/logs: `work-ledger.md` records `GitHub open-source handoff complete`; `routes/skill-routes.json` owns `github-open-source-handoff`.
+- Permission boundary: verification and repair only if repository evidence drifts; no npm publish, `npm version`, tags, GitHub release, deploy, or remote mutation without a fresh gate.
+- Done definition: keep route metadata and CI evidence current while the active lane moves to the first-version tag gate.
 
 ## CLI entrypoint package smoke
 

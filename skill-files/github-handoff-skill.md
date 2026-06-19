@@ -230,3 +230,4 @@ Git handoff:
 - Add a public-source handoff helper that verifies repository emptiness/conflicts, exact files, remote HEAD parity, and release blockers before push.
 - Add a GitHub deep-review skill that inspects open PRs, review comments, CI runs, and branch protection before PR handoff.
 - Add a pre-commit hook that runs `scripts/committer`-style path and secret checks before manual commits.
+- Add first-version source tag handoff that pushes an exact release commit, waits for CI on that commit, creates/pushes one annotated tag, verifies remote tag dereference, records post-tag bookkeeping, and still blocks npm publish and GitHub release creation.

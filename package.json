@@ -1,6 +1,6 @@
 {
   "name": "autonomous-coding-workflow-library",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Autonomous coding workflow skills library for local agent orchestration.",
   "license": "MIT",
   "private": false,
