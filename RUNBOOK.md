@@ -295,11 +295,13 @@ If a secret-looking value is found:
 
 ## Run Logging
 
-Every active orchestrated task must update `work-ledger.md`.
+Legacy ledger-mode tasks update `work-ledger.md`. New multi-project work should select a local runtime lane; only that lane is updated, while `work-ledger.md` remains historical evidence for reusable library development.
 
 Every real use of this library must be logged in `runs/skill-runs.md`.
 
 `scripts/run-next` updates `work-ledger.md` and appends `runs/skill-runs.md` only for real runs. Dry-run and explain modes must not mutate files or mark ledger work completed.
+
+Lane-aware runs use `--lane <id> --state-file <path>`. They read and update only the selected lane, never append product-specific runtime evidence to the public ledger/run log, and require explicit monitoring baselines rather than deriving production time boundaries from ledger file timestamps.
 
 Minimum ledger fields:
 

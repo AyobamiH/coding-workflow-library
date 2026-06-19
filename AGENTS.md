@@ -121,16 +121,8 @@ John is required for:
 - Keep reports evidence-backed.
 - Include commands run, files changed, validation results, risks, and next skill.
 
-## Active Work Note
+## Active Work State
 
-Repo:
-`/home/johnh/wagging-web-wins`
+Use project-scoped local lane state for active work. The public `work-ledger.md` is historical evidence and a legacy routing source, not a single global current state.
 
-Status:
-Needs GitHub auth gate
-
-Reason:
-`import-reddit-tips` security hardening patch is committed locally at `271414a`, but GitHub handoff is blocked until local `gh` authentication is valid for the expected GitHub account.
-
-Caveats:
-`npm run lint` fails on unrelated pre-existing issues. Vitest fails because `vitest.config.ts` imports missing `@vitejs/plugin-react` while the repo has `@vitejs/plugin-react-swc`. Deployment, Supabase secret setup, scheduler private header, runtime 401/403/200/429 verification, and deployed RLS/grants remain undone.
+Real repo paths, monitoring baselines, private evidence, and product-specific runtime status belong in a local secret-free state file outside the tracked package. Select one lane explicitly and never advance another lane as a side effect.

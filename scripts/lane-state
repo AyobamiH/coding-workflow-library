@@ -1,0 +1,192 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+
+const VERSION = 1;
+const PROHIBITED_KEYS = /(token|secret|password|credential|private[_-]?key|database[_-]?url|db[_-]?url)/i;
+const SECRET_VALUES = [
+  /postgres(?:ql)?:\/\/[^:\s"']+:[^@\s"']+@/i,
+  /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/,
+  /-----BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----/,
+];
+
+function defaultStateFile() {
+  return process.env.CODING_WORKFLOW_STATE_FILE || path.join(os.homedir(), ".coding-workflow", "lanes.json");
+}
+
+function parseArgs(argv) {
+  const parsed = { stateFile: defaultStateFile(), json: false, command: null, positionals: [], options: {} };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--state-file") parsed.stateFile = requireValue(argv, ++i, arg);
+    else if (arg === "--json") parsed.json = true;
+    else if (["--repo", "--repository", "--display-name", "--state", "--permission", "--status", "--hold-reason", "--notes", "--monitoring-baseline"].includes(arg)) {
+      parsed.options[arg.slice(2)] = requireValue(argv, ++i, arg);
+    } else if (!parsed.command) parsed.command = arg;
+    else parsed.positionals.push(arg);
+  }
+  return parsed;
+}
+
+function requireValue(argv, index, flag) {
+  const value = argv[index];
+  if (!value) throw new Error(`${flag} requires a value`);
+  return value;
+}
+
+function emptyState() {
+  return { version: VERSION, lanes: [] };
+}
+
+function readState(file, { allowMissing = false } = {}) {
+  if (!fs.existsSync(file)) {
+    if (allowMissing) return emptyState();
+    throw new Error(`lane state file not found: ${file}`);
+  }
+  let state;
+  try {
+    state = JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch (error) {
+    throw new Error(`lane state is not valid JSON: ${error.message}`);
+  }
+  validateState(state);
+  return state;
+}
+
+function validateState(state) {
+  if (!state || state.version !== VERSION || !Array.isArray(state.lanes)) {
+    throw new Error("lane state must contain version 1 and a lanes array");
+  }
+  const ids = new Set();
+  for (const lane of state.lanes) {
+    validateLane(lane);
+    if (ids.has(lane.lane_id)) throw new Error(`duplicate lane id: ${lane.lane_id}`);
+    ids.add(lane.lane_id);
+  }
+  rejectSensitiveShape(state);
+  return state;
+}
+
+function validateLane(lane) {
+  const required = ["lane_id", "display_name", "repo_path", "repository", "current_state", "next_permission", "status", "route_ids", "last_updated", "evidence_refs", "hold_reason", "notes"];
+  for (const key of required) {
+    if (!(key in lane)) throw new Error(`lane ${lane.lane_id || "(unknown)"} is missing ${key}`);
+  }
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(lane.lane_id)) throw new Error(`invalid lane id: ${lane.lane_id}`);
+  if (!Array.isArray(lane.route_ids) || !Array.isArray(lane.evidence_refs)) throw new Error(`lane ${lane.lane_id} route_ids and evidence_refs must be arrays`);
+  if (!["active", "blocked", "hold", "complete"].includes(lane.status)) throw new Error(`lane ${lane.lane_id} has invalid status`);
+  if (Number.isNaN(Date.parse(lane.last_updated))) throw new Error(`lane ${lane.lane_id} has invalid last_updated`);
+  if (lane.monitoring_baseline && Number.isNaN(Date.parse(lane.monitoring_baseline))) throw new Error(`lane ${lane.lane_id} has invalid monitoring_baseline`);
+}
+
+function rejectSensitiveShape(value, trail = []) {
+  if (Array.isArray(value)) return value.forEach((item, index) => rejectSensitiveShape(item, trail.concat(index)));
+  if (!value || typeof value !== "object") {
+    if (typeof value === "string" && SECRET_VALUES.some((pattern) => pattern.test(value))) {
+      throw new Error(`secret-shaped value refused at ${trail.join(".") || "root"}`);
+    }
+    return;
+  }
+  for (const [key, item] of Object.entries(value)) {
+    if (PROHIBITED_KEYS.test(key)) throw new Error(`prohibited secret-shaped key: ${trail.concat(key).join(".")}`);
+    rejectSensitiveShape(item, trail.concat(key));
+  }
+}
+
+function atomicWrite(file, state) {
+  validateState(state);
+  fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
+  const temporary = `${file}.tmp-${process.pid}-${Date.now()}`;
+  fs.writeFileSync(temporary, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 });
+  fs.renameSync(temporary, file);
+  fs.chmodSync(file, 0o600);
+}
+
+function getLane(state, laneId) {
+  const lane = state.lanes.find((item) => item.lane_id === laneId);
+  if (!lane) throw new Error(`lane not found: ${laneId}`);
+  return lane;
+}
+
+function initLane(state, laneId, options) {
+  if (state.lanes.some((lane) => lane.lane_id === laneId)) throw new Error(`lane already exists: ${laneId}`);
+  if (!options.repo) throw new Error("init requires --repo");
+  const now = new Date().toISOString();
+  state.lanes.push({
+    lane_id: laneId,
+    display_name: options["display-name"] || laneId,
+    repo_path: options.repo,
+    repository: options.repository || "",
+    current_state: options.state || "Unclassified",
+    next_permission: options.permission || "",
+    status: options.status || "active",
+    route_ids: [],
+    last_updated: now,
+    evidence_refs: [],
+    hold_reason: options["hold-reason"] || "",
+    notes: options.notes || "",
+    ...(options["monitoring-baseline"] ? { monitoring_baseline: options["monitoring-baseline"] } : {}),
+  });
+  return getLane(state, laneId);
+}
+
+function updateLane(state, laneId, changes) {
+  const lane = getLane(state, laneId);
+  Object.assign(lane, changes, { last_updated: new Date().toISOString() });
+  validateState(state);
+  return lane;
+}
+
+function publicLane(lane) {
+  return { ...lane };
+}
+
+function printHuman(value) {
+  if (Array.isArray(value)) {
+    if (!value.length) return console.log("No lanes found.");
+    for (const lane of value) console.log(`${lane.lane_id}\t${lane.status}\t${lane.current_state}`);
+    return;
+  }
+  for (const [key, item] of Object.entries(value)) console.log(`${key}: ${Array.isArray(item) ? item.join(", ") : item}`);
+}
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/lane-state [--state-file <path>] list [--json]
+  ./scripts/lane-state [--state-file <path>] show <lane-id> [--json]
+  ./scripts/lane-state [--state-file <path>] init <lane-id> --repo <path> [options]
+  ./scripts/lane-state [--state-file <path>] set-state <lane-id> --state <state>
+  ./scripts/lane-state [--state-file <path>] set-next <lane-id> --permission <permission>`);
+}
+
+function main(argv = process.argv.slice(2)) {
+  const args = parseArgs(argv);
+  if (!args.command || ["help", "--help", "-h"].includes(args.command)) return usage();
+  const laneId = args.positionals[0];
+  const state = readState(args.stateFile, { allowMissing: args.command === "init" });
+  let output;
+  if (args.command === "list") output = state.lanes.map(publicLane);
+  else if (args.command === "show") output = publicLane(getLane(state, laneId));
+  else if (args.command === "init") {
+    output = initLane(state, laneId, args.options);
+    atomicWrite(args.stateFile, state);
+  } else if (args.command === "set-state") {
+    if (!args.options.state) throw new Error("set-state requires --state");
+    output = updateLane(state, laneId, { current_state: args.options.state });
+    atomicWrite(args.stateFile, state);
+  } else if (args.command === "set-next") {
+    if (!args.options.permission) throw new Error("set-next requires --permission");
+    output = updateLane(state, laneId, { next_permission: args.options.permission });
+    atomicWrite(args.stateFile, state);
+  } else throw new Error(`unknown command: ${args.command}`);
+  if (args.json) console.log(JSON.stringify(output, null, 2));
+  else printHuman(output);
+}
+
+if (require.main === module) {
+  try { main(); } catch (error) { console.error(error.message); process.exit(1); }
+}
+
+module.exports = { atomicWrite, defaultStateFile, getLane, readState, updateLane, validateState };

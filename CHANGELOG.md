@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- No unreleased changes yet.
+- Added project-scoped runtime lanes with a portable schema, neutral template, atomic local state helper, lane-aware `run-next` routing, CLI lane commands, and isolation tests.
+- Kept `work-ledger.md` as historical evidence while moving active product state, local paths, monitoring baselines, and private runtime references into untracked local lane files.
 
 ## 0.1.0 - 2026-06-19
 

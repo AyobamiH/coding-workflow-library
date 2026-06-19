@@ -31,6 +31,10 @@ const COMMANDS = {
     script: "scripts/run-next",
     description: "Run the permission-gated autonomous work-loop runner.",
   },
+  "lane-state": {
+    script: "scripts/lane-state",
+    description: "Inspect or update local project-scoped lane state.",
+  },
 };
 
 function printHelp() {
@@ -46,8 +50,11 @@ Usage:
   coding-workflow package-readiness --repo /path/to/repo [--expect-package] [--expect-cli]
   coding-workflow release-preflight --repo /path/to/repo --mode local|npm|cli
   coding-workflow run-next --repo /path/to/repo --dry-run --allow <flag>
+  coding-workflow lanes --state-file /path/to/lanes.json
+  coding-workflow lane show <lane-id> --state-file /path/to/lanes.json
+  coding-workflow run-next --lane <lane-id> --state-file /path/to/lanes.json --explain-next
 
-This CLI delegates to local scripts and preserves their permission gates. It does not publish, deploy, push, tag, create releases, read secrets, or call production endpoints on its own.`);
+Lane state is local runtime metadata and must not contain secrets. This CLI delegates to local scripts and preserves their permission gates. It does not publish, deploy, push, tag, create releases, read secrets, or call production endpoints on its own.`);
 }
 
 function fail(message, code = 2) {
@@ -82,6 +89,16 @@ function main() {
 
   if (!commandName || commandName === "--help" || commandName === "-h" || commandName === "help") {
     printHelp();
+    return;
+  }
+
+  if (commandName === "lanes") {
+    delegate("lane-state", [...rest, "list"]);
+    return;
+  }
+
+  if (commandName === "lane") {
+    delegate("lane-state", rest);
     return;
   }
 

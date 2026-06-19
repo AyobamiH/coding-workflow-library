@@ -1,5 +1,12 @@
 # Immediate
 
+## Multi-lane autonomy follow-through
+
+- Why it matters: the library, Wagging Web Wins, and later product repos now need independent execution state instead of one global latest ledger status.
+- Evidence from current files/logs: `schemas/work-lanes.schema.json`, `templates/work-lanes.example.json`, `scripts/lane-state`, lane-aware `scripts/run-next`, CLI lane commands, and isolation tests are present; public ledgers remain historical evidence.
+- Permission boundary: local lane reads/updates and explicitly selected route permissions only; product evidence, local paths, credentials, database URLs, and secrets remain outside the public package.
+- Done definition: use lane mode for new product work, keep legacy ledger mode for compatibility, and add future lanes without changing unrelated lane states.
+
 ## Post-tag publication/release gate selection
 
 - Why it matters: `v0.1.0` is tagged and pushed as a source release, but npm publication and GitHub release creation remain separate gates.

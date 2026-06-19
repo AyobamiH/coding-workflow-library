@@ -394,6 +394,20 @@ This file records every real use of the coding workflow skills library.
 * Follow-up skill needed: github-handoff-skill.
 * Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.
 
+## 2026-06-19 - Multi-Lane Autonomy Uplift
+
+* Skill used: coding-workflow-orchestrator-skill / production-handoff-skill.
+* Goal: Separate library release and product runtime state, add lane-aware routing, and prove one selected read-only monitoring lane cannot overwrite unrelated lanes.
+* Starting state: Public ledger contained interleaved library and product history; `run-next` selected one latest repo entry and scheduled monitoring derived its baseline from ledger modification time.
+* Commands/tools used: local file inspection and edits; `scripts/lane-state`; lane-aware `scripts/run-next` explain/dry-run/real modes; dependency-free lane isolation tests; read-only selected-lane database monitoring; local validation.
+* Files inspected: library controls, routes, runner, CLI, relevant skills, prior run evidence, and target repo source/docs/git metadata.
+* Files changed: reusable lane schema/template/helper; runner and CLI; route metadata; isolation tests; sanitised docs, queue, ledger, and run log. The John-specific lane file is local and untracked.
+* Evidence collected: three local lanes coexist; dry-run left state byte-identical; real monitoring updated only the selected product lane; library release and held product lane remained unchanged; no product runtime details were added to public package files; validation passed.
+* Result: Project-scoped autonomous workflow lanes added.
+* Failure/recovery notes: Replaced shared-ledger modification time with an explicit lane monitoring baseline. No function invocation, endpoint call, SQL write, scheduler/Vault mutation, deploy, migration, secret output, npm publish, version, tag, or GitHub release occurred.
+* Follow-up skill needed: coding-workflow-orchestrator-skill.
+* Upgrade idea: Add lane-aware evidence retention policies as more target repos join the workflow.
+
 ## 2026-06-12 - run-next Autonomous Work Loop
 
 * Skill used: coding-workflow-orchestrator-skill; selected next skill was github-handoff-skill.

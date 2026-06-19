@@ -32,6 +32,7 @@ handles_state:
   - Controlled success invocation completed
   - Scheduled run pending, production handoff ready
   - Scheduled run observed, production handoff ready
+  - Scheduled run observed with failure: investigate scheduler/runtime
   - Local verification and release evidence bundle built
   - Verification bundle self-test complete
   - Local skill workpack complete
@@ -76,8 +77,9 @@ requires_permission:
   - cli-package-smoke
 safe_by_default: true
 mutates:
-  - work-ledger.md on real execution
-  - runs/skill-runs.md on real execution
+  - selected local lane on lane-aware real execution
+  - work-ledger.md on legacy real execution
+  - runs/skill-runs.md on legacy real execution
 reads:
   - AGENTS.md
   - tools.md
@@ -103,6 +105,10 @@ stop_conditions:
 # coding-workflow-orchestrator-skill
 
 ## Purpose
+
+Orchestrate one bounded workflow lane at a time. Prefer project-scoped local state selected with `--lane` and `--state-file`; retain `work-ledger.md` as historical evidence and a backwards-compatible routing source.
+
+Lane-aware execution must never replace another lane's state. Dry-run and explain modes do not update lanes. Real repo paths, monitoring baselines, and product runtime evidence remain local and secret-free.
 
 This is the control-plane skill for the local coding workflow system.
 

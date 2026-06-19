@@ -171,7 +171,10 @@ Use for read-only migration review until repo-specific apply commands are confir
 - `bin/coding-workflow.js`: thin local CLI wrapper that delegates to existing scripts and preserves `scripts/run-next` permission gates.
 - `RUNBOOK.md`: library operating manual and skill selection flow.
 - `tools.md`: global tool catalogue and permission model.
-- `work-ledger.md`: persistent active-work ledger owned by `coding-workflow-orchestrator-skill`.
+- `work-ledger.md`: public historical workflow evidence and backwards-compatible legacy routing source.
+- `schemas/work-lanes.schema.json`: portable schema for local project-scoped runtime state.
+- `templates/work-lanes.example.json`: neutral lane-state example with no John-specific paths or product evidence.
+- `scripts/lane-state`: dependency-free atomic helper for listing, creating, and updating local lanes.
 - `runs/skill-runs.md`: append-only run log for real skill use.
 - `templates/repo-agents-pointer-template.md`: downstream repo pointer file that references the shared hard rules without copying them.
 - `templates/skill-run-template.md`: reusable run log entry.

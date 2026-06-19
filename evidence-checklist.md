@@ -272,6 +272,9 @@ Use this before final response or before saying a workflow is complete.
 - Controlled success ran only with explicit separate permission and exactly scoped before/after read-only evidence.
 - Scheduled monitoring did not manually trigger jobs unless separately approved.
 - Sanitized status codes and response summaries recorded.
+- Selected lane id and local state file recorded without publishing local paths as package data.
+- Explicit monitoring baseline recorded in lane state; public ledger modification time was not used as a production baseline.
+- Before/after lane snapshots prove only the selected lane changed.
 
 ## Local Skill Workpack
 

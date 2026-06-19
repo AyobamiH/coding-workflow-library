@@ -18,6 +18,8 @@ Verify deployed or locally running runtime behavior without collapsing all endpo
 
 This skill separates negative/non-mutating checks, true no-write dry-run checks, controlled success checks, scheduled monitoring, and production-write boundaries. It is generic: it can apply to web apps, APIs, serverless functions, workers, jobs, webhooks, and scheduled tasks. Product-specific workflows may add details, but they must keep these permission gates separate.
 
+For multi-project operation, runtime evidence and state transitions belong to the selected local lane. A product recheck must not advance a library release lane or another product lane, and dry-run must not update any lane.
+
 ## When to Use
 
 Use when a task asks to verify a live endpoint, deployed function, webhook, cron job, worker, scheduler, background job, or runtime behavior.

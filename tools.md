@@ -970,6 +970,20 @@ Evidence required:
 - Validation result.
 - Remaining risks.
 
+### Lane-state tools
+
+Purpose: maintain local project-scoped workflow state without treating a public Markdown ledger as the only runtime source.
+
+Default permission: local state read; explicit route permission for state transitions.
+
+Rules:
+
+- Store real lane state outside the tracked package.
+- Never store tokens, secrets, credentials, database URLs, or private keys.
+- Use atomic writes and update only the selected lane.
+- Dry-run and explain modes must not update any lane.
+- Keep product-specific monitoring evidence local unless deliberately sanitised.
+
 ## Tools That Require John Approval
 
 John approval is required for:

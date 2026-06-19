@@ -3,6 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
+const laneState = require("./lane-state");
 
 const LIBRARY_ROOT = path.resolve(__dirname, "..");
 const DEFAULT_REPO = "/home/johnh/wagging-web-wins";
@@ -79,8 +80,9 @@ const ALLOWED_FLAGS = new Set([
 ]);
 
 const args = parseArgs(process.argv.slice(2));
-const targetRepo = args.repo || DEFAULT_REPO;
-const dryRun = args.dryRun || args.explain;
+let targetRepo = args.repo || DEFAULT_REPO;
+const dryRun = args.dryRun || args.explain || args.explainNext;
+let selectedLane = null;
 
 const evidence = [];
 const actions = [];
@@ -95,9 +97,22 @@ function main() {
       process.exit(0);
     }
 
+    if (args.listLanes) {
+      printLaneList();
+      process.exit(0);
+    }
+
     readControlFiles();
-    const ledgerText = readText("work-ledger.md");
-    const active = findActiveWorkItem(ledgerText, targetRepo);
+    let active;
+    if (args.lane) {
+      const state = laneState.readState(args.stateFile);
+      selectedLane = laneState.getLane(state, args.lane);
+      targetRepo = args.repo || selectedLane.repo_path || targetRepo;
+      active = activeWorkItemFromLane(selectedLane);
+    } else {
+      const ledgerText = readText("work-ledger.md");
+      active = findActiveWorkItem(ledgerText, targetRepo);
+    }
     const status = active.currentStatus || "Unknown";
     const route = routeStatus(status);
 
@@ -165,7 +180,9 @@ function main() {
       result = notImplemented(route, active);
     }
 
-    if (!dryRun) {
+    if (!dryRun && selectedLane) {
+      updateSelectedLane(result, route);
+    } else if (!dryRun) {
       appendLedger({
         status: result.ledgerStatus || result.finalStatus,
         result,
@@ -199,7 +216,11 @@ function parseArgs(rawArgs) {
     allow: new Set(),
     dryRun: false,
     explain: false,
+    explainNext: false,
     listRoutes: false,
+    listLanes: false,
+    lane: null,
+    stateFile: laneState.defaultStateFile(),
     repo: null,
   };
 
@@ -213,8 +234,28 @@ function parseArgs(rawArgs) {
       parsed.explain = true;
       continue;
     }
+    if (arg === "--explain-next") {
+      parsed.explainNext = true;
+      continue;
+    }
     if (arg === "--list-routes") {
       parsed.listRoutes = true;
+      continue;
+    }
+    if (arg === "--list-lanes") {
+      parsed.listLanes = true;
+      continue;
+    }
+    if (arg === "--lane") {
+      parsed.lane = rawArgs[index + 1];
+      index += 1;
+      if (!parsed.lane) die("--lane requires a lane id");
+      continue;
+    }
+    if (arg === "--state-file") {
+      parsed.stateFile = rawArgs[index + 1];
+      index += 1;
+      if (!parsed.stateFile) die("--state-file requires a path");
       continue;
     }
     if (arg === "--repo") {
@@ -249,6 +290,9 @@ function printHelp() {
   ./scripts/run-next --dry-run
   ./scripts/run-next --explain
   ./scripts/run-next --list-routes
+  ./scripts/run-next --list-lanes --state-file /path/to/lanes.json
+  ./scripts/run-next --lane example-project --state-file /path/to/lanes.json --explain-next
+  ./scripts/run-next --lane example-project --state-file /path/to/lanes.json --dry-run --allow <permission>
   ./scripts/run-next --repo /home/johnh/wagging-web-wins
   ./scripts/run-next --repo /home/johnh/wagging-web-wins --explain
   ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow github-handoff
@@ -338,7 +382,37 @@ Supported --allow values:
   github-open-source-handoff
   first-version-tag
 
-Dry-run and explain modes do not mutate target repos, work-ledger.md, or runs/skill-runs.md.`);
+Lane mode reads and updates only the selected local lane. If --lane is omitted, legacy work-ledger.md routing remains available.
+Dry-run and explain modes do not mutate target repos, lane state, work-ledger.md, or runs/skill-runs.md.`);
+}
+
+function printLaneList() {
+  const state = laneState.readState(args.stateFile);
+  console.log(`# Workflow Lanes\n\nState file: ${args.stateFile}\nLanes: ${state.lanes.length}\n`);
+  for (const lane of state.lanes) {
+    console.log(`## ${lane.lane_id}`);
+    console.log(`Name: ${lane.display_name}`);
+    console.log(`Status: ${lane.status}`);
+    console.log(`Current state: ${lane.current_state}`);
+    console.log(`Next permission: ${lane.next_permission || "none"}`);
+    console.log("");
+  }
+  console.log("This command reads local lane metadata only. State files must not contain secrets.");
+}
+
+function activeWorkItemFromLane(lane) {
+  return {
+    heading: `Lane: ${lane.lane_id}`,
+    text: "",
+    activeRepo: lane.repo_path,
+    currentObjective: lane.notes || `Continue lane ${lane.lane_id}`,
+    currentStatus: lane.current_state,
+    selectedSkill: "coding-workflow-orchestrator-skill",
+    laneId: lane.lane_id,
+    laneStatus: lane.status,
+    monitoringBaseline: lane.monitoring_baseline || "",
+    rawLane: lane,
+  };
 }
 
 function printRouteList() {
@@ -637,12 +711,37 @@ function routeStatus(status) {
     };
   }
 
-  if (normalized === "controlled success invocation completed") {
+  if (
+    normalized === "controlled success invocation completed" ||
+    normalized === "scheduled run pending, production handoff ready"
+  ) {
     return {
       skill: "production-handoff-skill / scheduled-run monitoring and production handoff",
       permission: "scheduled-run-monitoring-handoff",
       kind: "scheduled-run-monitoring-handoff",
       nextAction: "inspect scheduler metadata, cron run history, pet_tips metadata, source/docs evidence, and prepare production handoff without invoking the function",
+    };
+  }
+
+  if (normalized === "scheduled run observed, production handoff ready") {
+    return {
+      skill: "production-handoff-skill / final production handoff",
+      permission: null,
+      kind: "permission-boundary",
+      finalStatus: "Scheduled run observed, production handoff ready",
+      nextPermission: "complete production handoff or investigate zero-candidate source behaviour separately",
+      nextAction: "select the final production handoff or a separate zero-candidate investigation lane",
+    };
+  }
+
+  if (normalized === "scheduled run observed with failure: investigate scheduler/runtime") {
+    return {
+      skill: "error-evidence-skill / scheduled runtime failure investigation",
+      permission: null,
+      kind: "permission-boundary",
+      finalStatus: "Scheduled run observed with failure: investigate scheduler/runtime",
+      nextPermission: "run failure investigation with read-only evidence",
+      nextAction: "inspect the failed scheduled run without invoking the function or mutating production",
     };
   }
 
@@ -921,7 +1020,7 @@ function nextApprovalCommand(route) {
 }
 
 function modeLabel() {
-  if (args.explain) return "explain";
+  if (args.explain || args.explainNext) return "explain";
   if (args.dryRun) return "dry-run";
   return "real";
 }
@@ -7252,7 +7351,8 @@ function controlledSuccessInvocationBlocked(ledgerStatus, summary, partial = {})
   };
 }
 
-function runScheduledRunMonitoringHandoff() {
+function runScheduledRunMonitoringHandoff(active) {
+  const baseline = scheduledMonitoringBaseline(active);
   if (dryRun) {
     actions.push("would inspect target repo status, branch, recent log, and staged files");
     actions.push("would load /home/johnh/.openclaw/.env without printing values");
@@ -7261,10 +7361,22 @@ function runScheduledRunMonitoringHandoff() {
     actions.push("would inspect import-reddit-tips-daily cron metadata and cron.job_run_details if available");
     actions.push("would inspect read-only pet_tips count, columns, and safe recent metadata");
     actions.push("would inspect import-reddit-tips source and security docs for final handoff evidence");
+    actions.push(`would use explicit monitoring baseline ${baseline ? baseline.toISOString() : "(not proven)"}`);
     actions.push("would not invoke Edge Functions, deploy, mutate scheduler, run SQL writes, push, PR, merge, or stage files");
+    if (!baseline) {
+      return {
+        finalStatus: "Scheduled run recheck blocked: monitoring baseline not proven",
+        ledgerStatus: active.currentStatus,
+        summary: "selected lane does not contain a valid monitoring_baseline",
+        nextPermission: "establish a verified monitoring baseline",
+        nextSkill: "production-handoff-skill / monitoring baseline recovery",
+        scheduledRunMonitoringHandoff: buildScheduledRunMonitoringHandoffSkeleton(),
+        exitCode: 1,
+      };
+    }
     return {
       finalStatus: "DRY RUN PASS",
-      ledgerStatus: "Controlled success invocation completed",
+      ledgerStatus: active.currentStatus,
       summary: "dry-run passed; scheduled-run monitoring and production handoff prep would run read-only",
       nextPermission: "scheduled-run-monitoring-handoff",
       nextSkill: "production-handoff-skill / scheduled-run monitoring and production handoff",
@@ -7280,7 +7392,12 @@ function runScheduledRunMonitoringHandoff() {
     );
   }
 
-  const baseline = fs.statSync(path.join(LIBRARY_ROOT, "work-ledger.md")).mtime;
+  if (!baseline) {
+    return scheduledRunMonitoringBlocked(
+      "Scheduled run recheck blocked: monitoring baseline not proven",
+      "selected lane does not contain a valid monitoring_baseline; ledger modification time is not an acceptable production baseline",
+    );
+  }
   const repo = collectScheduledRunMonitoringRepoEvidence(targetRepo);
   if (!repo.ok) return repo.result;
 
@@ -7378,6 +7495,14 @@ function runScheduledRunMonitoringHandoff() {
     scheduledRunMonitoringHandoff: report,
     exitCode,
   };
+}
+
+function scheduledMonitoringBaseline(active) {
+  const raw = active && active.monitoringBaseline ? active.monitoringBaseline : "";
+  if (!raw && !args.lane) return fs.statSync(path.join(LIBRARY_ROOT, "work-ledger.md")).mtime;
+  if (!raw) return null;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function collectScheduledRunMonitoringRepoEvidence(repo) {
@@ -7549,7 +7674,7 @@ function collectScheduledRunHistory(envShape, schedulerMetadata) {
     secretValue: envShape.secretValueForRedaction,
     label: "scheduled monitoring safe cron run history",
     input: `
-select r.jobid || E'\\t' || j.jobname || E'\\t' || coalesce(r.status, '') || E'\\t' || coalesce(r.start_time::text, '') || E'\\t' || coalesce(r.end_time::text, '')
+select r.jobid || E'\\t' || j.jobname || E'\\t' || coalesce(r.status, '') || E'\\t' || coalesce(r.start_time::text, '') || E'\\t' || coalesce(r.end_time::text, '') || E'\\t' || case when r.return_message is null or btrim(r.return_message) = '' then 'none' else 'present' end
 from cron.job_run_details r
 join cron.job j on j.jobid = r.jobid
 where j.jobname = 'import-reddit-tips-daily'
@@ -7579,13 +7704,13 @@ function parseScheduledRunHistoryRows(text) {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
-      const [jobid, jobname, status, startTime, endTime] = line.split("\t");
-      return { jobid, jobname, status, startTime, endTime };
+      const [jobid, jobname, status, startTime, endTime, returnMetadata] = line.split("\t");
+      return { jobid, jobname, status, startTime, endTime, returnMetadata };
     });
 }
 
 function formatScheduledRunHistoryRow(row) {
-  return `jobid=${row.jobid}; status=${row.status || "unknown"}; start=${row.startTime || "unknown"}; end=${row.endTime || "unknown"}`;
+  return `jobid=${row.jobid}; status=${row.status || "unknown"}; start=${row.startTime || "unknown"}; end=${row.endTime || "unknown"}; return_metadata=${row.returnMetadata || "not checked"}`;
 }
 
 function inspectScheduledRunSourceDocsEvidence(repo, envShape) {
@@ -7644,17 +7769,18 @@ function decideScheduledRunMonitoringStatus({ baseline, runHistory }) {
     };
   }
 
-  const successfulRows = runHistory.rows.filter((row) => /succeed|success/i.test(row.status || ""));
-  const latestSuccessful = successfulRows[0] || null;
-  const latestRow = runHistory.rows[0] || null;
-  const latestSuccessfulDate = latestSuccessful && latestSuccessful.startTime ? new Date(latestSuccessful.startTime) : null;
-  const latestAfterBaseline = latestSuccessfulDate && !Number.isNaN(latestSuccessfulDate.getTime()) && latestSuccessfulDate > baseline;
+  const rowsAfterBaseline = runHistory.rows.filter((row) => {
+    const date = row.startTime ? new Date(row.startTime) : null;
+    return date && !Number.isNaN(date.getTime()) && date > baseline;
+  });
+  const latestRow = rowsAfterBaseline[0] || null;
+  const latestSuccessful = rowsAfterBaseline.find((row) => /succeed|success/i.test(row.status || "")) || null;
 
-  if (latestAfterBaseline) {
+  if (latestSuccessful) {
     return {
       finalStatus: "Scheduled run observed, production handoff ready",
       summary: `scheduled run observed after workflow baseline: ${formatScheduledRunHistoryRow(latestSuccessful)}`,
-      nextPermission: "finalize production handoff",
+      nextPermission: "complete production handoff or investigate zero-candidate source behaviour separately",
       blocked: false,
       observed: true,
       baseline: baseline.toISOString(),
@@ -7664,9 +7790,9 @@ function decideScheduledRunMonitoringStatus({ baseline, runHistory }) {
 
   if (latestRow && !/succeed|success/i.test(latestRow.status || "") && !/running|started|queued/i.test(latestRow.status || "")) {
     return {
-      finalStatus: "Scheduled run monitoring blocked: latest scheduled run not successful",
-      summary: `latest cron history row is not successful: ${formatScheduledRunHistoryRow(latestRow)}`,
-      nextPermission: "approve scheduler failure triage",
+      finalStatus: "Scheduled run observed with failure: investigate scheduler/runtime",
+      summary: `latest post-baseline cron history row is not successful: ${formatScheduledRunHistoryRow(latestRow)}`,
+      nextPermission: "run failure investigation with read-only evidence",
       blocked: true,
       observed: false,
       baseline: baseline.toISOString(),
@@ -7676,10 +7802,10 @@ function decideScheduledRunMonitoringStatus({ baseline, runHistory }) {
 
   return {
     finalStatus: "Scheduled run pending, production handoff ready",
-    summary: runHistory.rows.length
-      ? `no successful scheduled run observed after workflow baseline ${baseline.toISOString()}; latest row: ${formatScheduledRunHistoryRow(latestRow)}`
+    summary: rowsAfterBaseline.length
+      ? `no completed successful scheduled run observed after workflow baseline ${baseline.toISOString()}; latest post-baseline row: ${formatScheduledRunHistoryRow(latestRow)}`
       : `no cron history rows found for import-reddit-tips-daily after workflow baseline ${baseline.toISOString()}`,
-    nextPermission: "wait for next scheduled run and recheck monitoring",
+    nextPermission: "wait for next scheduled run and recheck",
     blocked: false,
     observed: false,
     baseline: baseline.toISOString(),
@@ -10950,6 +11076,28 @@ function extractValidationResult(text) {
   return match ? match[1].trim() : "";
 }
 
+function updateSelectedLane(result, route) {
+  const state = laneState.readState(args.stateFile);
+  const lane = laneState.getLane(state, args.lane);
+  const finalStatus = result.ledgerStatus || result.finalStatus;
+  const blocked = result.exitCode && result.exitCode !== 0 || /blocked|failure|needs john/i.test(finalStatus || "");
+  const routeId = route.kind === "scheduled-run-monitoring-handoff" ? "production-handoff-lane" : route.kind;
+  const routeIds = Array.from(new Set([...(lane.route_ids || []), routeId].filter(Boolean)));
+  const evidenceRefs = Array.from(new Set([
+    ...(lane.evidence_refs || []),
+    `local-run:${today()}:${routeId || "run-next"}`,
+  ]));
+  laneState.updateLane(state, args.lane, {
+    current_state: finalStatus,
+    next_permission: result.nextPermission || route.nextPermission || route.nextAction || "manual review",
+    status: blocked ? "blocked" : "active",
+    route_ids: routeIds,
+    evidence_refs: evidenceRefs,
+  });
+  laneState.atomicWrite(args.stateFile, state);
+  actions.push(`updated selected lane only: ${args.lane}`);
+}
+
 function appendLedger({ status, result, route }) {
   const entry = `
 ## ${today()} - run-next Autonomous Work Loop
@@ -11309,9 +11457,12 @@ function printRuntimeNegativeVerificationReport(result, active, route) {
   if (runtime.sourceBoundary) console.log(`- ${runtime.sourceBoundary.functionSource}`);
   console.log("");
   console.log("## Files Updated");
-  console.log(dryRun ? "- none; dry-run only" : "- scripts/run-next");
-  console.log(dryRun ? "- none; dry-run only" : "- work-ledger.md");
-  console.log(dryRun ? "- none; dry-run only" : "- runs/skill-runs.md");
+  if (dryRun) console.log("- none; dry-run only");
+  else if (selectedLane) console.log(`- local lane state only: ${selectedLane.lane_id}`);
+  else {
+    console.log("- work-ledger.md");
+    console.log("- runs/skill-runs.md");
+  }
   console.log("");
   console.log("## Runner Update");
   console.log(`Mode: ${modeLabel()}`);
@@ -11362,10 +11513,10 @@ function printRuntimeNegativeVerificationReport(result, active, route) {
   for (const command of runtime.commandsNotRun) console.log(`- ${command}`);
   console.log("");
   console.log("## Ledger Update");
-  console.log(dryRun ? "Dry-run only; ledger not updated." : (result.ledgerStatus || result.finalStatus));
+  console.log(dryRun ? "Dry-run only; no state updated." : selectedLane ? `Selected lane updated: ${selectedLane.lane_id}` : (result.ledgerStatus || result.finalStatus));
   console.log("");
   console.log("## Run Log Update");
-  console.log(dryRun ? "Dry-run/explain only; run log not updated." : "Run entry appended.");
+  console.log(dryRun ? "Dry-run/explain only; run log not updated." : selectedLane ? "Public run log not updated; product runtime evidence remains local." : "Run entry appended.");
   console.log("");
   console.log("## Next Permission Needed From John");
   console.log(result.nextPermission || runtime.nextPermission || "hold");
@@ -11572,9 +11723,12 @@ function printScheduledRunMonitoringHandoffReport(result, active, route) {
   for (const file of report.filesRead) console.log(`- ${file}`);
   console.log("");
   console.log("## Files Updated");
-  console.log(dryRun ? "- none; dry-run only" : "- scripts/run-next");
-  console.log(dryRun ? "- none; dry-run only" : "- work-ledger.md");
-  console.log(dryRun ? "- none; dry-run only" : "- runs/skill-runs.md");
+  if (dryRun) console.log("- none; dry-run only");
+  else if (selectedLane) console.log(`- local lane state only: ${selectedLane.lane_id}`);
+  else {
+    console.log("- work-ledger.md");
+    console.log("- runs/skill-runs.md");
+  }
   console.log("");
   console.log("## Runner Update");
   console.log(`Mode: ${modeLabel()}`);
@@ -11621,10 +11775,10 @@ function printScheduledRunMonitoringHandoffReport(result, active, route) {
   console.log(report.secretExposureCheck);
   console.log("");
   console.log("## Ledger Update");
-  console.log(dryRun ? "Dry-run only; ledger not updated." : (result.ledgerStatus || result.finalStatus));
+  console.log(dryRun ? "Dry-run only; no state updated." : selectedLane ? `Selected lane updated: ${selectedLane.lane_id}` : (result.ledgerStatus || result.finalStatus));
   console.log("");
   console.log("## Run Log Update");
-  console.log(dryRun ? "Dry-run/explain only; run log not updated." : "Run entry appended.");
+  console.log(dryRun ? "Dry-run/explain only; run log not updated." : selectedLane ? "Public run log not updated; product runtime evidence remains local." : "Run entry appended.");
   console.log("");
   console.log("## Validation Result");
   console.log("Validation runs after this report are handled by the calling workflow.");

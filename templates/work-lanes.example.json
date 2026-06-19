@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "lanes": [
+    {
+      "lane_id": "example-project",
+      "display_name": "Example Project",
+      "repo_path": "/home/example/projects/example-project",
+      "repository": "example/example-project",
+      "current_state": "Ready for read-only inspection",
+      "next_permission": "approve read-only inspection",
+      "status": "active",
+      "route_ids": [],
+      "last_updated": "2026-01-01T00:00:00.000Z",
+      "evidence_refs": [],
+      "hold_reason": "",
+      "notes": "Neutral example only. Keep real project state in a local runtime file.",
+      "monitoring_baseline": "2026-01-01T00:00:00.000Z"
+    }
+  ]
+}

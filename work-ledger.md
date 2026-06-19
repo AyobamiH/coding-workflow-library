@@ -397,6 +397,21 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Exact next action: merge/deploy planning boundary.
 * Whether John is needed: Yes for the next permission boundary..
 
+## 2026-06-19 - Project-Scoped Autonomous Workflow Lanes
+
+* Active repo: `AyobamiH/coding-workflow-library`.
+* Current objective: Add reusable project-scoped workflow state while preserving the public ledger as historical evidence.
+* Current permission level: Local architecture edits, local private lane state, read-only selected-lane monitoring, exact-file commit, non-force push, and CI verification. Product mutation and publication gates remained closed.
+* Current status: Project-scoped autonomous workflow lanes added.
+* Selected skill: coding-workflow-orchestrator-skill / production-handoff-skill.
+* Last commands run: lane helper and isolation tests; lane-aware `run-next` dry-run and one selected read-only monitoring route; library validation.
+* Files changed: reusable schema, template, lane helper, runner/CLI integration, route metadata, tests, and sanitised public documentation.
+* Validation evidence: lane isolation tests, JavaScript syntax checks, route audit, skill validation, and skill cleaner passed. Product-specific runtime state and evidence remain outside the tracked package.
+* Blockers: none for reusable lane architecture; external mutations and publication remain separately gated.
+* Next recommended skill: coding-workflow-orchestrator-skill.
+* Exact next action: select one local lane and grant only its next required permission.
+* Whether John is needed: Yes for the next lane-specific permission boundary.
+
 ## 2026-06-15 - Scheduler PR Merge Gate Retry Context
 
 * Active repo: `/home/johnh/wagging-web-wins`.

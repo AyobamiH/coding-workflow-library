@@ -23,7 +23,7 @@
   ],
   "scripts": {
     "check:js": "node scripts/check-js",
-    "test": "npm run check:js && node scripts/route-audit && node scripts/validate-skills",
+    "test": "npm run check:js && node tests/lane-state.test.js && node scripts/route-audit && node scripts/validate-skills",
     "validate": "node scripts/validate-skills",
     "cleaner": "node scripts/skill-cleaner",
     "routes": "node scripts/route-audit",
@@ -53,6 +53,7 @@
     "docs/",
     "evidence-checklist.md",
     "routes/",
+    "schemas/",
     "runs/",
     "scripts/",
     "skill-files/",

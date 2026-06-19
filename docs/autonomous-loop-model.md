@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The autonomous loop turns the workflow library into a bounded operator: read the ledger, choose the next safe job, check permission flags, run only the covered step, record evidence, and stop at a real John-required boundary.
+The autonomous loop turns the workflow library into a bounded operator: read one selected project lane (or the legacy ledger), choose the next safe job, check permission flags, run only the covered step, record evidence, and stop at a real John-required boundary.
 
 ## Why Skills Exist
 
@@ -14,18 +14,18 @@ John should not have to describe the same next-step sequence each time. The ledg
 
 ## Core Loop
 
-1. Read `AGENTS.md`, `tools.md`, and `work-ledger.md`.
-2. Find the latest ledger item for the requested repo.
-3. Map the ledger status to a skill, job, and permission.
+1. Read `AGENTS.md` and `tools.md`.
+2. Select a local project lane, or use the legacy ledger mode when backwards compatibility is required.
+3. Map the selected lane or ledger status to a skill, job, and permission.
 4. Refuse to act if the required permission flag is missing.
 5. Run one bounded step when the route is implemented and permission is granted.
 6. Validate evidence.
-7. Update `work-ledger.md` and `runs/skill-runs.md` only after real execution.
+7. Update only the selected lane after lane-aware real execution; legacy mode updates `work-ledger.md` and `runs/skill-runs.md`.
 8. Stop at the next boundary.
 
-## Ledger as Source of Truth
+## Lane State And Historical Ledger
 
-`work-ledger.md` owns active work state. If a target repo has no ledger item, `run-next` must stop and ask for a ledger entry instead of borrowing another repo's latest state.
+Local lane state owns active multi-project execution state. `work-ledger.md` remains historical public evidence and a backwards-compatible route source. If a requested lane does not exist, `run-next` stops instead of borrowing another lane or repo state.
 
 ## Skill Frontmatter as Router
 

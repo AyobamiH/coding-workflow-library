@@ -15,6 +15,9 @@ const requiredRootFiles = [
   "tool-patterns.md",
   "evidence-checklist.md",
   "work-ledger.md",
+  "schemas/work-lanes.schema.json",
+  "templates/work-lanes.example.json",
+  "scripts/lane-state",
 ];
 
 const requiredSections = [
@@ -345,6 +348,22 @@ if (exists(routeMetadataPath)) {
         }
       }
     }
+  }
+}
+
+const laneSchemaPath = "schemas/work-lanes.schema.json";
+const laneTemplatePath = "templates/work-lanes.example.json";
+if (exists(laneSchemaPath) && exists(laneTemplatePath)) {
+  filesChecked += 2;
+  try {
+    const schema = JSON.parse(fs.readFileSync(path.join(root, laneSchemaPath), "utf8"));
+    if (schema.type !== "object" || !schema.properties || !schema.properties.lanes) {
+      addError(`${laneSchemaPath}: schema must define an object with lanes`);
+    }
+    const template = JSON.parse(fs.readFileSync(path.join(root, laneTemplatePath), "utf8"));
+    require(path.join(root, "scripts", "lane-state")).validateState(template);
+  } catch (error) {
+    addError(`lane state schema/template validation failed (${error.message})`);
   }
 }
 

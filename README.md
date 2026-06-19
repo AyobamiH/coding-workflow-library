@@ -29,12 +29,15 @@ skills/coding-workflow-library/
   work-ledger.md
   routes/
     skill-routes.json
+  schemas/
+    work-lanes.schema.json
   runs/
     skill-runs.md
   bin/
     coding-workflow.js
   scripts/
     committer
+    lane-state
     evidence-pack
     failure-evidence
     library-packaging-readiness
@@ -115,6 +118,19 @@ The frontmatter is the routing contract. `name` must match the filename without 
 10. Use `command-library.md` only as a command source; do not treat every command as safe for every task.
 11. Use `evidence-checklist.md` before final response.
 12. Record orchestration state in `work-ledger.md` and the completed skill run in `runs/skill-runs.md`.
+
+## Project-Scoped Workflow Lanes
+
+`work-ledger.md` is retained as historical library evidence. Active multi-project execution state should live in a local lane file outside the repository, defaulting to `$HOME/.coding-workflow/lanes.json` or supplied with `--state-file`.
+
+```bash
+./scripts/lane-state --state-file /path/to/lanes.json list
+./scripts/run-next --list-lanes --state-file /path/to/lanes.json
+./scripts/run-next --lane example-project --state-file /path/to/lanes.json --explain-next
+./scripts/run-next --lane example-project --state-file /path/to/lanes.json --dry-run --allow <permission>
+```
+
+Lane files must never contain secrets. The tracked schema and example are portable; real repo paths, product evidence, and monitoring baselines remain local. Omitting `--lane` preserves legacy ledger routing.
 
 ## Route Metadata
 

@@ -624,6 +624,18 @@ Create one only when local edits are authorized for that repo:
 ```bash
 cp templates/repo-agents-pointer-template.md "$TARGET_REPO/AGENTS.md"
 ```
+
+## Project-Scoped Lane State
+
+```bash
+./scripts/lane-state --state-file "$STATE_FILE" list
+./scripts/lane-state --state-file "$STATE_FILE" show "$LANE_ID"
+./scripts/run-next --list-lanes --state-file "$STATE_FILE"
+./scripts/run-next --lane "$LANE_ID" --state-file "$STATE_FILE" --explain-next
+./scripts/run-next --lane "$LANE_ID" --state-file "$STATE_FILE" --dry-run --allow "$PERMISSION"
+```
+
+Lane commands are local state operations. They do not grant permission for the selected route and must not be used with state files containing secrets.
 # GitHub Open-Source Handoff Commands
 
 Use only after John grants `github-open-source-handoff`.

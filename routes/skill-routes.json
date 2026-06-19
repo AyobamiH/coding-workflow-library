@@ -218,11 +218,13 @@
       "ledger_states_handled": [
         "Controlled success invocation completed",
         "Scheduled run pending, production handoff ready",
-        "Scheduled run observed, production handoff ready"
+        "Scheduled run observed, production handoff ready",
+        "Scheduled run observed with failure: investigate scheduler/runtime"
       ],
       "permission_flag": "scheduled-run-monitoring-handoff",
       "helper_scripts": [
         "scripts/run-next",
+        "scripts/lane-state",
         "external:psql"
       ],
       "permission_level": "database-read",
@@ -239,18 +241,19 @@
         "secret value printing"
       ],
       "success_ledger_state": "Scheduled run pending, production handoff ready | Scheduled run observed, production handoff ready",
-      "blocked_ledger_state": "Scheduled run monitoring blocked",
+      "blocked_ledger_state": "Scheduled run monitoring blocked | Scheduled run observed with failure: investigate scheduler/runtime",
       "next_permission": "wait for scheduled run and recheck monitoring or finalize production handoff",
       "evidence_required": [
-        "baseline time or commit",
+        "explicit lane monitoring baseline",
         "scheduler metadata",
         "run history",
         "safe app metadata",
         "source and docs evidence",
         "observed versus pending decision",
+        "selected-lane-only state update proof",
         "commands not run"
       ],
-      "provenance": "extracted from proven Wagging Web Wins scheduled monitoring lane"
+      "provenance": "extracted from proven Wagging Web Wins scheduled monitoring lane; active execution state is lane-scoped"
     },
     {
       "id": "github-pr-lifecycle-lane",

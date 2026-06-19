@@ -16,6 +16,8 @@ status: active
 
 Prepare the final production handoff after deployment, remote secret setup, scheduler setup, and controlled verification work have reached a safe monitoring boundary.
 
+Use an explicit project lane and a verified `monitoring_baseline` for scheduled rechecks. Never infer the production baseline from a shared ledger file timestamp. A monitoring result updates only the selected product lane; unrelated library and product lanes remain unchanged.
+
 This skill is not deployment. It is a read-only production evidence and handoff workflow by default. It must distinguish:
 
 - pending automatic scheduled run;
@@ -43,6 +45,7 @@ Use when the system must produce a final owner-facing summary of what is proven,
 - Approved read-only data sources.
 - Database URL or cloud-log access only if explicitly allowed, without printing values.
 - Baseline time for deciding whether an observed run is after the relevant deployment or scheduler change.
+- Selected lane id and local state file, with no secrets or database connection values stored in it.
 - Safe metadata fields allowed for app tables or downstream effects.
 - Known source and docs files for handoff evidence.
 - Failure-routing skill to use if monitoring reveals a blocker.

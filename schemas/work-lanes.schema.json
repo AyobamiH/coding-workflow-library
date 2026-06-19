@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/AyobamiH/coding-workflow-library/schemas/work-lanes.schema.json",
+  "title": "Coding workflow lane state",
+  "type": "object",
+  "required": ["version", "lanes"],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "lanes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "lane_id",
+          "display_name",
+          "repo_path",
+          "repository",
+          "current_state",
+          "next_permission",
+          "status",
+          "route_ids",
+          "last_updated",
+          "evidence_refs",
+          "hold_reason",
+          "notes"
+        ],
+        "properties": {
+          "lane_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+          "display_name": { "type": "string", "minLength": 1 },
+          "repo_path": { "type": "string" },
+          "repository": { "type": "string" },
+          "current_state": { "type": "string", "minLength": 1 },
+          "next_permission": { "type": "string" },
+          "status": { "enum": ["active", "blocked", "hold", "complete"] },
+          "route_ids": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+          "last_updated": { "type": "string", "format": "date-time" },
+          "evidence_refs": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+          "hold_reason": { "type": "string" },
+          "notes": { "type": "string" },
+          "monitoring_baseline": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

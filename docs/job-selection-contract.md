@@ -2,16 +2,16 @@
 
 ## Inputs
 
-- target repo path from `--repo`
-- `work-ledger.md`
+- selected lane from `--lane` and `--state-file`, or target repo path from `--repo` in legacy mode
+- local lane state, or `work-ledger.md` in legacy mode
 - skill frontmatter
 - `skills-index.md`
 - supplied `--allow` flags
 - mode: real, `--dry-run`, or `--explain`
 
-## Ledger States
+## Lane And Ledger States
 
-The runner selects the latest ledger item whose `Active repo` exactly matches the requested repo. If none exists, it returns `No ledger item for repo` and stops safely.
+Lane mode selects exactly one lane and routes from its `current_state`. A missing lane fails clearly. Legacy mode selects the latest ledger item whose `Active repo` exactly matches the requested repo. Neither mode may borrow state from another project.
 
 ## Skill Eligibility
 
@@ -23,8 +23,8 @@ The route's `requires_permission` value must match one supplied `--allow` flag b
 
 ## Priority Rules
 
-1. Exact target repo ledger item.
-2. Current ledger status.
+1. Explicit selected lane, otherwise exact target repo ledger item.
+2. Selected lane or ledger current status.
 3. Implemented `scripts/run-next` route.
 4. Skill frontmatter.
 5. `skills-index.md` and `RUNBOOK.md` fallback.
@@ -39,7 +39,7 @@ The route's `requires_permission` value must match one supplied `--allow` flag b
 - Never merge PRs without explicit permission.
 - Never publish npm or create releases without explicit permission.
 - Never borrow another repo's ledger state.
-- Never let dry-run or explain modes mutate files.
+- Never let dry-run or explain modes mutate files or lane state.
 
 ## Execution Rules
 

@@ -16,5 +16,7 @@ evidence/
 supabase/.temp/
 .tmp/
 tmp/
+.coding-workflow/
+lanes.local.json
 vendor-intake/
 .DS_Store
