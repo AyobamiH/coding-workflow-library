@@ -1154,3 +1154,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: release-preflight-skill / npm-package-readiness-skill / github-handoff-skill.
 * Exact next action: prepare GitHub release or npm publication gate, or run scheduled-run recheck.
 * Whether John is needed: Yes for the next permission boundary.
+
+## 2026-06-19 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: first-version-tag. First-version tag gate permitted only for local version/changelog/release-note edits, local validation/package smoke, exact-file commits, non-force main push, read-only GitHub Actions inspection, annotated tag v0.1.0 creation/push, remote tag verification, and post-tag bookkeeping. No npm publish, npm version, GitHub release, deploy, Supabase, Cloudflare, production endpoint, secret printing, force push, history rewrite, broad staging, or excluded-file staging.
+* Current status: v0.1.0 tagged and pushed, npm unpublished.
+* Selected skill: release-preflight-skill / github-handoff-skill / skills-library-packaging-skill.
+* Last commands run: `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow first-version-tag`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; first-version-tag repo: /home/johnh/.openclaw/skills/coding-workflow-library; boundary: no npm publish, npm version, GitHub release, deploy, Supabase, Cloudflare, production endpoint, secret print, force push, history rewrite, broad staging, excluded-file staging, or extra repository creation; package version: 0.1.0; lockfile version: 0.1.0; release notes present: yes; git branch: main; git status clean: yes; origin URL: https://github.com/AyobamiH/coding-workflow-library.git; local HEAD: 79f5d0ef22807cc08e74f2456a3f67aa76a7cb1a; remote main HEAD: 79f5d0ef22807cc08e74f2456a3f67aa76a7cb1a; v0.1.0 local tag commit: 73cafb4d0a7b52793e1cd708bff3843ce8925077; v0.1.0 remote tag object: caacaefd2c875cb5b3d0bd5ef0a8747c01bbd727; v0.1.0 remote tag commit: 73cafb4d0a7b52793e1cd708bff3843ce8925077; GitHub active user: AyobamiH; GitHub repo view: AyobamiH/coding-workflow-library PUBLIC; CI runs for tag commit: 1; successful run: 27821005700; pending run: none; npm test exit: 0; route audit exit: 0; result: PASS; validate-skills exit: 0; result: PASS.
+* Blockers: v0.1.0 verified; remote tag resolves to 73cafb4d0a7b52793e1cd708bff3843ce8925077; remote main is 79f5d0ef22807cc08e74f2456a3f67aa76a7cb1a; CI passed for release commit; npm publish and GitHub release remain blocked.
+* Next recommended skill: release-preflight-skill / github-handoff-skill.
+* Exact next action: prepare GitHub release or npm publication gate, or run scheduled-run recheck.
+* Whether John is needed: Yes for the next permission boundary..
