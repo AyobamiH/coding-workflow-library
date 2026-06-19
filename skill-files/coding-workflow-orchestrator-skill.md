@@ -18,7 +18,31 @@ handles_state:
   - Supabase execution preflight ready, not executed
   - Supabase tooling/auth ready, not linked
   - Supabase linked and local secret ready, not deployed
+  - Scheduler migration PR opened, not merged
   - Scheduler migration draft merged, Supabase mutation still gated
+  - Scheduler migration draft merged, not applied
+  - Function deployed and remote secret set, scheduler not applied
+  - Runtime negative checks passed, scheduler not applied
+  - Runtime negative checks failed, scheduler blocked
+  - Scheduler applied, runtime success not verified
+  - Scheduler blocked: safe secret storage path not proven
+  - Scheduler applied via Vault, runtime success not verified
+  - Scheduler applied via Vault, runtime not verified
+  - Function deployed, negative runtime verified, success path not run
+  - Controlled success invocation completed
+  - Scheduled run pending, production handoff ready
+  - Scheduled run observed, production handoff ready
+  - Local verification and release evidence bundle built
+  - Verification bundle self-test complete
+  - Local skill workpack complete
+  - Embedded production lanes extracted into reusable routes
+  - Cloudflare Opstruth packaging routes extracted
+  - Clean-temp readiness smoke complete
+  - Package candidate dry-run complete
+  - CLI entrypoint package smoke complete
+  - Needs John: database connection URL missing
+  - Needs John: psql unavailable for non-interactive DB inspection
+  - Scheduler blocked: Vault/pg_cron/pg_net capability not proven
 requires_permission:
   - auth-check
   - github-handoff
@@ -29,6 +53,23 @@ requires_permission:
   - supabase-tooling-auth
   - supabase-link-secret-readiness
   - scheduler-draft-pr
+  - scheduler-pr-merge
+  - supabase-secret-function-deploy
+  - runtime-negative-verification
+  - function-secret-deploy-negative-runtime
+  - controlled-success-invocation
+  - scheduled-run-monitoring-handoff
+  - scheduler-application-decision
+  - scheduler-vault-design-apply
+  - scheduler-vault-apply-retry
+  - verification-bundle-self-test
+  - local-skill-workpack
+  - evidence-pack-write
+  - cloudflare-opstruth-packaging-bundle
+  - clean-temp-readiness-smoke
+  - license-package-candidate
+  - package-candidate-dry-run
+  - cli-package-smoke
 safe_by_default: true
 mutates:
   - work-ledger.md on real execution
@@ -67,6 +108,8 @@ The orchestrator must not perform deep implementation itself unless the selected
 
 `scripts/run-next` is the executable implementation of this orchestrator loop. It reads ledger state, selects the next skill, checks supplied permission flags, runs covered safe actions, updates ledger/run-log evidence, and stops at permission boundaries. Manual prompts are fallback control, not the default, when `scripts/run-next` covers the current ledger state.
 
+`routes/skill-routes.json` is the route ownership layer. Use it to keep reusable skills from becoming manual-only documents and to keep proven production workflow logic from staying hidden inside `scripts/run-next`. The runner should remain a bounded orchestrator over skills, route metadata, and helper scripts. Product-specific live actions still require explicit permission gates.
+
 For GitHub work, `scripts/run-next` can continue past `PR opened, not merged` into read-only PR readiness inspection. It may collect PR metadata, checks, changed files, commits, mergeability, review decision, and local repo evidence, but it must stop before merge.
 
 When John separately approves PR merge and the ledger status is `PR ready for merge approval`, `scripts/run-next --allow pr-merge` may merge PR #11 only after rechecking the auth user, repo access, exact changed files, PR state, `MERGEABLE` state, PR checks, and repo-local workflow deployment evidence. It must stop at `Merged, not deployed`.
@@ -81,13 +124,49 @@ When John separately approves Supabase link/local secret readiness and the ledge
 
 When John separately approves the combined scheduler draft and PR gate and the ledger status is `Supabase linked and local secret ready, not deployed`, `scripts/run-next --allow scheduler-draft-pr` may draft a guarded local scheduler migration, update docs, run local checks, create an exact-file commit, push the feature branch, and open or confirm a PR. It must stop at `Scheduler migration PR opened, not merged` and must not set remote secrets, deploy functions, run `db push`, apply migrations, execute SQL, mutate schedulers, invoke Edge Functions, call production endpoints, push `main`, force-push, or merge.
 
+When John separately approves the scheduler PR merge gate and the ledger status is `Scheduler migration PR opened, not merged` or `Scheduler migration draft merged, Supabase mutation still gated`, `scripts/run-next --allow scheduler-pr-merge` may inspect PR #12, verify exact changed files and expected commits, check PR state/checks/mergeability when still open, scan the scheduler migration for hardcoded secret-shaped values without printing matches, and merge PR #12 only if it is still open and clean. It must stop at `Scheduler migration draft merged, not applied` and must not set remote secrets, deploy functions, run `db push`, apply migrations, execute SQL, mutate schedulers, invoke Edge Functions, call production endpoints, force-push, or delete the branch.
+
+When John separately approves Supabase remote secret setup and single Edge Function deploy and the ledger status is `Scheduler migration draft merged, not applied`, `scripts/run-next --allow supabase-secret-function-deploy` may verify source/auth/env, set remote `IMPORT_REDDIT_TIPS_SECRET` through a temporary env file, deploy only `import-reddit-tips`, and stop at `Function deployed and remote secret set, scheduler not applied`. It must block staged or tracked target repo changes, may only report untracked local artifacts as excluded, and must not mutate schedulers, run `db push`, apply migrations, execute SQL, invoke Edge Functions, call production endpoints, push, create PRs, merge, stage excluded files, or print secret values.
+
+When John separately approves negative runtime verification and the ledger status is `Function deployed and remote secret set, scheduler not applied`, `scripts/run-next --allow runtime-negative-verification` may call the deployed `import-reddit-tips` endpoint only for rejection checks: `OPTIONS`, `GET`/non-POST, `POST` without auth, `POST` with an invalid scheduler secret, and optional anon-only `POST` if a local anon key is available without printing it. It must stop at `Runtime negative checks passed, scheduler not applied` or `Runtime negative checks failed, scheduler blocked`. It must not send a valid scheduler secret, send an admin bearer token, trigger a successful import/write, apply the scheduler, run `db push`, apply migrations, execute SQL, mutate pg_cron, set secrets, deploy functions, push, create PRs, merge, stage excluded files, or print token/secret values.
+
+When John separately approves the combined function secret/deploy/negative-runtime gate and the ledger status is `Scheduler applied via Vault, runtime not verified`, `scripts/run-next --allow function-secret-deploy-negative-runtime` may verify source/env/project state, set remote `IMPORT_REDDIT_TIPS_SECRET` through a temporary env file outside the target repo, deploy only `import-reddit-tips`, and run only non-mutating runtime rejection checks. It must stop at `Function deployed, negative runtime verified, success path not run` unless a true no-write dry-run mode is proven and explicitly exercised. It must not run `db push`, apply migrations, execute SQL, mutate schedulers, write app tables or `pet_tips`, send a valid scheduler secret, send an admin success request, trigger a successful import, push, create PRs, merge, stage excluded files, or print token/secret values.
+
+When John separately approves the controlled scheduler-path success invocation gate and the ledger status is `Function deployed, negative runtime verified, success path not run`, `scripts/run-next --allow controlled-success-invocation` may collect read-only `pet_tips` metadata before and after, run exactly one valid scheduler-secret POST to `import-reddit-tips`, and stop at `Controlled success invocation completed` or a precise blocked state. It must not deploy, run `db push`, apply migrations, mutate schedulers, run SQL writes, manually insert/update/delete `pet_tips`, run admin success, retry a successful import call, push, create PRs, merge, stage excluded files, or print token/secret values.
+
+When John separately approves scheduled-run monitoring and production handoff prep and the ledger status is `Controlled success invocation completed`, `scripts/run-next --allow scheduled-run-monitoring-handoff` may inspect read-only scheduler metadata, cron run history, `pet_tips` metadata, and source/docs evidence. It must stop at `Scheduled run pending, production handoff ready`, `Scheduled run observed, production handoff ready`, or a precise blocked state. It must not invoke Edge Functions, call production endpoints, deploy, run `db push`, apply migrations, run SQL writes, mutate schedulers, write app tables or `pet_tips`, push, create PRs, merge, stage excluded files, or print token/secret values.
+
+When John separately approves scheduler application decision work and the ledger status is `Runtime negative checks passed, scheduler not applied`, `scripts/run-next --allow scheduler-application-decision` may inspect source/docs, local env variable presence without values, Supabase CLI help, read-only project access, and read-only database capability evidence if a safe non-interactive path is available. It must prove a non-hardcoded `pg_cron` secret path for `x-import-reddit-tips-secret` before any scheduler mutation. If that proof is missing, it must stop at `Scheduler blocked: safe secret storage path not proven`; if a safe path is ever proven and implemented, it may apply only the `import-reddit-tips-daily` scheduler update and stop at `Scheduler applied, runtime success not verified`. It must not deploy functions, run `supabase db push`, apply migrations, execute unrelated SQL, write app tables or `pet_tips`, invoke a valid scheduler/admin success path, trigger a successful import, stage excluded files, push, create PRs, merge, or print token/secret values.
+
+When John separately approves scheduler Vault design/apply work and the ledger status is `Scheduler blocked: safe secret storage path not proven`, `scripts/run-next --allow scheduler-vault-design-apply` may use local env values without printing them, require `SUPABASE_DB_URL` or `DATABASE_URL`, verify `psql`, inspect Vault/pg_cron/pg_net/current job metadata, create or update one Vault secret named `import_reddit_tips_scheduler_secret`, and replace only `import-reddit-tips-daily` with a Vault-backed `x-import-reddit-tips-secret` header if safe. It must stop at `Scheduler applied via Vault, runtime not verified`, `Needs John: database connection URL missing`, `Needs John: psql unavailable for non-interactive DB inspection`, or `Scheduler blocked: Vault/pg_cron/pg_net capability not proven`. It must not deploy functions, run `supabase db push`, apply migrations, execute unrelated SQL, write app tables or `pet_tips`, invoke a valid scheduler/admin success path, trigger a successful import, stage excluded files, push, create PRs, merge, print DB URLs, or print token/secret values.
+
+When John separately approves scheduler Vault apply retry work and the ledger status is `Scheduler blocked: Vault/pg_cron/pg_net capability not proven`, `scripts/run-next --allow scheduler-vault-apply-retry` may retry DB connectivity, capability discovery, one Vault secret create/update, and one `import-reddit-tips-daily` scheduler replacement. It must stop at `Scheduler applied via Vault, runtime not verified`, `DB CONNECTIVITY BLOCKED`, or `Scheduler blocked: Vault/pg_cron/pg_net capability not proven`. It is not deploy, migration, runtime verification, unrelated SQL, app table write, `pet_tips` write, push, PR, merge, or secret-printing permission.
+
+When John separately approves verification bundle self-test work and the ledger status is `Local verification and release evidence bundle built`, `scripts/run-next --allow verification-bundle-self-test` may run npm package readiness, release preflight, evidence-pack dry-run, helper syntax checks, skill cleanup, and skill validation against the selected repo. It must stop at `Verification bundle self-test complete` or a precise blocked state. Evidence-pack file writing requires the additional `--allow evidence-pack-write` flag and remains local-only under the selected repo `evidence/`; it is not permission to stage, commit, publish, tag, push, create PRs, deploy, mutate registries, read secret values, call external services, or call production endpoints.
+
+When John separately approves the local skill workpack and the ledger status is `Verification bundle self-test complete`, `scripts/run-next --allow local-skill-workpack --allow evidence-pack-write` may run the local-only skills-library workpack against `/home/johnh/.openclaw/skills/coding-workflow-library`. It may harden verification classification, prove exactly one local evidence-pack write, run failure evidence classification, validate runtime verification extraction, validate GitHub lifecycle hardening, run helper syntax checks, run skill cleanup, and run skill validation. It must stop at `Local skill workpack complete` and must not touch product repos, publish npm, run `npm version`, tag, push, create PRs, deploy, run Supabase or Cloudflare commands, read secret values, mutate remote services, or call production endpoints.
+
+When local route extraction is approved and the ledger status is `Local skill workpack complete`, add durable skill files and route metadata for proven embedded routes, validate with `scripts/route-audit` and `scripts/validate-skills`, and stop at `Embedded production lanes extracted into reusable routes`. This is local skills-library work only and is not permission for product repos, Supabase, Cloudflare, GitHub remote mutation, npm publish, release tags, secret reads, or production endpoint calls.
+
+When John separately approves the Cloudflare/Opstruth/packaging bundle and the ledger status is `Embedded production lanes extracted into reusable routes`, `scripts/run-next --allow cloudflare-opstruth-packaging-bundle` may run only local route audit, library packaging readiness, release preflight local mode, helper syntax checks, skill cleanup, and skill validation against the skills library. It must stop at `Cloudflare Opstruth packaging routes extracted`. It must not touch product repos, deploy Cloudflare, run Wrangler deploy, publish npm, run `npm version`, tag, push, create PRs, set/read secrets, run Supabase commands, call production endpoints, or mutate remote services.
+
+When John separately approves clean-temp readiness smoke and the ledger status is `Cloudflare Opstruth packaging routes extracted`, `scripts/run-next --allow clean-temp-readiness-smoke` may create a local temp copy under `/home/johnh/.openclaw/tmp/`, exclude `.git`, `.env`, `evidence/`, dependency caches, and credential-shaped files, run route audit, route listing, packaging readiness, open-source readiness classification, release preflight local mode, skill cleanup, and validation from the copied library, then remove the temp copy. It must stop at `Clean-temp readiness smoke complete`. It must not choose a license, create `package.json`, publish, run `npm version`, tag, push, create PRs, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, mutate remote services, or touch product repos.
+
+When John separately approves MIT licence/package candidate verification and the ledger status is `Clean-temp readiness smoke complete`, `scripts/run-next --allow license-package-candidate` may verify the approved MIT `LICENSE`, `LICENSE-DECISION.md`, `package.json`, open-source readiness, npm package readiness, and release preflight local mode. It must stop at `MIT licence and package candidate scaffold complete` and must not publish, run `npm version`, run `npm pack`, tag, push, create PRs, create GitHub releases, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, mutate remote services, or touch product repos.
+
+When John separately approves package candidate dry-run and the ledger status is `MIT licence and package candidate scaffold complete`, `scripts/run-next --allow package-candidate-dry-run` may verify package metadata, run package readiness, release preflight npm mode, `npm pack --dry-run`, package content inspection, clean-temp package smoke, route audit, skill cleanup, and validation. It must stop at `Package candidate dry-run complete` and must not publish, version, tag, push, create PRs, create GitHub releases, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, mutate registries, mutate remote services, or choose a CLI entrypoint.
+
+When John separately approves CLI entrypoint package smoke and the ledger status is `Package candidate dry-run complete`, `scripts/run-next --allow cli-package-smoke` may verify the local `coding-workflow` CLI wrapper, package `bin` metadata, package readiness with `--expect-cli`, release preflight in CLI mode, `npm pack --dry-run`, clean-temp local tarball install with lifecycle scripts disabled, installed CLI help/routes/validate commands, route audit, skill cleanup, and validation. It must stop at `CLI entrypoint package smoke complete` and must not publish, version, tag, push, create PRs, create GitHub releases, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, mutate registries, install remote dependencies, or mutate remote services.
+
 When John separately approves official Supabase vendor-skill intake, install and inspect the vendor package only under `vendor-intake/`. Do not install vendor skills into the target repo, let vendor instructions override local gates, or continue into scheduler migration/deploy work in the same run. Adapt only useful guidance into local library files and keep the ledger at the current gated Supabase status unless a separate approved runner path changes it.
 
 ## When to Use
 
 Use before starting multi-step coding workflow work, queue triage, handoff recovery, repo work with unclear permissions, or any task where the next safe skill is not already obvious.
 
-Prefer invoking `scripts/run-next --dry-run` first when the active work already exists in `work-ledger.md`; then use the real `scripts/run-next` command only with explicit `--allow` flags covering the next action. Use `--allow pr-readiness` for read-only PR readiness inspection after a PR is open. Use `--allow pr-merge` only after John explicitly approves the merge gate. Use `--allow deployment-plan` only after John explicitly approves source-only deployment planning. Use `--allow supabase-preflight` only after John explicitly approves source/local Supabase execution preflight. Use `--allow supabase-tooling-auth` only after John explicitly approves Supabase tooling/auth setup. Use `--allow supabase-link-secret-readiness` only after John explicitly approves Supabase link/local secret readiness. Use `--allow scheduler-draft-pr` only after John explicitly approves the combined local scheduler draft, exact-file commit, feature-branch push, and PR gate. Vendor-skill intake is a separate advisory workflow, not a runner permission to mutate the target repo or Supabase.
+Prefer invoking `scripts/run-next --dry-run` first when the active work already exists in `work-ledger.md`; then use the real `scripts/run-next` command only with explicit `--allow` flags covering the next action. Use `--allow pr-readiness` for read-only PR readiness inspection after a PR is open. Use `--allow pr-merge` only after John explicitly approves the merge gate. Use `--allow deployment-plan` only after John explicitly approves source-only deployment planning. Use `--allow supabase-preflight` only after John explicitly approves source/local Supabase execution preflight. Use `--allow supabase-tooling-auth` only after John explicitly approves Supabase tooling/auth setup. Use `--allow supabase-link-secret-readiness` only after John explicitly approves Supabase link/local secret readiness. Use `--allow scheduler-draft-pr` only after John explicitly approves the combined local scheduler draft, exact-file commit, feature-branch push, and PR gate. Use `--allow scheduler-pr-merge` only after John explicitly approves PR #12 readiness/merge and keep Supabase mutation gated. Use `--allow supabase-secret-function-deploy` only after John explicitly approves remote import secret setup and the single `import-reddit-tips` deploy. Use `--allow runtime-negative-verification` only after John explicitly approves deployed rejection checks and keep scheduler/application success paths gated. Use `--allow function-secret-deploy-negative-runtime` only after John explicitly approves the post-Vault correction gate: remote secret setup, deploy only `import-reddit-tips`, then non-mutating runtime checks before any success import. Use `--allow controlled-success-invocation` only after John explicitly approves one scheduler-path success POST with before/after read-only metadata. Use `--allow scheduled-run-monitoring-handoff` only after John explicitly approves read-only scheduler/database monitoring and final handoff prep; it must not invoke the function again. Use `--allow scheduler-application-decision` only after John explicitly approves the scheduler decision gate; it must prove safe non-hardcoded `pg_cron` secret handling before scheduler mutation or stop blocked. Use `--allow scheduler-vault-design-apply` only after John explicitly approves DB-backed Vault scheduler application; it must prove psql, Vault, pg_cron, pg_net, current job, and no literal secret in the cron command. Use `--allow scheduler-vault-apply-retry` only after John explicitly provides a corrected DB/capability path for the blocked Vault scheduler application; it must preserve all scheduler Vault safety boundaries. Use `--allow verification-bundle-self-test` only after John explicitly approves the local verification/release bundle route; add `--allow evidence-pack-write` only for local evidence file creation. Use `--allow local-skill-workpack --allow evidence-pack-write` only after John explicitly approves the local skills-library workpack from `Verification bundle self-test complete`. Use `--allow cloudflare-opstruth-packaging-bundle` only after John explicitly approves the local non-Supabase route extraction bundle from `Embedded production lanes extracted into reusable routes`. Use `--allow clean-temp-readiness-smoke` only after John explicitly approves portability/open-source readiness smoke from `Cloudflare Opstruth packaging routes extracted`; it is not license selection, package creation, release, publish, push, deploy, or product-repo permission. Use `--allow license-package-candidate`, `--allow package-candidate-dry-run`, and `--allow cli-package-smoke` only for their specific local package gates; none of them grants publish/version/tag/push/release/deploy/remote mutation permission. Vendor-skill intake is a separate advisory workflow, not a runner permission to mutate the target repo or Supabase.
+
+Use `scripts/run-next --list-routes` and `scripts/route-audit` when reviewing route ownership. A route entry is local metadata, not permission to run a live action.
 
 Use when a task needs one or more of:
 
@@ -292,6 +371,14 @@ Update the ledger before stopping, even when the loop stops because a permission
 
 ## Commands
 
+Inspect route metadata without mutating anything:
+
+```bash
+./scripts/run-next --list-routes
+./scripts/route-audit
+./scripts/route-audit --json
+```
+
 Read the library control files:
 
 ```bash
@@ -436,3 +523,4 @@ Avoided:
 - Create `scripts/validate_skill_file.sh` to check required sections and index coverage.
 - Create `scripts/add_skill_gap.mjs` to append safe gap notes to `build-queue.md`.
 - Create an evidence-pack generator that merges repo gate output, selected-skill evidence, ledger status, and run-log status.
+- Add first-class `github-open-source-handoff` reporting that separates public source handoff from npm publish/version/tag/release approval.

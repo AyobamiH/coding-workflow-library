@@ -55,6 +55,8 @@ const optionalListFields = new Set([
   "stop_conditions",
 ]);
 
+const routeHelperPrefixes = ["external:", "manual:"];
+
 const errors = [];
 const warnings = [];
 let filesChecked = 0;
@@ -180,6 +182,23 @@ function keyName(line) {
   return match ? match[1] : "unknown";
 }
 
+function nonEmptyString(value) {
+  return typeof value === "string" && value.trim() !== "";
+}
+
+function nonEmptyArray(value) {
+  return Array.isArray(value) && value.length > 0;
+}
+
+function routeHelperExists(helper) {
+  if (!nonEmptyString(helper)) return false;
+  if (helper === "none") return true;
+  if (routeHelperPrefixes.some((prefix) => helper.startsWith(prefix))) return true;
+  if (helper.startsWith("scripts/")) return exists(helper);
+  if (helper.startsWith("bin/")) return exists(helper);
+  return false;
+}
+
 for (const file of requiredRootFiles) {
   filesChecked += 1;
   if (!exists(file)) addError(`missing required root file: ${file}`);
@@ -271,6 +290,59 @@ if (!fs.existsSync(skillDir) || !fs.statSync(skillDir).isDirectory()) {
       const nameReferenced = skillsIndex.includes(data.name);
       if (!filenameReferenced && !nameReferenced) {
         addError(`${relativePath}: active skill is not referenced in skills-index.md`);
+      }
+    }
+  }
+}
+
+const routeMetadataPath = "routes/skill-routes.json";
+if (exists(routeMetadataPath)) {
+  filesChecked += 1;
+  let routeMetadata;
+  try {
+    routeMetadata = JSON.parse(fs.readFileSync(path.join(root, routeMetadataPath), "utf8"));
+  } catch (error) {
+    addError(`${routeMetadataPath}: invalid JSON (${error.message})`);
+  }
+
+  if (routeMetadata) {
+    if (!Array.isArray(routeMetadata.routes)) {
+      addError(`${routeMetadataPath}: routes must be an array`);
+    } else {
+      const routeIds = new Set();
+      for (const route of routeMetadata.routes) {
+        const routeId = nonEmptyString(route.id) ? route.id.trim() : "(missing route id)";
+        if (!nonEmptyString(route.id)) addError(`${routeMetadataPath}: route has empty id`);
+        if (routeIds.has(routeId)) addError(`${routeMetadataPath}: duplicate route id ${routeId}`);
+        routeIds.add(routeId);
+
+        if (!nonEmptyString(route.skill_file)) {
+          addError(`${routeMetadataPath}:${routeId}: skill_file must be non-empty`);
+        } else if (!exists(route.skill_file)) {
+          addError(`${routeMetadataPath}:${routeId}: referenced skill file is missing (${route.skill_file})`);
+        }
+
+        if (!nonEmptyArray(route.helper_scripts)) {
+          addError(`${routeMetadataPath}:${routeId}: helper_scripts must be non-empty`);
+        } else {
+          for (const helper of route.helper_scripts) {
+            if (!routeHelperExists(helper)) {
+              addError(`${routeMetadataPath}:${routeId}: helper script missing or not marked external/manual (${helper})`);
+            }
+          }
+        }
+
+        if (!nonEmptyString(route.permission_flag)) {
+          addError(`${routeMetadataPath}:${routeId}: permission_flag must be non-empty`);
+        }
+
+        if (!nonEmptyString(route.success_ledger_state)) {
+          addError(`${routeMetadataPath}:${routeId}: success_ledger_state must be non-empty`);
+        }
+
+        if (!nonEmptyString(route.blocked_ledger_state)) {
+          addError(`${routeMetadataPath}:${routeId}: blocked_ledger_state must be non-empty`);
+        }
       }
     }
   }

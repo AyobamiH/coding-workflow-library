@@ -1,0 +1,225 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+const { spawnSync } = require("child_process");
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/evidence-pack --repo /path/to/repo --title "Short title"
+  ./scripts/evidence-pack --repo /path/to/repo --title "Short title" --dry-run
+
+Creates a local evidence pack under the target repo evidence directory.
+It never stages, commits, pushes, reads env files, deploys, or calls external services.`);
+}
+
+function parseArgs(argv) {
+  const args = { dryRun: false };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--dry-run") {
+      args.dryRun = true;
+    } else if (arg === "--repo") {
+      args.repo = argv[++i];
+    } else if (arg === "--title") {
+      args.title = argv[++i];
+    } else if (arg === "-h" || arg === "--help") {
+      args.help = true;
+    } else {
+      throw new Error(`unknown argument: ${arg}`);
+    }
+  }
+  return args;
+}
+
+function nowStamp(date = new Date()) {
+  const pad = (value) => String(value).padStart(2, "0");
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+    "-",
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    pad(date.getSeconds()),
+  ].join("");
+}
+
+function slugify(value) {
+  return String(value || "evidence")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64) || "evidence";
+}
+
+function run(command, args, options = {}) {
+  const result = spawnSync(command, args, {
+    cwd: options.cwd,
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024,
+  });
+  return {
+    command: [command, ...args].join(" "),
+    status: result.status,
+    stdout: redact(result.stdout || ""),
+    stderr: redact(result.stderr || ""),
+    error: result.error ? String(result.error.message || result.error) : "",
+  };
+}
+
+function redact(input) {
+  let value = String(input || "");
+  const secretWords = "(token|secret|password|passwd|api[_-]?key|access[_-]?key|auth|bearer|credential)";
+  value = value.replace(new RegExp(`(${secretWords}\\s*[:=]\\s*)[^\\s"'<>]+`, "gi"), "$1[redacted]");
+  value = value.replace(new RegExp("sk-" + "[A-Za-z0-9_-]{12,}", "g"), "[redacted-api-key]");
+  value = value.replace(/eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, "[redacted-jwt]");
+  value = value.replace(/postgres(?:ql)?:\/\/[^\s"'<>]+/gi, "postgres://[redacted]");
+  value = value.replace(/https?:\/\/[^:\s"'<>]+:[^@\s"'<>]+@[^\s"'<>]+/gi, "https://[redacted-credential]@[redacted-host]");
+  value = value.replace(new RegExp("BEGIN (?:RSA |OPENSSH |EC |DSA )?" + "PRIVATE KEY", "g"), "BEGIN [redacted-key-header]");
+  return value;
+}
+
+function write(file, content, dryRun) {
+  if (dryRun) return;
+  fs.writeFileSync(file, redact(content), "utf8");
+}
+
+function commandText(result) {
+  const parts = [
+    `$ ${result.command}`,
+    `exit_status=${result.status === null ? "unavailable" : result.status}`,
+  ];
+  if (result.error) parts.push(`error=${result.error}`);
+  if (result.stdout.trim()) parts.push("\nstdout:\n" + result.stdout.trimEnd());
+  if (result.stderr.trim()) parts.push("\nstderr:\n" + result.stderr.trimEnd());
+  return `${parts.join("\n")}\n`;
+}
+
+function main() {
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    usage();
+    process.exit(2);
+  }
+
+  if (args.help) {
+    usage();
+    return;
+  }
+
+  if (!args.repo || !args.title) {
+    usage();
+    process.exit(2);
+  }
+
+  const repo = path.resolve(args.repo);
+  const title = args.title;
+  const stamp = nowStamp();
+  const folderName = `${stamp}-${slugify(title)}`;
+  const outputDir = path.join(repo, "evidence", folderName);
+  const gitProbe = run("git", ["-C", repo, "rev-parse", "--is-inside-work-tree"]);
+  const isGitRepo = gitProbe.status === 0 && gitProbe.stdout.trim() === "true";
+
+  const plannedFiles = [
+    "summary.md",
+    "git-status.txt",
+    "git-diff-stat.txt",
+    "validation.txt",
+    "next-step.md",
+  ].map((file) => path.join(outputDir, file));
+
+  if (args.dryRun) {
+    console.log(`# Evidence Pack Dry Run
+
+Target repo: ${repo}
+Title: ${title}
+Would create: ${outputDir}
+Git repo: ${isGitRepo ? "yes" : "no"}
+
+Files:
+${plannedFiles.map((file) => `- ${file}`).join("\n")}
+
+No files were written. No env files were read. No git staging, commit, push, deploy, publish, migration, database mutation, or external call was run.`);
+    return;
+  }
+
+  fs.mkdirSync(outputDir, { recursive: true });
+
+  const branch = isGitRepo ? run("git", ["-C", repo, "branch", "--show-current"]) : null;
+  const status = isGitRepo ? run("git", ["-C", repo, "status", "--short"]) : null;
+  const diffStat = isGitRepo ? run("git", ["-C", repo, "diff", "--stat"]) : null;
+  const diffCheck = isGitRepo ? run("git", ["-C", repo, "diff", "--check"]) : null;
+  const recentLog = isGitRepo ? run("git", ["-C", repo, "log", "--oneline", "-5"]) : null;
+
+  const summary = `# Evidence Pack
+
+## Target Repo
+
+${repo}
+
+## Title
+
+${title}
+
+## Created
+
+${new Date().toISOString()}
+
+## Git Repo
+
+${isGitRepo ? "yes" : "no"}
+
+## Current Branch
+
+${isGitRepo ? (branch.stdout.trim() || "unknown") : "not a git repo"}
+
+## Recent Commits
+
+\`\`\`text
+${isGitRepo ? recentLog.stdout.trimEnd() : "not available"}
+\`\`\`
+
+## Safety Boundary
+
+This helper did not read env files, stage files, commit, push, publish, deploy, run migrations, mutate databases, set secrets, or call external services.
+
+## Redaction
+
+Captured output was passed through local redaction for obvious token, password, credential, JWT, and database URL shapes.
+`;
+
+  write(path.join(outputDir, "summary.md"), summary, false);
+  write(path.join(outputDir, "git-status.txt"), isGitRepo ? commandText(status) : "not a git repo\n", false);
+  write(path.join(outputDir, "git-diff-stat.txt"), isGitRepo ? commandText(diffStat) : "not a git repo\n", false);
+  write(
+    path.join(outputDir, "validation.txt"),
+    isGitRepo ? commandText(diffCheck) : "validation not run because target is not a git repo\n",
+    false,
+  );
+  write(
+    path.join(outputDir, "next-step.md"),
+    `# Next Step
+
+Review this evidence pack and decide the next explicit permission gate.
+
+No publish, deploy, push, PR, tag, migration, database mutation, secret write, or production endpoint call was performed by this helper.
+`,
+    false,
+  );
+
+  console.log(`# Evidence Pack Created
+
+Output: ${outputDir}
+Git repo: ${isGitRepo ? "yes" : "no"}
+Files:
+${plannedFiles.map((file) => `- ${file}`).join("\n")}
+
+Next safe step:
+Review the evidence pack and decide the next explicit permission gate.`);
+}
+
+main();

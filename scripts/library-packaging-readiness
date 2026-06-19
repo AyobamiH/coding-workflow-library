@@ -1,0 +1,302 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/library-packaging-readiness --repo /path/to/library
+  ./scripts/library-packaging-readiness --repo /path/to/library --json
+  ./scripts/library-packaging-readiness --repo /path/to/library --expect-open-source
+  ./scripts/library-packaging-readiness --repo /path/to/library --expect-npm
+  ./scripts/library-packaging-readiness --repo /path/to/library --expect-cli
+
+Local-only readiness check for reusable skills-library packaging. It distinguishes local library, reusable template, open-source, npm package, and CLI package readiness. It does not publish, push, tag, install dependencies, call registries, deploy, set secrets, read secret values, or mutate external services.`);
+}
+
+function parseArgs(argv) {
+  const args = {
+    json: false,
+    expectOpenSource: false,
+    expectNpm: false,
+    expectCli: false,
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--repo") args.repo = argv[++index];
+    else if (arg === "--json") args.json = true;
+    else if (arg === "--expect-open-source") args.expectOpenSource = true;
+    else if (arg === "--expect-npm") {
+      args.expectNpm = true;
+      args.expectOpenSource = true;
+    } else if (arg === "--expect-cli") {
+      args.expectCli = true;
+      args.expectNpm = true;
+      args.expectOpenSource = true;
+    } else if (arg === "--help" || arg === "-h") args.help = true;
+    else throw new Error(`unknown argument: ${arg}`);
+  }
+
+  return args;
+}
+
+function statusRank(status) {
+  return {
+    FAIL: 4,
+    WARN: 3,
+    NOT_VERIFIED: 2,
+    NOT_APPLICABLE: 1,
+    PASS: 0,
+  }[status] ?? 2;
+}
+
+function classify(checks) {
+  const worst = checks.reduce((current, check) => {
+    return statusRank(check.status) > statusRank(current) ? check.status : current;
+  }, "PASS");
+
+  if (worst === "FAIL") return "FAIL";
+  if (worst === "WARN") return "WARN";
+  if (worst === "NOT_VERIFIED") return "NOT_VERIFIED";
+  return "PASS";
+}
+
+function check(checks, status, label, evidence, mode = "all") {
+  checks.push({ status, label, evidence, mode });
+}
+
+function exists(repo, relativePath) {
+  return fs.existsSync(path.join(repo, relativePath));
+}
+
+function executable(repo, relativePath) {
+  try {
+    return Boolean(fs.statSync(path.join(repo, relativePath)).mode & 0o111);
+  } catch {
+    return false;
+  }
+}
+
+function listFiles(repo, relativeDir, filter = () => true) {
+  const dir = path.join(repo, relativeDir);
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => `${relativeDir}/${entry.name}`)
+    .filter(filter)
+    .sort();
+}
+
+function readJson(file) {
+  return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+
+function readinessModes(args) {
+  const modes = ["local-library", "reusable-template"];
+  if (args.expectOpenSource) modes.push("open-source");
+  if (args.expectNpm) modes.push("npm-package");
+  if (args.expectCli) modes.push("cli-package");
+  return modes;
+}
+
+function releaseExpected(args) {
+  return args.expectOpenSource || args.expectNpm || args.expectCli;
+}
+
+function main() {
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    usage();
+    process.exit(2);
+  }
+
+  if (args.help) {
+    usage();
+    return;
+  }
+
+  if (!args.repo) {
+    usage();
+    process.exit(2);
+  }
+
+  const repo = path.resolve(args.repo);
+  const checks = [];
+  const report = {
+    repo,
+    modes: readinessModes(args),
+    expectOpenSource: args.expectOpenSource,
+    expectNpm: args.expectNpm,
+    expectCli: args.expectCli,
+    checks,
+    summary: {},
+    blockers: [],
+    commandsNotRun: [
+      "npm publish",
+      "npm version",
+      "git tag",
+      "git push",
+      "GitHub release creation",
+      "dependency install",
+      "registry mutation",
+      "deploy",
+      "secret reads or writes",
+      "production endpoint calls",
+    ],
+  };
+
+  check(checks, fs.existsSync(repo) ? "PASS" : "FAIL", "library path", fs.existsSync(repo) ? repo : "missing");
+  if (!fs.existsSync(repo)) return finish(report, args);
+
+  for (const file of ["AGENTS.md", "README.md", "RUNBOOK.md", "skills-index.md", "tools.md", "command-library.md", "evidence-checklist.md", "work-ledger.md"]) {
+    check(checks, exists(repo, file) ? "PASS" : "FAIL", file, exists(repo, file) ? "present" : "missing");
+  }
+
+  const skillFiles = listFiles(repo, "skill-files", (file) => file.endsWith(".md"));
+  report.summary.skillFiles = skillFiles.length;
+  check(checks, skillFiles.length ? "PASS" : "FAIL", "skill files", `${skillFiles.length} markdown files`);
+
+  const routeFile = path.join(repo, "routes", "skill-routes.json");
+  if (fs.existsSync(routeFile)) {
+    try {
+      const parsed = readJson(routeFile);
+      const count = Array.isArray(parsed.routes) ? parsed.routes.length : 0;
+      report.summary.routes = count;
+      check(checks, count ? "PASS" : "WARN", "route manifest", `${count} routes`);
+    } catch (error) {
+      check(checks, "FAIL", "route manifest", `invalid JSON: ${error.message}`);
+    }
+  } else {
+    check(checks, "FAIL", "route manifest", "missing");
+  }
+
+  for (const script of [
+    "scripts/run-next",
+    "scripts/route-audit",
+    "scripts/validate-skills",
+    "scripts/skill-cleaner",
+    "scripts/evidence-pack",
+    "scripts/npm-package-readiness",
+    "scripts/release-preflight",
+    "scripts/library-packaging-readiness",
+  ]) {
+    const present = exists(repo, script);
+    const mode = present && executable(repo, script);
+    check(checks, present ? mode ? "PASS" : "WARN" : "FAIL", script, present ? mode ? "present and executable" : "present but not executable" : "missing");
+  }
+
+  const templateFiles = listFiles(repo, "templates", (file) => file.endsWith(".md"));
+  report.summary.templates = templateFiles.length;
+  check(checks, templateFiles.length ? "PASS" : "WARN", "templates", `${templateFiles.length} files`);
+
+  const testFiles = listFiles(repo, "tests", (file) => file.endsWith(".md"));
+  report.summary.tests = testFiles.length;
+  check(checks, testFiles.length ? "PASS" : "WARN", "tests", `${testFiles.length} files`);
+
+  const docsFiles = listFiles(repo, "docs", (file) => file.endsWith(".md"));
+  report.summary.docs = docsFiles.length;
+  check(checks, docsFiles.length ? "PASS" : "WARN", "docs", `${docsFiles.length} files`);
+
+  const licenseFile = ["LICENSE", "LICENSE.md", "COPYING"].find((file) => exists(repo, file));
+  const licenseDecision = exists(repo, "LICENSE-DECISION.md");
+  if (licenseFile) {
+    check(checks, "PASS", "license", licenseFile, "open-source");
+  } else if (releaseExpected(args)) {
+    const evidence = licenseDecision
+      ? "NEEDS JOHN: licence decision recorded in LICENSE-DECISION.md; no actual license file selected"
+      : "NEEDS JOHN: licence decision; no actual license file selected";
+    report.blockers.push(evidence);
+    check(checks, "FAIL", "license", evidence, "open-source");
+  } else {
+    check(checks, "NOT_APPLICABLE", "license", licenseDecision ? "decision file present; license not required for local-library readiness" : "not required for local-library readiness", "local-library");
+  }
+
+  const changelogFile = ["CHANGELOG.md", "RELEASE.md", "RELEASE_NOTES.md", "docs/CHANGELOG.md", "docs/RELEASE.md"].find((file) => exists(repo, file));
+  if (changelogFile) {
+    check(checks, "PASS", "changelog or release notes", changelogFile, "release");
+  } else if (releaseExpected(args)) {
+    const evidence = "release readiness blocker: changelog or release notes missing";
+    report.blockers.push(evidence);
+    check(checks, "FAIL", "changelog or release notes", evidence, "release");
+  } else {
+    check(checks, "NOT_APPLICABLE", "changelog or release notes", "not required for local-library readiness", "local-library");
+  }
+
+  const packagePath = path.join(repo, "package.json");
+  if (!fs.existsSync(packagePath)) {
+    check(checks, args.expectNpm ? "FAIL" : "NOT_APPLICABLE", "package.json", args.expectNpm ? "missing; npm or CLI package was expected" : "missing; npm package not requested", "npm-package");
+  } else {
+    check(checks, "PASS", "package.json", "present", "npm-package");
+    try {
+      const pkg = readJson(packagePath);
+      check(checks, pkg.name ? "PASS" : "FAIL", "package name", pkg.name || "missing", "npm-package");
+      check(checks, pkg.version ? "PASS" : "FAIL", "package version", pkg.version || "missing", "npm-package");
+      check(checks, pkg.license ? "PASS" : releaseExpected(args) ? "FAIL" : "WARN", "package license field", pkg.license || "missing", "npm-package");
+      const filesField = Array.isArray(pkg.files) && pkg.files.length;
+      check(checks, filesField ? "PASS" : "WARN", "package files field", filesField ? pkg.files.join(", ") : "missing", "npm-package");
+      const bin = pkg.bin || null;
+      if (args.expectCli) {
+        check(checks, bin ? "PASS" : "FAIL", "CLI bin", bin ? "present" : "missing; CLI was expected", "cli-package");
+      } else {
+        check(checks, bin ? "PASS" : "NOT_APPLICABLE", "CLI bin", bin ? "present" : "CLI not requested", "cli-package");
+      }
+    } catch (error) {
+      check(checks, "FAIL", "package.json parse", error.message, "npm-package");
+    }
+  }
+
+  finish(report, args);
+}
+
+function finish(report, args) {
+  report.finalClassification = classify(report.checks);
+  report.nextSafeStep = nextSafeStep(report);
+
+  if (args.json) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    console.log(`# Library Packaging Readiness Report
+
+Repo: ${report.repo}
+Readiness modes: ${report.modes.join(", ")}
+Expect open source: ${report.expectOpenSource ? "yes" : "no"}
+Expect npm: ${report.expectNpm ? "yes" : "no"}
+Expect CLI: ${report.expectCli ? "yes" : "no"}
+
+## Checks
+${report.checks.map((item) => `- ${item.status}: ${item.label} (${item.mode}) - ${item.evidence}`).join("\n")}
+
+Final classification: ${report.finalClassification}
+
+## Blockers
+${report.blockers.length ? report.blockers.map((item) => `- ${item}`).join("\n") : "- none for the requested readiness mode"}
+
+## Commands Not Run
+${report.commandsNotRun.map((command) => `- ${command}`).join("\n")}
+
+## Next Safe Step
+${report.nextSafeStep}`);
+  }
+
+  process.exit(report.finalClassification === "FAIL" ? 1 : 0);
+}
+
+function nextSafeStep(report) {
+  if (report.finalClassification === "FAIL") {
+    if (report.blockers.some((item) => /licence decision/i.test(item))) {
+      return "NEEDS JOHN: licence decision before public/open-source, npm, CLI, publish, tag, push, or release gates.";
+    }
+    return "Resolve FAIL items before package, release, publish, tag, push, or deployment gates.";
+  }
+  if (report.expectCli) return "Run CLI-specific smoke only after package metadata and clean-temp test permission are granted.";
+  if (report.expectNpm) return "Run npm package readiness and release preflight before any publish/tag/push gate.";
+  if (report.expectOpenSource) return "Open-source readiness is classified locally; publish/tag/push/release still requires separate permission.";
+  return "Use local/template readiness evidence or request clean-temp package/open-source readiness smoke.";
+}
+
+main();

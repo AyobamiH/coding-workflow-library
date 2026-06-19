@@ -1,0 +1,199 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+
+const ROOT = path.resolve(__dirname, "..");
+const ROUTE_FILE = path.join(ROOT, "routes", "skill-routes.json");
+
+const args = process.argv.slice(2);
+const asJson = args.includes("--json");
+if (args.some((arg) => !["--json", "--help", "-h"].includes(arg))) {
+  console.error("unknown argument");
+  process.exit(2);
+}
+
+if (args.includes("--help") || args.includes("-h")) {
+  console.log(`Usage:
+  ./scripts/route-audit
+  ./scripts/route-audit --json
+
+Checks local route metadata only. It does not call external services.`);
+  process.exit(0);
+}
+
+function rel(file) {
+  return path.relative(ROOT, file).replaceAll(path.sep, "/") || ".";
+}
+
+function exists(relativePath) {
+  return fs.existsSync(path.join(ROOT, relativePath));
+}
+
+function nonEmptyString(value) {
+  return typeof value === "string" && value.trim() !== "";
+}
+
+function nonEmptyArray(value) {
+  return Array.isArray(value) && value.length > 0;
+}
+
+function helperReferenceOk(ref) {
+  if (!nonEmptyString(ref)) return false;
+  if (ref.startsWith("external:")) return true;
+  if (ref.startsWith("manual:")) return true;
+  if (ref === "none") return true;
+  if (ref.startsWith("scripts/")) return exists(ref);
+  if (ref.startsWith("bin/")) return exists(ref);
+  return false;
+}
+
+function routeHasSensitivePower(route) {
+  const text = [
+    route.permission_flag,
+    route.permission_level,
+    ...(Array.isArray(route.forbidden_actions) ? route.forbidden_actions : []),
+  ].join(" ");
+  return /\b(deploy|push|publish|secret|database|db|sql|production|github|merge|supabase|cloudflare|migration)\b/i.test(text);
+}
+
+function validateRoutes() {
+  const errors = [];
+  const warnings = [];
+
+  if (!fs.existsSync(ROUTE_FILE)) {
+    return {
+      routesChecked: 0,
+      errors: [`route file missing: ${rel(ROUTE_FILE)}`],
+      warnings,
+      routeIds: [],
+    };
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(ROUTE_FILE, "utf8"));
+  } catch (error) {
+    return {
+      routesChecked: 0,
+      errors: [`route file is not valid JSON: ${error.message}`],
+      warnings,
+      routeIds: [],
+    };
+  }
+
+  if (!parsed || !Array.isArray(parsed.routes)) {
+    return {
+      routesChecked: 0,
+      errors: ["route file must contain a routes array"],
+      warnings,
+      routeIds: [],
+    };
+  }
+
+  const ids = new Set();
+  const routeIds = [];
+
+  for (const route of parsed.routes) {
+    const id = nonEmptyString(route.id) ? route.id.trim() : "(missing id)";
+    routeIds.push(id);
+
+    if (!nonEmptyString(route.id)) errors.push("route has empty id");
+    if (ids.has(id)) errors.push(`${id}: duplicate route id`);
+    ids.add(id);
+
+    if (!nonEmptyString(route.skill_file)) {
+      errors.push(`${id}: missing skill_file`);
+    } else if (!exists(route.skill_file)) {
+      errors.push(`${id}: referenced skill file missing: ${route.skill_file}`);
+    }
+
+    if (!nonEmptyArray(route.ledger_states_handled)) {
+      errors.push(`${id}: ledger_states_handled must be non-empty`);
+    }
+
+    if (!nonEmptyString(route.permission_flag)) {
+      errors.push(`${id}: permission_flag must be non-empty`);
+    }
+
+    if (!nonEmptyArray(route.helper_scripts)) {
+      errors.push(`${id}: helper_scripts must be non-empty`);
+    } else {
+      for (const helper of route.helper_scripts) {
+        if (!helperReferenceOk(helper)) {
+          errors.push(`${id}: helper script missing or not marked external/manual: ${helper}`);
+        }
+      }
+    }
+
+    if (!nonEmptyString(route.permission_level)) {
+      errors.push(`${id}: permission_level must be non-empty`);
+    }
+
+    if (!nonEmptyArray(route.forbidden_actions)) {
+      errors.push(`${id}: forbidden_actions must be non-empty`);
+    }
+
+    if (!nonEmptyString(route.success_ledger_state)) {
+      errors.push(`${id}: success_ledger_state must be non-empty`);
+    }
+
+    if (!nonEmptyString(route.blocked_ledger_state)) {
+      errors.push(`${id}: blocked_ledger_state must be non-empty`);
+    }
+
+    if (!nonEmptyString(route.next_permission)) {
+      errors.push(`${id}: next_permission must be non-empty`);
+    }
+
+    if (!nonEmptyArray(route.evidence_required)) {
+      errors.push(`${id}: evidence_required must be non-empty`);
+    }
+
+    if (routeHasSensitivePower(route) && route.explicit_permission_required !== true) {
+      errors.push(`${id}: sensitive route must set explicit_permission_required to true`);
+    }
+
+    if (route.permission_flag === "*" || route.permission_flag === "all") {
+      errors.push(`${id}: permission_flag must not be broad`);
+    }
+
+    if (!nonEmptyString(route.provenance)) {
+      warnings.push(`${id}: provenance is not recorded`);
+    }
+  }
+
+  return {
+    routesChecked: parsed.routes.length,
+    errors,
+    warnings,
+    routeIds,
+  };
+}
+
+const result = validateRoutes();
+const status = result.errors.length ? "FAIL" : "PASS";
+
+if (asJson) {
+  console.log(JSON.stringify({ ...result, status }, null, 2));
+} else {
+  console.log(`# Route Audit Report
+
+Route file: ${fs.existsSync(ROUTE_FILE) ? rel(ROUTE_FILE) : "missing"}
+Routes checked: ${result.routesChecked}
+Errors: ${result.errors.length}
+Warnings: ${result.warnings.length}
+
+## Routes
+${result.routeIds.length ? result.routeIds.map((id) => `- ${id}`).join("\n") : "- None"}
+
+## Errors
+${result.errors.length ? result.errors.map((error) => `- ${error}`).join("\n") : "- None"}
+
+## Warnings
+${result.warnings.length ? result.warnings.map((warning) => `- ${warning}`).join("\n") : "- None"}
+
+Result: ${status}`);
+}
+
+process.exit(result.errors.length ? 1 : 0);

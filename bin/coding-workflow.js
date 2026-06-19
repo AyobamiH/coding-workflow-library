@@ -1,0 +1,91 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+const { spawnSync } = require("child_process");
+
+const ROOT = path.resolve(__dirname, "..");
+
+const COMMANDS = {
+  routes: {
+    script: "scripts/route-audit",
+    description: "Audit local route metadata.",
+  },
+  validate: {
+    script: "scripts/validate-skills",
+    description: "Validate skills, indexes, route metadata, and safety markers.",
+  },
+  cleaner: {
+    script: "scripts/skill-cleaner",
+    description: "Run advisory skill-library hygiene checks.",
+  },
+  "package-readiness": {
+    script: "scripts/npm-package-readiness",
+    description: "Inspect local npm package or CLI readiness.",
+  },
+  "release-preflight": {
+    script: "scripts/release-preflight",
+    description: "Run local release preflight.",
+  },
+  "run-next": {
+    script: "scripts/run-next",
+    description: "Run the permission-gated autonomous work-loop runner.",
+  },
+};
+
+function printHelp() {
+  console.log(`coding-workflow
+
+Local CLI for the autonomous coding workflow library.
+
+Usage:
+  coding-workflow --help
+  coding-workflow routes [--json]
+  coding-workflow validate
+  coding-workflow cleaner
+  coding-workflow package-readiness --repo /path/to/repo [--expect-package] [--expect-cli]
+  coding-workflow release-preflight --repo /path/to/repo --mode local|npm|cli
+  coding-workflow run-next --repo /path/to/repo --dry-run --allow <flag>
+
+This CLI delegates to local scripts and preserves their permission gates. It does not publish, deploy, push, tag, create releases, read secrets, or call production endpoints on its own.`);
+}
+
+function fail(message, code = 2) {
+  console.error(message);
+  process.exit(code);
+}
+
+function delegate(commandName, args) {
+  const command = COMMANDS[commandName];
+  if (!command) fail(`unknown command: ${commandName}`);
+
+  const scriptPath = path.join(ROOT, command.script);
+  if (!fs.existsSync(scriptPath)) {
+    fail(`missing delegated script: ${command.script}`, 1);
+  }
+
+  const result = spawnSync(process.execPath, [scriptPath, ...args], {
+    cwd: ROOT,
+    env: process.env,
+    stdio: "inherit",
+  });
+
+  if (result.error) {
+    fail(`failed to run ${command.script}: ${result.error.message}`, 1);
+  }
+
+  process.exit(typeof result.status === "number" ? result.status : 1);
+}
+
+function main() {
+  const [commandName, ...rest] = process.argv.slice(2);
+
+  if (!commandName || commandName === "--help" || commandName === "-h" || commandName === "help") {
+    printHelp();
+    return;
+  }
+
+  delegate(commandName, rest);
+}
+
+main();

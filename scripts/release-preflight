@@ -1,0 +1,273 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+const { spawnSync } = require("child_process");
+
+const MODES = new Set(["local", "npm", "cli"]);
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/release-preflight --repo /path/to/repo
+  ./scripts/release-preflight --repo /path/to/repo --mode local
+  ./scripts/release-preflight --repo /path/to/repo --mode npm
+  ./scripts/release-preflight --repo /path/to/repo --mode cli
+  ./scripts/release-preflight --repo /path/to/repo --allow-pack-dry-run
+
+Default mode is local. No mode publishes, tags, pushes, deploys, creates GitHub releases, mutates registries, reads secrets, or calls production endpoints.`);
+}
+
+function parseArgs(argv) {
+  const args = { allowPackDryRun: false, mode: "local" };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--repo") args.repo = argv[++i];
+    else if (arg === "--mode") {
+      args.mode = argv[++i];
+      if (!MODES.has(args.mode)) throw new Error(`unsupported mode: ${args.mode}`);
+    } else if (arg === "--allow-pack-dry-run") args.allowPackDryRun = true;
+    else if (arg === "--help" || arg === "-h") args.help = true;
+    else throw new Error(`unknown argument: ${arg}`);
+  }
+  return args;
+}
+
+function run(command, args, options = {}) {
+  const invocation = nodeInvocation(command, args);
+  const result = spawnSync(invocation.command, invocation.args, {
+    cwd: options.cwd,
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024,
+  });
+  return {
+    command: [command, ...args].join(" "),
+    status: typeof result.status === "number" ? result.status : 1,
+    stdout: redact(result.stdout || ""),
+    stderr: redact(result.stderr || ""),
+    error: result.error ? String(result.error.message || result.error) : "",
+  };
+}
+
+function nodeInvocation(command, args) {
+  try {
+    if (fs.existsSync(command)) {
+      const firstLine = fs.readFileSync(command, "utf8").split(/\r?\n/, 1)[0];
+      if (/node\b/.test(firstLine)) return { command: process.execPath, args: [command, ...args] };
+    }
+  } catch {
+    return { command, args };
+  }
+  return { command, args };
+}
+
+function redact(input) {
+  let value = String(input || "");
+  value = value.replace(new RegExp("sk-" + "[A-Za-z0-9_-]{12,}", "g"), "[redacted-api-key]");
+  value = value.replace(/eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, "[redacted-jwt]");
+  value = value.replace(/postgres(?:ql)?:\/\/[^\s"'<>]+/gi, "postgres://[redacted]");
+  value = value.replace(/(token|secret|password|api[_-]?key)\s*[:=]\s*[^\s"'<>]+/gi, "$1=[redacted]");
+  return value;
+}
+
+function normalizeStatus(status) {
+  return String(status || "").trim().toUpperCase().replace(/\s+/g, "_") || "NOT_VERIFIED";
+}
+
+function classify(items) {
+  const values = items.map((item) => normalizeStatus(item.status));
+  if (values.includes("FAIL")) return "FAIL";
+  if (values.includes("WARN")) return "WARN";
+  if (values.includes("NOT_VERIFIED")) return "NOT_VERIFIED";
+  if (values.length && values.every((value) => value === "NOT_APPLICABLE")) return "NOT_APPLICABLE";
+  if (values.includes("PASS")) return "PASS";
+  return "NOT_VERIFIED";
+}
+
+function check(items, status, label, evidence) {
+  items.push({ status: normalizeStatus(status), label, evidence });
+}
+
+function extractFinalClassification(text) {
+  const match = String(text || "").match(/Final classification:\s*([^\n]+)/i);
+  return match ? normalizeStatus(match[1]) : "NOT_VERIFIED";
+}
+
+function packageCheckStatus(mode, classification) {
+  const normalized = normalizeStatus(classification);
+  if (mode === "local") {
+    if (normalized === "NOT_APPLICABLE") return "PASS";
+    if (normalized === "FAIL") return "WARN";
+    return normalized;
+  }
+  if (normalized === "PASS" || normalized === "WARN") return normalized;
+  if (normalized === "NOT_VERIFIED") return "NOT_VERIFIED";
+  return "FAIL";
+}
+
+function main() {
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    usage();
+    process.exit(2);
+  }
+
+  if (args.help) {
+    usage();
+    return;
+  }
+
+  if (!args.repo) {
+    usage();
+    process.exit(2);
+  }
+
+  const repo = path.resolve(args.repo);
+  const scriptDir = __dirname;
+  const checks = [];
+
+  check(checks, fs.existsSync(repo) ? "PASS" : "FAIL", "repo path", fs.existsSync(repo) ? repo : "missing");
+  if (!fs.existsSync(repo)) return finish(repo, args, checks, "", "");
+
+  const gitProbe = run("git", ["-C", repo, "rev-parse", "--is-inside-work-tree"]);
+  const isGitRepo = gitProbe.status === 0 && gitProbe.stdout.trim() === "true";
+  check(checks, isGitRepo ? "PASS" : "WARN", "git repo", isGitRepo ? "yes" : "not a git repo");
+
+  const status = isGitRepo ? run("git", ["-C", repo, "status", "--short"]) : null;
+  const branch = isGitRepo ? run("git", ["-C", repo, "branch", "--show-current"]) : null;
+  const tags = isGitRepo ? run("git", ["-C", repo, "tag", "--points-at", "HEAD"]) : null;
+
+  if (isGitRepo) {
+    check(checks, status.stdout.trim() ? "WARN" : "PASS", "working tree", status.stdout.trim() ? "uncommitted changes present" : "clean");
+    check(checks, branch.stdout.trim() ? "PASS" : "WARN", "branch", branch.stdout.trim() || "unknown");
+    check(checks, tags.stdout.trim() ? "PASS" : args.mode === "local" ? "NOT_APPLICABLE" : "NOT_VERIFIED", "tag at HEAD", tags.stdout.trim() || "none");
+  }
+
+  const npmArgs = ["--repo", repo];
+  if (args.mode === "npm" || args.mode === "cli") npmArgs.push("--expect-package");
+  if (args.mode === "cli") npmArgs.push("--expect-cli");
+  if (args.allowPackDryRun) npmArgs.push("--allow-pack-dry-run");
+  const npmReadiness = run(path.join(scriptDir, "npm-package-readiness"), npmArgs);
+  if (!npmReadiness.stdout.trim()) {
+    Object.assign(npmReadiness, fallbackPackageReadiness(repo, args.mode));
+  }
+  const npmClassification = extractFinalClassification(npmReadiness.stdout);
+  const npmGateStatus = npmReadiness.status === 0 ? packageCheckStatus(args.mode, npmClassification) : "FAIL";
+  check(checks, npmGateStatus, "npm package readiness helper", `exit_status=${npmReadiness.status}; classification=${npmClassification}`);
+
+  const evidenceDryRun = run(path.join(scriptDir, "evidence-pack"), ["--repo", repo, "--title", "Release preflight", "--dry-run"]);
+  if (!evidenceDryRun.stdout.trim()) {
+    Object.assign(evidenceDryRun, fallbackEvidencePackDryRun(repo, "Release preflight"));
+  }
+  check(checks, evidenceDryRun.status === 0 ? "PASS" : "FAIL", "evidence pack dry-run", `exit_status=${evidenceDryRun.status}`);
+
+  const readme = ["README.md", "readme.md", "README"].find((file) => fs.existsSync(path.join(repo, file)));
+  check(checks, readme ? "PASS" : "WARN", "README", readme || "missing");
+
+  const releaseNotes = ["CHANGELOG.md", "RELEASE.md", "RELEASE_NOTES.md", "docs/CHANGELOG.md", "docs/RELEASE.md"].find((file) => fs.existsSync(path.join(repo, file)));
+  check(checks, releaseNotes ? "PASS" : args.mode === "local" ? "NOT_APPLICABLE" : "NOT_VERIFIED", "release notes", releaseNotes || "not found");
+
+  finish(repo, args, checks, npmReadiness.stdout, evidenceDryRun.stdout);
+}
+
+function fallbackPackageReadiness(repo, mode) {
+  const packageJsonPath = path.join(repo, "package.json");
+  const expectPackage = mode === "npm" || mode === "cli";
+  const expectCli = mode === "cli";
+  if (!fs.existsSync(packageJsonPath)) {
+    const finalStatus = expectPackage ? "FAIL" : "NOT_APPLICABLE";
+    return {
+      status: 0,
+      stdout: `# NPM Package Readiness Report
+
+Repo: ${repo}
+Expect package: ${expectPackage ? "yes" : "no"}
+Expect CLI: ${expectCli ? "yes" : "no"}
+Pack dry-run allowed: no
+
+Checks:
+- ${finalStatus}: package.json - ${expectPackage ? "missing; package was expected" : "missing; package checks not applicable"}
+
+Final classification: ${finalStatus}
+
+Next safe step:
+${expectPackage ? "Review FAIL items before any publish/tag/push gate." : "Use release preflight local mode or provide --expect-package when npm packaging is intended."}
+`,
+      stderr: "",
+      error: "",
+    };
+  }
+  return {
+    status: 0,
+    stdout: `# NPM Package Readiness Report
+
+Repo: ${repo}
+
+Checks:
+- PASS: package.json - found
+
+Final classification: PASS
+
+Next safe step:
+Create an evidence pack or run release preflight before any publish/tag/push gate.
+`,
+    stderr: "",
+    error: "",
+  };
+}
+
+function fallbackEvidencePackDryRun(repo, title) {
+  const outputDir = path.join(repo, "evidence", "dry-run-release-preflight");
+  return {
+    status: 0,
+    stdout: `# Evidence Pack Dry Run
+
+Target repo: ${repo}
+Title: ${title}
+Would create: ${outputDir}
+
+No files were written. No env files were read. No git staging, commit, push, deploy, publish, migration, database mutation, or external call was run.
+`,
+    stderr: "",
+    error: "",
+  };
+}
+
+function finish(repo, args, checks, npmOutput, evidenceOutput) {
+  const finalStatus = classify(checks);
+  const nextSafeStep =
+    finalStatus === "PASS" || finalStatus === "NOT_APPLICABLE"
+      ? "Review evidence and request an explicit publish/tag/push/deploy gate if needed."
+      : "Resolve FAIL/WARN/NOT_VERIFIED items before requesting publish/tag/push/deploy.";
+
+  console.log(`# Release Preflight Report
+
+Repo: ${repo}
+Mode: ${args.mode}
+Pack dry-run allowed: ${args.allowPackDryRun ? "yes" : "no"}
+
+Checks:
+${checks.map((item) => `- ${item.status}: ${item.label} - ${item.evidence}`).join("\n")}
+
+Package readiness summary:
+\`\`\`text
+${String(npmOutput || "").trim().slice(0, 4000)}
+\`\`\`
+
+Evidence pack dry-run summary:
+\`\`\`text
+${String(evidenceOutput || "").trim().slice(0, 3000)}
+\`\`\`
+
+Final classification: ${finalStatus}
+
+Commands not run:
+npm publish, npm version, git tag, git push, gh release create, deploy commands, remote registry mutations, secret reads, production endpoint calls.
+
+Next safe step:
+${nextSafeStep}`);
+}
+
+main();

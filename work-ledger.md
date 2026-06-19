@@ -397,6 +397,21 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Exact next action: merge/deploy planning boundary.
 * Whether John is needed: Yes for the next permission boundary..
 
+## 2026-06-15 - Scheduler PR Merge Gate Retry Context
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Retry the scheduler PR #12 merge gate after the first runner attempt found no local GitHub token, using the already-recorded PR merge evidence and local merged state.
+* Current permission level: `scheduler-pr-merge`. Verification only for PR #12 and local merged scheduler files; no Supabase remote secret setup, function deploy, migration application, SQL execution, scheduler mutation, Edge Function invocation, production endpoint call, branch deletion, force push, token/secret printing, unrelated staging, `evidence/`, or `supabase/.temp/` inclusion.
+* Current status: Scheduler migration draft merged, Supabase mutation still gated.
+* Selected skill: `github-handoff-skill` / scheduler PR #12 readiness and merge gate.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-pr-merge`; GitHub auth status; public GitHub API checks without credentials; local target repo status/branch/log/show checks; migration secret-pattern scan.
+* Files changed: `scripts/run-next`; `RUNBOOK.md`; `tools.md`; `skill-files/coding-workflow-orchestrator-skill.md`; `work-ledger.md`.
+* Validation evidence: the first real runner attempt stopped because `GH_TOKEN` and `GITHUB_TOKEN` were not set; cached `gh` auth is invalid; unauthenticated GitHub API returned 404 because the repo is private; prior ledger evidence already records PR #12 merged with expected files and no hardcoded scheduler secret; local target repo is on `main` at `d2f2014` with only `?? evidence/` and `?? supabase/.temp/`; local HEAD files are exactly `docs/import-reddit-tips-security.md` and `supabase/migrations/20260613211912_update_import_reddit_tips_scheduler_secret.sql`; local migration secret-pattern scan had no output.
+* Blockers: live GitHub reinspection cannot run until a valid `GH_TOKEN` is restored, but the already-merged scheduler state can be normalized from ledger and local evidence without any remote mutation.
+* Next recommended skill: `github-handoff-skill` / scheduler PR #12 readiness and merge gate.
+* Exact next action: run `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-pr-merge` to normalize the already-merged state and stop before Supabase mutation.
+* Whether John is needed: No for the already approved scheduler PR merge retry; yes for remote secret setup, scheduler application, deployment, migration execution, runtime verification, or production checks.
+
 ## 2026-06-13 - Supabase Tooling/Auth Retry After Env Correction
 
 * Active repo: `/home/johnh/wagging-web-wins`.
@@ -534,3 +549,563 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: `coding-workflow-orchestrator-skill`.
 * Exact next action: use `./scripts/run-next --repo <target> --explain` before asking John for large bespoke prompts.
 * Whether John is needed: Yes only when a reported permission gate is required.
+
+## 2026-06-15 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: scheduler-pr-merge. Scheduler PR merge gate permitted only for PR #12 after exact file, expected commit, check, mergeability, auth, repo access, and migration secret-scan gates; no Supabase remote secret setup, function deploy, database migration application, SQL execution, scheduler mutation, Edge Function invoke, production endpoint call, branch deletion, force push, token/secret printing, unrelated staging, `evidence/`, or `supabase/.temp/` inclusion.
+* Current status: Needs John token replacement.
+* Selected skill: github-handoff-skill / scheduler PR #12 readiness and merge gate.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-pr-merge`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md; GH_TOKEN presence: not set; GITHUB_TOKEN presence: not set.
+* Blockers: GH_TOKEN is not set in runtime env.
+* Next recommended skill: github-auth-gate-skill.
+* Exact next action: auth-check.
+* Whether John is needed: Yes for the next permission boundary..
+
+## 2026-06-15 - Scheduler PR Merge Gate Retry Context
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Retry the scheduler PR #12 merge gate after the first runner attempt found no local GitHub token, using the already-recorded PR merge evidence and local merged state.
+* Current permission level: `scheduler-pr-merge`. Verification only for PR #12 and local merged scheduler files; no Supabase remote secret setup, function deploy, migration application, SQL execution, scheduler mutation, Edge Function invocation, production endpoint call, branch deletion, force push, token/secret printing, unrelated staging, `evidence/`, or `supabase/.temp/` inclusion.
+* Current status: Scheduler migration draft merged, Supabase mutation still gated.
+* Selected skill: `github-handoff-skill` / scheduler PR #12 readiness and merge gate.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-pr-merge`; GitHub auth status; public GitHub API checks without credentials; local target repo status/branch/log/show checks; migration secret-pattern scan.
+* Files changed: `scripts/run-next`; `RUNBOOK.md`; `tools.md`; `skill-files/coding-workflow-orchestrator-skill.md`; `work-ledger.md`.
+* Validation evidence: the first real runner attempt stopped because `GH_TOKEN` and `GITHUB_TOKEN` were not set; cached `gh` auth is invalid; unauthenticated GitHub API returned 404 because the repo is private; prior ledger evidence already records PR #12 merged with expected files and no hardcoded scheduler secret; local target repo is on `main` at `d2f2014` with only `?? evidence/` and `?? supabase/.temp/`; local HEAD files are exactly `docs/import-reddit-tips-security.md` and `supabase/migrations/20260613211912_update_import_reddit_tips_scheduler_secret.sql`; local migration secret-pattern scan had no output.
+* Blockers: live GitHub reinspection cannot run until a valid `GH_TOKEN` is restored, but the already-merged scheduler state can be normalized from ledger and local evidence without any remote mutation.
+* Next recommended skill: `github-handoff-skill` / scheduler PR #12 readiness and merge gate.
+* Exact next action: run `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-pr-merge` to normalize the already-merged state and stop before Supabase mutation.
+* Whether John is needed: No for the already approved scheduler PR merge retry; yes for remote secret setup, scheduler application, deployment, migration execution, runtime verification, or production checks.
+
+## 2026-06-15 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: scheduler-pr-merge. Scheduler PR merge gate permitted only for PR #12 after exact file, expected commit, check, mergeability, auth, repo access, and migration secret-scan gates; no Supabase remote secret setup, function deploy, database migration application, SQL execution, scheduler mutation, Edge Function invoke, production endpoint call, branch deletion, force push, token/secret printing, unrelated staging, `evidence/`, or `supabase/.temp/` inclusion.
+* Current status: Scheduler migration draft merged, not applied.
+* Selected skill: github-handoff-skill / scheduler PR #12 readiness and merge gate.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-pr-merge`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md; local scheduler merge branch: main; local scheduler merge status: ?? evidence/
+?? supabase/.temp/; local scheduler merge recent log: d2f2014 Draft import reddit tips scheduler secret migration; local scheduler merge HEAD subject: Draft import reddit tips scheduler secret migration; local scheduler merge HEAD files: docs/import-reddit-tips-security.md, supabase/migrations/20260613211912_update_import_reddit_tips_scheduler_secret.sql; scheduler branch fetch unavailable: fatal: couldn't find remote ref update-import-reddit-tips-scheduler-secret; scheduler migration secret scan: no hardcoded secret-shaped value in origin/main.
+* Blockers: None for scheduler PR review/merge verification. Supabase remote secret setup, reviewed scheduler application, Edge Function deployment, runtime verification, deployed RLS/grants, and production checks remain gated..
+* Next recommended skill: cloudflare-deploy-skill / reviewed Supabase secret setup and scheduler application plan.
+* Exact next action: approve remote secret setup and function deploy planning.
+* Whether John is needed: Yes for any Supabase remote secret setup, scheduler application, deployment, migration execution, runtime verification, or production check..
+
+## 2026-06-16 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: supabase-secret-function-deploy. Supabase remote secret + single function deploy gate permitted only to verify local source/auth/env, set remote IMPORT_REDDIT_TIPS_SECRET through a temporary env file, deploy only import-reddit-tips, and stop; no scheduler mutation, db push, migration application, SQL execution, Edge Function invoke, runtime verification, production endpoint call, git push/PR/merge, token/secret printing, target-repo secret write, `evidence/` staging, or `supabase/.temp/` staging.
+* Current status: Blocked: unexpected target repo changes.
+* Selected skill: cloudflare-deploy-skill / Supabase remote secret setup and single Edge Function deploy.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow supabase-secret-function-deploy`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md.
+* Blockers: unexpected target repo changes: ?? docs/import-reddit-tips-supabase-application-plan.md.
+* Next recommended skill: cloudflare-deploy-skill / Supabase remote secret setup and single Edge Function deploy.
+* Exact next action: manual review of Supabase secret/function deploy workflow.
+* Whether John is needed: Yes for the next permission boundary..
+
+## 2026-06-16 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: supabase-secret-function-deploy. Supabase remote secret + single function deploy gate permitted only to verify local source/auth/env, set remote IMPORT_REDDIT_TIPS_SECRET through a temporary env file, deploy only import-reddit-tips, and stop; no scheduler mutation, db push, migration application, SQL execution, Edge Function invoke, runtime verification, production endpoint call, git push/PR/merge, token/secret printing, target-repo secret write, `evidence/` staging, or `supabase/.temp/` staging.
+* Current status: Function deployed and remote secret set, scheduler not applied.
+* Selected skill: cloudflare-deploy-skill / Supabase remote secret setup and single Edge Function deploy.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow supabase-secret-function-deploy`.
+* Files changed: local library records only; the temporary secret env file was created outside the target repo and removed.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md; remote setup repo branch: main; remote setup git status: ?? docs/import-reddit-tips-supabase-application-plan.md
+?? evidence/
+?? supabase/.temp/; remote setup recent log: d2f2014 Draft import reddit tips scheduler secret migration; remote setup remote: origin	https://github.com/AyobamiH/wagging-web-wins.git (fetch); untracked target repo paths not staged or deployed: ?? docs/import-reddit-tips-supabase-application-plan.md; ?? evidence/; ?? supabase/.temp/; import-reddit-tips function source exists; hardened boundary terms present: IMPORT_REDDIT_TIPS_SECRET, x-import-reddit-tips-secret, is_admin, rateLimit, SUPABASE_SERVICE_ROLE_KEY; deploy env SUPABASE_ACCESS_TOKEN: set; deploy env SUPABASE_PROJECT_REF: set; deploy env IMPORT_REDDIT_TIPS_SECRET: set; deploy env project ref matches viwxxjnehceedyctevau; npx Supabase version result: 2.106.0; Supabase project access result: project ref viwxxjnehceedyctevau appears in read-only projects list; Supabase secrets set --help inspected: ok; Supabase functions deploy --help inspected: ok; Supabase secrets set --env-file support: yes; temporary secret env file created outside target repo; temporary secret env file removal verification: absent; temporary secret env file removed; remote IMPORT_REDDIT_TIPS_SECRET set via env-file; import-reddit-tips Edge Function deploy command exited 0; post-deploy git status: ?? docs/import-reddit-tips-supabase-application-plan.md
+?? evidence/
+?? supabase/.temp/; post-deploy branch: main.
+* Blockers: None for remote secret setup and import-reddit-tips deploy. Scheduler application, db push, migration execution, SQL, runtime endpoint verification, deployed RLS/grants, and production checks remain gated..
+* Next recommended skill: cloudflare-deploy-skill / runtime verification and scheduler application decision.
+* Exact next action: approve runtime verification and scheduler application decision.
+* Whether John is needed: Yes for runtime verification, scheduler application, db push, migration execution, SQL, production endpoint checks, or hold..
+
+## 2026-06-16 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: runtime-negative-verification. Runtime negative verification permitted only for OPTIONS, GET/non-POST rejection, POST without auth rejection, POST with invalid scheduler secret rejection, and optional anon-only rejection; no valid scheduler secret, admin bearer token, successful import/write request, scheduler mutation, db push, migration application, SQL execution, secret mutation, deploy, git push/PR/merge, token/secret printing, or excluded-file staging.
+* Current status: Runtime negative checks passed, scheduler not applied.
+* Selected skill: cloudflare-deploy-skill / deployed function negative runtime verification.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow runtime-negative-verification`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md; runtime negative repo branch: main; runtime negative git status: ?? docs/import-reddit-tips-supabase-application-plan.md
+?? evidence/
+?? supabase/.temp/; runtime negative recent log: 06e553d Remediate tracked JWT-like value in Supabase migration; untracked target repo paths not staged or used for runtime checks: ?? docs/import-reddit-tips-supabase-application-plan.md; ?? evidence/; ?? supabase/.temp/; import-reddit-tips runtime source inspected; runtime auth-boundary terms present: OPTIONS, POST, x-import-reddit-tips-secret, IMPORT_REDDIT_TIPS_SECRET, is_admin, rateLimit, SUPABASE_SERVICE_ROLE_KEY, pet_tips; runtime env SUPABASE_PROJECT_REF: set; runtime env SUPABASE_ACCESS_TOKEN: set; runtime env IMPORT_REDDIT_TIPS_SECRET: set; runtime env anon key available: yes; runtime env project ref matches viwxxjnehceedyctevau; runtime negative endpoint: https://viwxxjnehceedyctevau.supabase.co/functions/v1/import-reddit-tips; OPTIONS result: HTTP/2 200; PASS; GET/non-POST result: HTTP/2 405; PASS; POST without auth result: HTTP/2 401; PASS; POST invalid scheduler secret result: HTTP/2 403; PASS; POST anon-only result: HTTP/2 401; PASS.
+* Blockers: None for negative runtime verification. Scheduler application, valid scheduler success request, admin success request, db push, migration execution, SQL, deployed RLS/grants, and production success checks remain gated..
+* Next recommended skill: cloudflare-deploy-skill / scheduler application planning.
+* Exact next action: approve scheduler application planning.
+* Whether John is needed: Yes for scheduler application planning, valid scheduler request, admin success request, db push, migration execution, SQL, production success checks, or hold..
+
+## 2026-06-16 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: scheduler-application-decision. Scheduler application decision permitted only to inspect local scheduler source/docs, local env presence without values, Supabase CLI/project access, and read-only database capability evidence; it may mutate only import-reddit-tips-daily if a non-hardcoded pg_cron secret path is proven, otherwise it must stop blocked. No deploy, db push, migration application, unrelated SQL, app table writes, pet_tips writes, valid scheduler/admin success request, successful import, push, PR, merge, token/secret printing, or excluded-file staging.
+* Current status: Scheduler blocked: safe secret storage path not proven.
+* Selected skill: cloudflare-deploy-skill / scheduler application decision.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-application-decision`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md; scheduler application repo branch: main; scheduler application git status: ?? evidence/
+?? supabase/.temp/; scheduler application recent log: 7eeea04 Prepare import reddit tips Supabase execution packet; untracked target repo paths excluded from scheduler application: ?? evidence/; ?? supabase/.temp/; scheduler source grep hits: 258; scheduler old job name evidence: import-reddit-tips-daily found; scheduler guarded draft status: guarded/comment-only evidence found; scheduler secret-storage documentation: mentioned but not proven; scheduler env SUPABASE_ACCESS_TOKEN: set; scheduler env SUPABASE_PROJECT_REF: set; scheduler env IMPORT_REDDIT_TIPS_SECRET: set; scheduler env project ref matches viwxxjnehceedyctevau; scheduler Supabase CLI version: 2.106.0; scheduler Supabase project access: target project listed; scheduler Supabase db help: available; scheduler Supabase db remote help: available; scheduler Supabase sql help: available; scheduler read-only DB capability discovery: read-only SQL not run: Supabase CLI did not expose a proven non-interactive read-only SQL query path; safe path decision: SAFE PATH NOT PROVEN; safe path blocker: current cron job cannot be inspected with available non-interactive read-only DB tooling; no deployed vault/secret-storage mechanism confirmed for pg_cron header use.
+* Blockers: SCHEDULER BLOCKED: safe scheduler secret storage path not proven; current cron job cannot be inspected with available non-interactive read-only DB tooling; no deployed vault/secret-storage mechanism confirmed for pg_cron header use.
+* Next recommended skill: security-hardening-review-skill / scheduler secret storage design.
+* Exact next action: approve scheduler secret storage design.
+* Whether John is needed: Yes for scheduler secret storage design..
+
+## 2026-06-16 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: scheduler-vault-design-apply. Scheduler Vault design/apply permitted only to load local env values without printing them, use a DB URL without printing it, prove psql/Vault/pg_cron/pg_net/current-job capability, create or update one Vault secret, replace only import-reddit-tips-daily with a Vault-backed x-import-reddit-tips-secret header, and stop before runtime success verification. No function deploy, db push, migration application, unrelated SQL, app table writes, pet_tips writes, Edge Function success invoke, admin success request, Git push/PR/merge, token/secret/DB URL printing, target-repo secret write, or excluded-file staging.
+* Current status: Needs John: psql unavailable for non-interactive DB inspection.
+* Selected skill: security-hardening-review-skill / scheduler Vault design and apply gate.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-vault-design-apply`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md; scheduler Vault repo branch: main; scheduler Vault git status: ?? evidence/
+?? supabase/.temp/; scheduler Vault recent log: 7eeea04 Prepare import reddit tips Supabase execution packet; untracked target repo paths excluded from scheduler Vault gate: ?? evidence/; ?? supabase/.temp/; scheduler Vault env SUPABASE_ACCESS_TOKEN: set; scheduler Vault env SUPABASE_PROJECT_REF: set; scheduler Vault env IMPORT_REDDIT_TIPS_SECRET: set; scheduler Vault env SUPABASE_DB_URL: set; scheduler Vault env DATABASE_URL: not set; scheduler Vault env project ref matches viwxxjnehceedyctevau; scheduler Vault DB URL source: SUPABASE_DB_URL; psql availability: unavailable.
+* Blockers: psql unavailable for non-interactive DB inspection.
+* Next recommended skill: security-hardening-review-skill / scheduler secret storage design.
+* Exact next action: install psql locally or provide an approved non-interactive SQL tool.
+* Whether John is needed: Yes to install psql locally or approve another non-interactive SQL tool..
+
+## 2026-06-16 - psql Setup Boundary
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Set up local `psql` client tooling, then rerun the scheduler Vault design/apply gate only if tooling becomes available.
+* Current permission level: PostgreSQL client tooling setup only; no target repo install, function deploy, `supabase db push`, migration apply, unrelated SQL, app table write, `pet_tips` write, Edge Function success invocation, Git push, PR, merge, or deploy.
+* Current status: NEEDS JOHN: sudo password required to install psql.
+* Selected skill: coding-workflow-orchestrator-skill / scheduler Vault design and apply gate.
+* Last commands run: `command -v psql || true`; `psql --version || true`; `uname -a || true`; `cat /etc/os-release 2>/dev/null || true`; package-manager discovery commands; `sudo apt-get update`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: `psql` was not found; OS is Ubuntu 24.04 on WSL2; `apt-get` exists; `sudo` exists; `brew`, `apk`, `dnf`, and `yum` were not found; `sudo apt-get update` stopped because sudo requires an interactive password.
+* Blockers: sudo password required to install `postgresql-client`.
+* Next recommended skill: coding-workflow-orchestrator-skill / scheduler Vault design and apply gate.
+* Exact next action: install `postgresql-client` locally with sudo, then rerun `./scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-vault-design-apply`.
+* Whether John is needed: Yes to enter the sudo password locally or install `psql` outside this agent session.
+
+## 2026-06-16 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: scheduler-vault-design-apply. Scheduler Vault design/apply permitted only to load local env values without printing them, use a DB URL without printing it, prove psql/Vault/pg_cron/pg_net/current-job capability, create or update one Vault secret, replace only import-reddit-tips-daily with a Vault-backed x-import-reddit-tips-secret header, and stop before runtime success verification. No function deploy, db push, migration application, unrelated SQL, app table writes, pet_tips writes, Edge Function success invoke, admin success request, Git push/PR/merge, token/secret/DB URL printing, target-repo secret write, or excluded-file staging.
+* Current status: NEEDS JOHN.
+* Selected skill: coding-workflow-orchestrator-skill.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-vault-design-apply`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md.
+* Blockers: unknown ledger status: NEEDS JOHN: sudo password required to install psql.
+* Next recommended skill: coding-workflow-orchestrator-skill.
+* Exact next action: unknown ledger status: NEEDS JOHN: sudo password required to install psql.
+* Whether John is needed: Yes for the next permission boundary..
+
+## 2026-06-16 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: scheduler-vault-design-apply. Scheduler Vault design/apply permitted only to load local env values without printing them, use a DB URL without printing it, prove psql/Vault/pg_cron/pg_net/current-job capability, create or update one Vault secret, replace only import-reddit-tips-daily with a Vault-backed x-import-reddit-tips-secret header, and stop before runtime success verification. No function deploy, db push, migration application, unrelated SQL, app table writes, pet_tips writes, Edge Function success invoke, admin success request, Git push/PR/merge, token/secret/DB URL printing, target-repo secret write, or excluded-file staging.
+* Current status: Scheduler blocked: Vault/pg_cron/pg_net capability not proven.
+* Selected skill: security-hardening-review-skill / scheduler Vault design and apply gate.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-vault-design-apply`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md; scheduler Vault repo branch: main; scheduler Vault git status: ?? evidence/
+?? supabase/.temp/; scheduler Vault recent log: 7eeea04 Prepare import reddit tips Supabase execution packet; untracked target repo paths excluded from scheduler Vault gate: ?? evidence/; ?? supabase/.temp/; scheduler Vault env SUPABASE_ACCESS_TOKEN: set; scheduler Vault env SUPABASE_PROJECT_REF: set; scheduler Vault env IMPORT_REDDIT_TIPS_SECRET: set; scheduler Vault env SUPABASE_DB_URL: set; scheduler Vault env DATABASE_URL: not set; scheduler Vault env project ref matches viwxxjnehceedyctevau; scheduler Vault DB URL source: SUPABASE_DB_URL; psql availability: psql (PostgreSQL) 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1); psql read-only capability discovery: failed; Vault capability psql connection: failed; Vault capability schemas: cron=no, net=no, vault=no; Vault capability functions: cron.schedule=no, cron.unschedule=no, net.http_post=no, vault.create_secret=no, vault.update_secret=no; Vault capability tables/views: cron.job=no, vault.secrets=no, vault.decrypted_secrets=no; current import-reddit-tips-daily job: not found; scheduler Vault safe path decision: SAFE PATH NOT PROVEN; scheduler Vault blockers: psql could not connect non-interactively; cron schema not proven; cron.schedule not proven; cron.unschedule not proven; net schema not proven; net.http_post not proven; vault schema not proven; vault.create_secret not proven; vault.update_secret not proven; vault.secrets table not proven for idempotent update; vault.decrypted_secrets view not proven; current import-reddit-tips-daily job/schedule not proven.
+* Blockers: psql could not connect non-interactively; cron schema not proven; cron.schedule not proven; cron.unschedule not proven; net schema not proven; net.http_post not proven; vault schema not proven; vault.create_secret not proven; vault.update_secret not proven; vault.secrets table not proven for idempotent update; vault.decrypted_secrets view not proven; current import-reddit-tips-daily job/schedule not proven.
+* Next recommended skill: security-hardening-review-skill / scheduler secret storage design.
+* Exact next action: approve manual Vault/dashboard scheduler path.
+* Whether John is needed: Yes for manual Vault/dashboard scheduler path or capability provisioning..
+
+## 2026-06-16 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: scheduler-vault-design-apply. Scheduler Vault design/apply permitted only to load local env values without printing them, use a DB URL without printing it, prove psql/Vault/pg_cron/pg_net/current-job capability, create or update one Vault secret, replace only import-reddit-tips-daily with a Vault-backed x-import-reddit-tips-secret header, and stop before runtime success verification. No function deploy, db push, migration application, unrelated SQL, app table writes, pet_tips writes, Edge Function success invoke, admin success request, Git push/PR/merge, token/secret/DB URL printing, target-repo secret write, or excluded-file staging.
+* Current status: Scheduler blocked: Vault/pg_cron/pg_net capability not proven.
+* Selected skill: security-hardening-review-skill / scheduler Vault design and apply gate.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-vault-design-apply`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md; scheduler Vault repo branch: main; scheduler Vault git status: ?? evidence/
+?? supabase/.temp/; scheduler Vault recent log: 7eeea04 Prepare import reddit tips Supabase execution packet; untracked target repo paths excluded from scheduler Vault gate: ?? evidence/; ?? supabase/.temp/; scheduler Vault env SUPABASE_ACCESS_TOKEN: set; scheduler Vault env SUPABASE_PROJECT_REF: set; scheduler Vault env IMPORT_REDDIT_TIPS_SECRET: set; scheduler Vault env SUPABASE_DB_URL: set; scheduler Vault env DATABASE_URL: not set; scheduler Vault env project ref matches viwxxjnehceedyctevau; scheduler Vault DB URL source: SUPABASE_DB_URL; psql availability: psql (PostgreSQL) 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1); psql read-only capability discovery: failed; Vault capability psql connection: failed; Vault capability schemas: cron=no, net=no, vault=no; Vault capability functions: cron.schedule=no, cron.unschedule=no, net.http_post=no, vault.create_secret=no, vault.update_secret=no; Vault capability tables/views: cron.job=no, vault.secrets=no, vault.decrypted_secrets=no; current import-reddit-tips-daily job: not found; scheduler Vault safe path decision: SAFE PATH NOT PROVEN; scheduler Vault blockers: psql could not connect non-interactively; cron schema not proven; cron.schedule not proven; cron.unschedule not proven; net schema not proven; net.http_post not proven; vault schema not proven; vault.create_secret not proven; vault.update_secret not proven; vault.secrets table not proven for idempotent update; vault.decrypted_secrets view not proven; current import-reddit-tips-daily job/schedule not proven.
+* Blockers: psql could not connect non-interactively; cron schema not proven; cron.schedule not proven; cron.unschedule not proven; net schema not proven; net.http_post not proven; vault schema not proven; vault.create_secret not proven; vault.update_secret not proven; vault.secrets table not proven for idempotent update; vault.decrypted_secrets view not proven; current import-reddit-tips-daily job/schedule not proven.
+* Next recommended skill: security-hardening-review-skill / scheduler secret storage design.
+* Exact next action: approve manual Vault/dashboard scheduler path.
+* Whether John is needed: Yes for manual Vault/dashboard scheduler path or capability provisioning..
+
+## 2026-06-16 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: scheduler-vault-design-apply. Scheduler Vault design/apply permitted only to load local env values without printing them, use a DB URL without printing it, prove psql/Vault/pg_cron/pg_net/current-job capability, create or update one Vault secret, replace only import-reddit-tips-daily with a Vault-backed x-import-reddit-tips-secret header, and stop before runtime success verification. No function deploy, db push, migration application, unrelated SQL, app table writes, pet_tips writes, Edge Function success invoke, admin success request, Git push/PR/merge, token/secret/DB URL printing, target-repo secret write, or excluded-file staging.
+* Current status: Scheduler blocked: Vault/pg_cron/pg_net capability not proven.
+* Selected skill: security-hardening-review-skill / scheduler Vault design and apply gate.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-vault-design-apply`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md; scheduler Vault repo branch: main; scheduler Vault git status: ?? evidence/
+?? supabase/.temp/; scheduler Vault recent log: 7eeea04 Prepare import reddit tips Supabase execution packet; untracked target repo paths excluded from scheduler Vault gate: ?? evidence/; ?? supabase/.temp/; scheduler Vault env SUPABASE_ACCESS_TOKEN: set; scheduler Vault env SUPABASE_PROJECT_REF: set; scheduler Vault env IMPORT_REDDIT_TIPS_SECRET: set; scheduler Vault env SUPABASE_DB_URL: set; scheduler Vault env DATABASE_URL: not set; scheduler Vault env project ref matches viwxxjnehceedyctevau; scheduler Vault DB URL source: SUPABASE_DB_URL; psql availability: psql (PostgreSQL) 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1); psql read-only capability discovery: failed; Vault capability psql connection: failed; Vault capability schemas: cron=no, net=no, vault=no; Vault capability functions: cron.schedule=no, cron.unschedule=no, net.http_post=no, vault.create_secret=no, vault.update_secret=no; Vault capability tables/views: cron.job=no, vault.secrets=no, vault.decrypted_secrets=no; current import-reddit-tips-daily job: not found; scheduler Vault safe path decision: SAFE PATH NOT PROVEN; scheduler Vault blockers: psql could not connect non-interactively; cron schema not proven; cron.schedule not proven; cron.unschedule not proven; net schema not proven; net.http_post not proven; vault schema not proven; vault.create_secret not proven; vault.update_secret not proven; vault.secrets table not proven for idempotent update; vault.decrypted_secrets view not proven; current import-reddit-tips-daily job/schedule not proven.
+* Blockers: psql could not connect non-interactively; cron schema not proven; cron.schedule not proven; cron.unschedule not proven; net schema not proven; net.http_post not proven; vault schema not proven; vault.create_secret not proven; vault.update_secret not proven; vault.secrets table not proven for idempotent update; vault.decrypted_secrets view not proven; current import-reddit-tips-daily job/schedule not proven.
+* Next recommended skill: security-hardening-review-skill / scheduler secret storage design.
+* Exact next action: approve manual Vault/dashboard scheduler path.
+* Whether John is needed: Yes for manual Vault/dashboard scheduler path or capability provisioning..
+
+## 2026-06-16 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: scheduler-vault-design-apply. Scheduler Vault design/apply permitted only to load local env values without printing them, use a DB URL without printing it, prove psql/Vault/pg_cron/pg_net/current-job capability, create or update one Vault secret, replace only import-reddit-tips-daily with a Vault-backed x-import-reddit-tips-secret header, and stop before runtime success verification. No function deploy, db push, migration application, unrelated SQL, app table writes, pet_tips writes, Edge Function success invoke, admin success request, Git push/PR/merge, token/secret/DB URL printing, target-repo secret write, or excluded-file staging.
+* Current status: Scheduler blocked: Vault/pg_cron/pg_net capability not proven.
+* Selected skill: security-hardening-review-skill / scheduler Vault design and apply gate.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-vault-design-apply`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md; scheduler Vault repo branch: main; scheduler Vault git status: ?? evidence/
+?? supabase/.temp/; scheduler Vault recent log: 7eeea04 Prepare import reddit tips Supabase execution packet; untracked target repo paths excluded from scheduler Vault gate: ?? evidence/; ?? supabase/.temp/; scheduler Vault env SUPABASE_ACCESS_TOKEN: set; scheduler Vault env SUPABASE_PROJECT_REF: set; scheduler Vault env IMPORT_REDDIT_TIPS_SECRET: set; scheduler Vault env SUPABASE_DB_URL: set; scheduler Vault env DATABASE_URL: not set; scheduler Vault env project ref matches viwxxjnehceedyctevau; scheduler Vault DB URL source: SUPABASE_DB_URL; psql availability: psql (PostgreSQL) 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1); psql read-only capability discovery: failed; psql read-only capability discovery error: psql: error: connection to server at "db.viwxxjnehceedyctevau.supabase.co" (2a05:d016:571:a409:9e38:ce19:8945:9f53), port 5432 failed: Network is unreachable; Vault capability psql connection: failed; Vault capability schemas: cron=no, net=no, vault=no; Vault capability functions: cron.schedule=no, cron.unschedule=no, net.http_post=no, vault.create_secret=no, vault.update_secret=no; Vault capability tables/views: cron.job=no, vault.secrets=no, vault.decrypted_secrets=no; current import-reddit-tips-daily job: not found; scheduler Vault safe path decision: SAFE PATH NOT PROVEN; scheduler Vault blockers: psql could not connect non-interactively; cron schema not proven; cron.schedule not proven; cron.unschedule not proven; net schema not proven; net.http_post not proven; vault schema not proven; vault.create_secret not proven; vault.update_secret not proven; vault.secrets table not proven for idempotent update; vault.decrypted_secrets view not proven; current import-reddit-tips-daily job/schedule not proven.
+* Blockers: psql could not connect non-interactively; cron schema not proven; cron.schedule not proven; cron.unschedule not proven; net schema not proven; net.http_post not proven; vault schema not proven; vault.create_secret not proven; vault.update_secret not proven; vault.secrets table not proven for idempotent update; vault.decrypted_secrets view not proven; current import-reddit-tips-daily job/schedule not proven.
+* Next recommended skill: security-hardening-review-skill / scheduler secret storage design.
+* Exact next action: approve manual Vault/dashboard scheduler path.
+* Whether John is needed: Yes for manual Vault/dashboard scheduler path or capability provisioning..
+
+## 2026-06-16 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: scheduler-vault-apply-retry. Scheduler Vault design/apply permitted only to load local env values without printing them, use a DB URL without printing it, prove psql/Vault/pg_cron/pg_net/current-job capability, create or update one Vault secret, replace only import-reddit-tips-daily with a Vault-backed x-import-reddit-tips-secret header, and stop before runtime success verification. No function deploy, db push, migration application, unrelated SQL, app table writes, pet_tips writes, Edge Function success invoke, admin success request, Git push/PR/merge, token/secret/DB URL printing, target-repo secret write, or excluded-file staging.
+* Current status: DB CONNECTIVITY BLOCKED.
+* Selected skill: security-hardening-review-skill / scheduler Vault design and apply gate.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-vault-apply-retry`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md; scheduler Vault repo branch: main; scheduler Vault git status: ?? evidence/
+?? supabase/.temp/; scheduler Vault recent log: 7eeea04 Prepare import reddit tips Supabase execution packet; untracked target repo paths excluded from scheduler Vault gate: ?? evidence/; ?? supabase/.temp/; scheduler Vault env SUPABASE_ACCESS_TOKEN: set; scheduler Vault env SUPABASE_PROJECT_REF: set; scheduler Vault env IMPORT_REDDIT_TIPS_SECRET: set; scheduler Vault env SUPABASE_DB_URL: set; scheduler Vault env DATABASE_URL: not set; scheduler Vault env project ref matches viwxxjnehceedyctevau; scheduler Vault DB URL source: SUPABASE_DB_URL; psql availability: psql (PostgreSQL) 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1); psql minimal DB connectivity test: failed; psql minimal DB connectivity test error: psql: error: connection to server at "db.viwxxjnehceedyctevau.supabase.co" (2a05:d016:571:a409:9e38:ce19:8945:9f53), port 5432 failed: Network is unreachable; psql minimal DB connectivity test: failed.
+* Blockers: DB CONNECTIVITY BLOCKED: psql: error: connection to server at "db.viwxxjnehceedyctevau.supabase.co" (2a05:d016:571:a409:9e38:ce19:8945:9f53), port 5432 failed: Network is unreachable.
+* Next recommended skill: security-hardening-review-skill / scheduler secret storage design.
+* Exact next action: provide an IPv4-reachable Supabase pooler DB URL.
+* Whether John is needed: Yes to provide or repair an IPv4-reachable Supabase pooler DB URL..
+
+## 2026-06-16 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: scheduler-vault-apply-retry. Scheduler Vault design/apply permitted only to load local env values without printing them, use a DB URL without printing it, prove psql/Vault/pg_cron/pg_net/current-job capability, create or update one Vault secret, replace only import-reddit-tips-daily with a Vault-backed x-import-reddit-tips-secret header, and stop before runtime success verification. No function deploy, db push, migration application, unrelated SQL, app table writes, pet_tips writes, Edge Function success invoke, admin success request, Git push/PR/merge, token/secret/DB URL printing, target-repo secret write, or excluded-file staging.
+* Current status: DB CONNECTIVITY BLOCKED.
+* Selected skill: security-hardening-review-skill / scheduler Vault design and apply gate.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-vault-apply-retry`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md; scheduler Vault repo branch: main; scheduler Vault git status: ?? evidence/
+?? supabase/.temp/; scheduler Vault recent log: 7eeea04 Prepare import reddit tips Supabase execution packet; untracked target repo paths excluded from scheduler Vault gate: ?? evidence/; ?? supabase/.temp/; scheduler Vault env SUPABASE_ACCESS_TOKEN: set; scheduler Vault env SUPABASE_PROJECT_REF: set; scheduler Vault env IMPORT_REDDIT_TIPS_SECRET: set; scheduler Vault env SUPABASE_DB_URL: set; scheduler Vault env DATABASE_URL: not set; scheduler Vault env project ref matches viwxxjnehceedyctevau; scheduler Vault DB URL source: SUPABASE_DB_URL; psql availability: psql (PostgreSQL) 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1); psql minimal DB connectivity test: failed; psql minimal DB connectivity test error: psql: error: connection to server at "db.viwxxjnehceedyctevau.supabase.co" (2a05:d016:571:a409:9e38:ce19:8945:9f53), port 5432 failed: Network is unreachable; psql minimal DB connectivity test: failed.
+* Blockers: DB CONNECTIVITY BLOCKED: psql: error: connection to server at "db.viwxxjnehceedyctevau.supabase.co" (2a05:d016:571:a409:9e38:ce19:8945:9f53), port 5432 failed: Network is unreachable.
+* Next recommended skill: security-hardening-review-skill / scheduler secret storage design.
+* Exact next action: provide an IPv4-reachable Supabase pooler DB URL.
+* Whether John is needed: Yes to provide or repair an IPv4-reachable Supabase pooler DB URL..
+
+## 2026-06-17 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: scheduler-vault-apply-retry. Scheduler Vault design/apply permitted only to load local env values without printing them, use a DB URL without printing it, prove psql/Vault/pg_cron/pg_net/current-job capability, create or update one Vault secret, replace only import-reddit-tips-daily with a Vault-backed x-import-reddit-tips-secret header, and stop before runtime success verification. No function deploy, db push, migration application, unrelated SQL, app table writes, pet_tips writes, Edge Function success invoke, admin success request, Git push/PR/merge, token/secret/DB URL printing, target-repo secret write, or excluded-file staging.
+* Current status: Scheduler blocked: Vault/pg_cron/pg_net capability not proven.
+* Selected skill: security-hardening-review-skill / scheduler Vault design and apply gate.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-vault-apply-retry`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md; scheduler Vault repo branch: main; scheduler Vault git status: ?? evidence/
+?? supabase/.temp/; scheduler Vault recent log: 7eeea04 Prepare import reddit tips Supabase execution packet; untracked target repo paths excluded from scheduler Vault gate: ?? evidence/; ?? supabase/.temp/; scheduler Vault env SUPABASE_ACCESS_TOKEN: set; scheduler Vault env SUPABASE_PROJECT_REF: set; scheduler Vault env IMPORT_REDDIT_TIPS_SECRET: set; scheduler Vault env SUPABASE_DB_URL: set; scheduler Vault env DATABASE_URL: not set; scheduler Vault env project ref matches viwxxjnehceedyctevau; scheduler Vault DB URL source: SUPABASE_DB_URL; psql availability: psql (PostgreSQL) 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1); scheduler Vault DB URL shape: SUPABASE_DB_URL appears to use pooler host; psql minimal DB connectivity test: ok; Vault capability psql connection: ok; Vault capability schemas: cron=yes, net=yes, vault=yes; Vault capability functions: cron.schedule=yes, cron.unschedule=yes, net.http_post=yes, vault.create_secret=yes, vault.update_secret=yes; Vault function signatures: vault.create_secret(new_secret text, new_name text DEFAULT NULL::text, new_description text DEFAULT ''::text, new_key_id uuid DEFAULT NULL::uuid); vault.update_secret(secret_id uuid, new_secret text DEFAULT NULL::text, new_name text DEFAULT NULL::text, new_description text DEFAULT NULL::text, new_key_id uuid DEFAULT NULL::uuid); Vault capability tables/views: cron.job=yes, vault.secrets=yes, vault.decrypted_secrets=yes; current import-reddit-tips-daily job: found with schedule 0 8 * * *; scheduler Vault safe path decision: SAFE PATH PROVEN; temporary Vault secret SQL file created outside target repo; psql Vault secret create/update via temp SQL file: failed; psql Vault secret create/update via temp SQL file error: psql:/home/johnh/.openclaw/tmp/scheduler-vault-secret-2813429-1781669726835.sql:20: ERROR:  syntax error at or near ":"; temporary Vault secret SQL file removal verification: absent.
+* Blockers: Vault secret create/update failed: psql:/home/johnh/.openclaw/tmp/scheduler-vault-secret-2813429-1781669726835.sql:20: ERROR:  syntax error at or near ":".
+* Next recommended skill: security-hardening-review-skill / scheduler secret storage design.
+* Exact next action: approve manual Vault/dashboard scheduler path.
+* Whether John is needed: Yes for manual Vault/dashboard scheduler path or capability provisioning..
+
+## 2026-06-17 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: scheduler-vault-apply-retry. Scheduler Vault design/apply permitted only to load local env values without printing them, use a DB URL without printing it, prove psql/Vault/pg_cron/pg_net/current-job capability, create or update one Vault secret, replace only import-reddit-tips-daily with a Vault-backed x-import-reddit-tips-secret header, and stop before runtime success verification. No function deploy, db push, migration application, unrelated SQL, app table writes, pet_tips writes, Edge Function success invoke, admin success request, Git push/PR/merge, token/secret/DB URL printing, target-repo secret write, or excluded-file staging.
+* Current status: Scheduler applied via Vault, runtime not verified.
+* Selected skill: security-hardening-review-skill / scheduler Vault design and apply gate.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-vault-apply-retry`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md; scheduler Vault repo branch: main; scheduler Vault git status: ?? evidence/
+?? supabase/.temp/; scheduler Vault recent log: 7eeea04 Prepare import reddit tips Supabase execution packet; untracked target repo paths excluded from scheduler Vault gate: ?? evidence/; ?? supabase/.temp/; scheduler Vault env SUPABASE_ACCESS_TOKEN: set; scheduler Vault env SUPABASE_PROJECT_REF: set; scheduler Vault env IMPORT_REDDIT_TIPS_SECRET: set; scheduler Vault env SUPABASE_DB_URL: set; scheduler Vault env DATABASE_URL: not set; scheduler Vault env project ref matches viwxxjnehceedyctevau; scheduler Vault DB URL source: SUPABASE_DB_URL; psql availability: psql (PostgreSQL) 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1); scheduler Vault DB URL shape: SUPABASE_DB_URL appears to use pooler host; psql minimal DB connectivity test: ok; Vault capability psql connection: ok; Vault capability schemas: cron=yes, net=yes, vault=yes; Vault capability functions: cron.schedule=yes, cron.unschedule=yes, net.http_post=yes, vault.create_secret=yes, vault.update_secret=yes; Vault function signatures: vault.create_secret(new_secret text, new_name text DEFAULT NULL::text, new_description text DEFAULT ''::text, new_key_id uuid DEFAULT NULL::uuid); vault.update_secret(secret_id uuid, new_secret text DEFAULT NULL::text, new_name text DEFAULT NULL::text, new_description text DEFAULT NULL::text, new_key_id uuid DEFAULT NULL::uuid); Vault capability tables/views: cron.job=yes, vault.secrets=yes, vault.decrypted_secrets=yes; current import-reddit-tips-daily job: found with schedule 0 8 * * *; scheduler Vault safe path decision: SAFE PATH PROVEN; temporary Vault secret SQL file created outside target repo; temporary Vault secret SQL file removal verification: absent; post-application scheduler metadata query: ok; post-application scheduler command header present: yes; post-application scheduler command vault reference present: yes; post-application scheduler command literal secret present: no; post-application scheduler command long literal concern: no; scheduler Vault safe path decision: SAFE PATH PROVEN; scheduler Vault secret upsert result: succeeded without printing secret value; scheduler cron apply result: import-reddit-tips-daily replaced with Vault-backed header; scheduler post-application command check: header and vault reference present; literal secret not found.
+* Blockers: None for Vault-backed scheduler application. Valid scheduler success verification, admin success request, successful import/write path, deployed RLS/grants verification, and production confidence remain gated..
+* Next recommended skill: cloudflare-deploy-skill / controlled scheduler success verification.
+* Exact next action: approve runtime verification only.
+* Whether John is needed: Yes for runtime verification only, admin success request, deployed RLS/grants verification, or hold..
+
+## 2026-06-17 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: function-secret-deploy-negative-runtime. Function secret/deploy/negative-runtime gate permitted only to load local env without printing values, set remote IMPORT_REDDIT_TIPS_SECRET through a temporary env file, deploy only import-reddit-tips, run non-mutating OPTIONS/non-POST/no-auth/invalid-secret/anon-only runtime checks, and stop before any real success import. No db push, migration application, SQL, scheduler mutation, app table writes, pet_tips writes, valid scheduler/admin success request, Git push/PR/merge, token/secret/DB URL printing, target-repo secret write, or excluded-file staging.
+* Current status: Function deployed, negative runtime verified, success path not run.
+* Selected skill: cloudflare-deploy-skill / Edge Function secret, deploy, and negative runtime gate.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow function-secret-deploy-negative-runtime`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md; function deploy/runtime repo branch: main; function deploy/runtime git status: ?? evidence/
+?? supabase/.temp/; function deploy/runtime recent log: 7eeea04 Prepare import reddit tips Supabase execution packet; untracked target repo paths excluded from function deploy/runtime gate: ?? evidence/; ?? supabase/.temp/; import-reddit-tips function source exists; hardened boundary terms present: IMPORT_REDDIT_TIPS_SECRET, x-import-reddit-tips-secret, is_admin, rateLimit, SUPABASE_SERVICE_ROLE_KEY; import-reddit-tips runtime source inspected; runtime auth-boundary terms present: OPTIONS, POST, x-import-reddit-tips-secret, IMPORT_REDDIT_TIPS_SECRET, is_admin, rateLimit, SUPABASE_SERVICE_ROLE_KEY, pet_tips; function dry-run/no-write source decision: no true no-write dry-run mode proven; normal success path can insert published pet_tips; combined gate env SUPABASE_ACCESS_TOKEN: set; combined gate env SUPABASE_PROJECT_REF: set; combined gate env IMPORT_REDDIT_TIPS_SECRET: set; combined gate env anon key available: yes; combined gate project ref matches viwxxjnehceedyctevau; combined gate npx Supabase version result: 2.106.0; combined gate Supabase project access result: project ref viwxxjnehceedyctevau appears in read-only projects list; Supabase secrets set --help inspected: ok; Supabase secrets set --env-file support: yes; temporary secret env file created outside target repo; temporary secret env file removal verification: absent; temporary secret env file removed; remote IMPORT_REDDIT_TIPS_SECRET set via env-file; import-reddit-tips Edge Function deploy command exited 0; combined runtime endpoint: https://viwxxjnehceedyctevau.supabase.co/functions/v1/import-reddit-tips; OPTIONS result: HTTP/2 200; PASS; GET/non-POST result: HTTP/2 405; PASS; POST without auth result: HTTP/2 401; PASS; POST invalid scheduler secret result: HTTP/2 403; PASS; POST anon-only result: HTTP/2 401; PASS; SUCCESS PATH NOT RUN: no no-write verification mode proven.
+* Blockers: None for remote secret setup, import-reddit-tips deploy, and negative runtime checks. Valid scheduler/admin success invocation, pet_tips write-path proof, deployed RLS/grants verification, and production confidence remain gated..
+* Next recommended skill: cloudflare-deploy-skill / controlled success invocation or scheduled-run observation.
+* Exact next action: approve controlled success invocation or wait for scheduled run.
+* Whether John is needed: Yes for controlled success invocation, waiting for scheduled run, deployed RLS/grants verification, production confidence, or hold..
+
+## 2026-06-17 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: controlled-success-invocation. Controlled scheduler-path success invocation permitted only to load local env without printing values, use SUPABASE_DB_URL for read-only before/after pet_tips metadata, run exactly one valid scheduler-secret POST to import-reddit-tips, and stop. No deploy, db push, migration application, scheduler mutation, SQL writes, manual pet_tips insert/update/delete, admin success invocation, repeated success invocation, Git push/PR/merge, token/secret/DB URL printing, target-repo secret write, or excluded-file staging.
+* Current status: Controlled success invocation completed.
+* Selected skill: cloudflare-deploy-skill / controlled scheduler-path success invocation.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow controlled-success-invocation`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read tools.md; read work-ledger.md; controlled invocation repo branch: main; controlled invocation git status: ?? evidence/
+?? supabase/.temp/; controlled invocation recent log: 7eeea04 Prepare import reddit tips Supabase execution packet; untracked target repo paths excluded from controlled invocation: ?? evidence/; ?? supabase/.temp/; controlled invocation env SUPABASE_PROJECT_REF: set; controlled invocation env IMPORT_REDDIT_TIPS_SECRET: set; controlled invocation env SUPABASE_DB_URL: set; controlled invocation project ref matches viwxxjnehceedyctevau; psql availability: psql (PostgreSQL) 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1); before pet_tips count=0; columns inspected=12; safe recent metadata=no rows returned; controlled invocation endpoint: https://viwxxjnehceedyctevau.supabase.co/functions/v1/import-reddit-tips; controlled scheduler success invocation attempted exactly once; controlled scheduler success invocation result: HTTP 200; PASS; after pet_tips count=0; columns inspected=12; safe recent metadata=no rows returned; pet_tips count delta: +0.
+* Blockers: None for the one controlled scheduler-path success invocation. Scheduled-run monitoring, deployed RLS/grants verification, and final production handoff remain gated..
+* Next recommended skill: cloudflare-deploy-skill / scheduled-run monitoring or production handoff.
+* Exact next action: approve scheduled-run monitoring or final production handoff.
+* Whether John is needed: Yes for scheduled-run monitoring, deployed RLS/grants verification, final production handoff, or hold..
+
+## 2026-06-17 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/wagging-web-wins`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: scheduled-run-monitoring-handoff. Scheduled-run monitoring and production handoff prep permitted only to load local env without printing values, use SUPABASE_DB_URL for read-only scheduler metadata, cron history, and pet_tips metadata, inspect source/docs, and stop. No Edge Function invocation, production endpoint call, deploy, db push, migration application, SQL write, scheduler mutation, app table write, pet_tips mutation, Git push/PR/merge, token/secret/DB URL printing, target-repo secret write, or excluded-file staging.
+* Current status: Scheduled run pending, production handoff ready.
+* Selected skill: cloudflare-deploy-skill / scheduled-run monitoring and production handoff.
+* Last commands run: `scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduled-run-monitoring-handoff`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; scheduled monitoring repo branch: main; scheduled monitoring git status: ?? evidence/
+?? supabase/.temp/; scheduled monitoring recent log: 7eeea04 Prepare import reddit tips Supabase execution packet; untracked target repo paths excluded from scheduled monitoring: ?? evidence/; ?? supabase/.temp/; scheduled monitoring env SUPABASE_PROJECT_REF: set; scheduled monitoring env SUPABASE_DB_URL: set; scheduled monitoring project ref matches viwxxjnehceedyctevau; psql availability: psql (PostgreSQL) 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1); scheduled monitoring scheduler metadata: jobid=2; jobname=import-reddit-tips-daily; schedule=0 8 * * *; active=true; scheduled monitoring cron run history: jobid=2; status=succeeded; start=2026-06-17 08:00:00.192594+00; end=2026-06-17 08:00:00.322881+00; handoff pet_tips count=0; columns inspected=12; safe recent metadata=no rows returned; scheduled monitoring source/docs evidence: 27 source/docs evidence lines; terms present: IMPORT_REDDIT_TIPS_SECRET, x-import-reddit-tips-secret, scheduler, deployed, pet_tips, rateLimit, is_admin.
+* Blockers: None for read-only scheduled-run monitoring and production handoff prep. Deployed RLS/grants verification and any future runtime invocation remain gated..
+* Next recommended skill: cloudflare-deploy-skill / scheduled-run monitoring and production handoff.
+* Exact next action: wait for next scheduled run and recheck monitoring.
+* Whether John is needed: Yes to wait for next scheduled run and recheck monitoring, finalize production handoff, verify deployed RLS/grants, or hold..
+
+## 2026-06-17 - Full Skill Inventory and Backlog Recovery
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Recover the full local skill roadmap after the Supabase/Wagging Web Wins lane and classify built, embedded, missing, paused, product-specific, and hold lanes.
+* Current permission level: inventory, classification, backlog recovery, local skill stubs, library docs updates, and validation only. No target repo edits, Supabase commands, GitHub mutations, deployments, secrets, migrations, production endpoint calls, or broad missing-skill builds.
+* Current status: Roadmap recovered; immediate queue reset.
+* Selected skill: coding-workflow-orchestrator-skill / skill-cleaner-skill / session-log-extraction-skill style recovery pass.
+* Last commands run: library control-file reads; `find skill-files -maxdepth 1 -type f`; skill frontmatter inventory via Node; `grep` across `scripts/run-next`, `build-queue.md`, `work-ledger.md`, `runs/skill-runs.md`, and `skill-files`.
+* Files changed: `build-queue.md`; `skills-index.md`; `skill-files/evidence-pack-builder-skill.md`; `skill-files/npm-package-readiness-skill.md`; `work-ledger.md`; `runs/skill-runs.md`.
+* Validation evidence: `./scripts/skill-cleaner` passed with 21 skills scanned, 19 active, 2 draft, no duplicate names, and no missing index references; `./scripts/validate-skills` passed with 115 files checked, 21 skills checked, 0 errors, and 0 warnings.
+* Blockers: None for roadmap recovery. Runtime verification, npm package readiness, evidence-pack automation, and GitHub lifecycle hardening remain separate future work.
+* Next recommended skill: evidence-pack-builder-skill.
+* Exact next action: build evidence-pack-builder-skill.
+* Whether John is needed: Yes for the next focused build run or to return to scheduled-run recheck.
+
+## 2026-06-17 - Local Verification and Release Evidence Bundle
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Build the combined local verification and release evidence bundle.
+* Current permission level: local skills-library edits and local validation only. No target repo edits, Supabase commands, GitHub mutations, deploys, npm publish, pushes, PRs, secret reads, Cloudflare deploys, or production endpoint calls.
+* Current status: Local verification and release evidence bundle built.
+* Selected skill: skill-creator / evidence-pack-builder-skill / npm-package-readiness-skill / release-preflight-skill.
+* Last commands run: required control-file reads; `test -f skill-files/release-preflight-skill.md`; `ls -la scripts`; `chmod +x scripts/evidence-pack scripts/npm-package-readiness scripts/release-preflight`; `node --check scripts/evidence-pack`; `node --check scripts/npm-package-readiness`; `node --check scripts/release-preflight`; `./scripts/skill-cleaner`; `./scripts/validate-skills`.
+* Files changed: `skill-files/evidence-pack-builder-skill.md`; `skill-files/npm-package-readiness-skill.md`; `skill-files/release-preflight-skill.md`; `scripts/evidence-pack`; `scripts/npm-package-readiness`; `scripts/release-preflight`; `skills-index.md`; `README.md`; `RUNBOOK.md`; `tools.md`; `command-library.md`; `evidence-checklist.md`; `build-queue.md`; `work-ledger.md`; `runs/skill-runs.md`.
+* Validation evidence: all three new scripts passed `node --check`; `./scripts/skill-cleaner` passed with 22 active skills, 0 draft skills, no duplicate names, and no missing index references; `./scripts/validate-skills` passed with 117 files checked, 22 skills checked, 0 errors, and 0 warnings.
+* Blockers: None for local bundle creation. The bundle has not yet been run against the skills library itself beyond syntax and library validation checks.
+* Next recommended skill: release-preflight-skill.
+* Exact next action: run bundle against the skills library itself.
+* Whether John is needed: Yes for running the bundle against the skills library itself, writing a real evidence pack, or any publish/tag/push/deploy gate.
+
+## 2026-06-17 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: verification-bundle-self-test. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: Verification bundle self-test complete.
+* Selected skill: release-preflight-skill / verification bundle autonomous self-test.
+* Last commands run: `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow verification-bundle-self-test`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; verification bundle target repo: /home/johnh/.openclaw/skills/coding-workflow-library; evidence pack mode: dry-run; release boundary: no npm publish, npm version, git tag, git push, GitHub release, deploy, remote mutation, secret read, or production call is permitted in this route; npm package readiness command exit: 0; npm package readiness final classification: FAIL; release preflight command exit: 0; release preflight final classification: FAIL; evidence pack command exit: 0; evidence pack wrote files: no, dry-run mode; script syntax checks: passed; skill-cleaner exit: 0; validate-skills exit: 0; validate-skills result: PASS.
+* Blockers: verification bundle self-test ran safely; npm readiness=FAIL; release preflight=FAIL; evidence pack mode=dry-run.
+* Next recommended skill: release-preflight-skill.
+* Exact next action: approve evidence-pack write test or route next immediate skill bundle.
+* Whether John is needed: Yes for the next permission boundary..
+
+## 2026-06-17 - Verification Bundle Autonomous Integration
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Wire the local verification/release evidence bundle into `scripts/run-next`, document the route, run the autonomous self-test, and preserve the next permission boundary.
+* Current permission level: local skills-library edits, runner self-test, dry-run evidence-pack mode, docs/index/queue updates, ledger/run-log updates, and validation only. No target repo edits outside the skills library, no Supabase commands, no GitHub mutations, no deploys, no npm publish, no tags, no pushes, no PRs, no secret reads, no Cloudflare deploys, and no production endpoint calls.
+* Current status: Verification bundle self-test complete.
+* Selected skill: coding-workflow-orchestrator-skill / release-preflight-skill / evidence-pack-builder-skill / npm-package-readiness-skill.
+* Last commands run: `node --check scripts/run-next`; `./scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow verification-bundle-self-test`; `./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow verification-bundle-self-test`.
+* Files changed: `scripts/run-next`; `README.md`; `RUNBOOK.md`; `tools.md`; `command-library.md`; `evidence-checklist.md`; `skills-index.md`; `build-queue.md`; `skill-files/coding-workflow-orchestrator-skill.md`; `work-ledger.md`; `runs/skill-runs.md`.
+* Validation evidence: dry-run route selected `release-preflight-skill / verification bundle autonomous self-test`; real route ran npm readiness, release preflight, evidence-pack dry-run, helper syntax checks, skill-cleaner, and validate-skills; evidence-pack mode stayed dry-run; `validate-skills` reported PASS during the runner self-test.
+* Blockers: npm package readiness and release preflight classify this skills library as `FAIL` because it is not currently an npm package/release candidate; this is a classification weakness to harden, not an external side effect or runner failure.
+* Next recommended skill: release-preflight-skill.
+* Exact next action: approve evidence-pack write test or route next immediate skill bundle.
+* Whether John is needed: Yes for local evidence-pack write test, release preflight classification hardening, runtime-verification extraction, GitHub lifecycle hardening, or hold.
+
+## 2026-06-17 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: local-skill-workpack, evidence-pack-write. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: Local skill workpack complete.
+* Selected skill: coding-workflow-orchestrator-skill / local reusable skill workpack.
+* Last commands run: `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow local-skill-workpack --allow evidence-pack-write`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; local skill workpack target repo: /home/johnh/.openclaw/skills/coding-workflow-library; evidence packs before run: 0; boundary: no product repo edits, npm publish, npm version, tags, push, PR, deploy, Supabase, Cloudflare, secret reads, or production calls; npm readiness default exit: 0; classification: NOT_APPLICABLE; npm readiness expect-package exit: 0; classification: FAIL; release preflight local exit: 0; classification: NOT_APPLICABLE; release preflight npm exit: 0; classification: FAIL; failure-evidence exit: 0; classification line: unavailable; evidence pack command exit: 0; new evidence packs created: 1; evidence pack path: /home/johnh/.openclaw/skills/coding-workflow-library/evidence/20260618-000956-local-skill-workpack; script syntax checks: passed; skill-cleaner exit: 0; validate-skills exit: 0; validate-skills result: PASS.
+* Blockers: local skill workpack ran safely; npm default=NOT_APPLICABLE; npm expect-package=FAIL; release local=NOT_APPLICABLE; release npm=FAIL; evidence pack=20260618-000956-local-skill-workpack.
+* Next recommended skill: coding-workflow-orchestrator-skill.
+* Exact next action: route next immediate skill bundle.
+* Whether John is needed: Yes for the next permission boundary..
+
+## 2026-06-18 - Embedded Production Lane Extraction
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Extract proven embedded production routes from `scripts/run-next` into reusable skill files and local route metadata without touching product repos or live services.
+* Current permission level: local skills-library edits, route metadata, helper scripts, docs, validation, ledger update, and run-log update only. No product repo edits, Supabase commands, Cloudflare commands, GitHub mutations, npm publish, version changes, tags, pushes, PRs, deploys, secret value reads, production endpoints, or remote service mutation.
+* Current status: Embedded production lanes extracted into reusable routes.
+* Selected skill: skill-creator / coding-workflow-orchestrator-skill / route metadata extraction.
+* Last commands run: `chmod +x scripts/route-audit`; `node --check scripts/run-next`; `node --check scripts/evidence-pack`; `node --check scripts/failure-evidence`; `node --check scripts/npm-package-readiness`; `node --check scripts/release-preflight`; `node --check scripts/route-audit`; `./scripts/route-audit`; `./scripts/run-next --list-routes`; `./scripts/skill-cleaner`; `./scripts/validate-skills`.
+* Files changed: `skill-files/supabase-function-deploy-skill.md`; `skill-files/supabase-scheduler-vault-skill.md`; `skill-files/production-handoff-skill.md`; `routes/skill-routes.json`; `scripts/route-audit`; `scripts/validate-skills`; `scripts/run-next`; `README.md`; `RUNBOOK.md`; `tools.md`; `command-library.md`; `evidence-checklist.md`; `skills-index.md`; `build-queue.md`; `skill-files/coding-workflow-orchestrator-skill.md`; `work-ledger.md`; `runs/skill-runs.md`.
+* Validation evidence: route audit passed with 7 routes checked, 0 errors, 0 warnings; `scripts/run-next --list-routes` listed 7 routes; `scripts/skill-cleaner` scanned 26 active skills with no missing index references; `scripts/validate-skills` passed with 132 files checked, 26 skills checked, 0 errors, and 0 warnings.
+* Blockers: None for local extraction. `skill-cleaner` advisory warnings remain for long descriptions and long safety-critical skills; no merge, split, delete, deprecate, or live action was performed.
+* Next recommended skill: coding-workflow-orchestrator-skill.
+* Exact next action: route Cloudflare/Opstruth/packaging bundle or run scheduled-run recheck.
+* Whether John is needed: Yes for selecting the next lane or granting any live/product permission.
+
+## 2026-06-18 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: cloudflare-opstruth-packaging-bundle. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: Cloudflare Opstruth packaging routes extracted.
+* Selected skill: coding-workflow-orchestrator-skill / Cloudflare Opstruth packaging bundle.
+* Last commands run: `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cloudflare-opstruth-packaging-bundle`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; bundle target repo: /home/johnh/.openclaw/skills/coding-workflow-library; boundary: no product repo edits, Cloudflare deploy, Wrangler deploy, npm publish, npm version, tags, push, PR, Supabase command, secret read, production call, or remote service mutation; script syntax checks: passed; route audit exit: 0; result: PASS; route audit JSON exit: 0; library packaging readiness exit: 0; classification: WARN; release preflight local exit: 0; classification: WARN; skill-cleaner exit: 0; validate-skills exit: 0; validate-skills result: PASS.
+* Blockers: local bundle ran safely; route audit=PASS; packaging=WARN; release local=WARN; validate=PASS.
+* Next recommended skill: skills-library-packaging-skill / opstruth-runtime-truth-skill / cloudflare-deploy-skill.
+* Exact next action: run clean-temp package/open-source readiness smoke or scheduled-run recheck.
+* Whether John is needed: Yes for the next permission boundary..
+
+## 2026-06-18 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: clean-temp-readiness-smoke. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: Clean-temp readiness smoke complete.
+* Selected skill: skills-library-packaging-skill / clean-temp readiness smoke.
+* Last commands run: `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow clean-temp-readiness-smoke`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; clean temp path: /home/johnh/.openclaw/tmp/coding-workflow-library-smoke-20260618-120846; clean temp files copied: 103; clean temp excluded paths: .git, evidence; boundary: no product repo edits, deploy, publish, npm version, tags, push, PR, Supabase, Cloudflare, secret reads, production calls, or remote service mutation; temp route-audit exit: 0; result: PASS; temp run-next --list-routes exit: 0; temp library packaging default exit: 0; classification: PASS; temp library packaging open-source exit: 1; classification: FAIL; temp release preflight local exit: 0; classification: WARN; temp skill-cleaner exit: 0; temp validate-skills exit: 0; result: PASS; clean temp copy removed: yes.
+* Blockers: clean-temp smoke ran safely; route audit=PASS; packaging=PASS; open-source=FAIL; release local=WARN; validate=PASS; temp removed=yes.
+* Next recommended skill: skills-library-packaging-skill / opstruth-runtime-truth-skill.
+* Exact next action: choose licence/package path or run scheduled-run recheck.
+* Whether John is needed: Yes for the next permission boundary..
+
+## 2026-06-18 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: license-package-candidate. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: MIT licence and package candidate scaffold complete.
+* Selected skill: skills-library-packaging-skill / MIT licence and package candidate scaffold.
+* Last commands run: `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow license-package-candidate`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; license/package candidate repo: /home/johnh/.openclaw/skills/coding-workflow-library; boundary: no npm publish, npm version, git tag, git push, GitHub release, deploy, Supabase, Cloudflare, secret reads, production calls, or remote service mutation; LICENSE file: PASS; MIT license heading: PASS; John W.O.E copyright: PASS; LICENSE-DECISION.md: PASS; MIT decision recorded: PASS; package.json: PASS; package.json parse: PASS; package license: PASS; package version: PASS; package files allowlist: PASS; no CLI bin: PASS; changelog records MIT: PASS; library packaging open-source exit: 0; classification: PASS; library packaging npm exit: 0; classification: PASS; npm package readiness exit: 0; classification: WARN; release preflight local exit: 0; classification: WARN; remaining release blocker: NEEDS JOHN: confirm npm package name before publish.
+* Blockers: MIT license and package candidate scaffold verified; open-source=PASS; packaging-npm=PASS; npm-readiness=WARN; release-local=WARN.
+* Next recommended skill: skills-library-packaging-skill / npm-package-readiness-skill / production-handoff-skill.
+* Exact next action: confirm npm package name or run scheduled-run recheck.
+* Whether John is needed: Yes for the next permission boundary..
+
+## 2026-06-18 - Clean-Temp Package Candidate Smoke
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Prove the MIT-licensed package candidate scaffold validates from a clean temporary copy without hidden local state.
+* Current permission level: local-only clean-temp package candidate smoke. No publish, version, tag, push, PR, deploy, Supabase, Cloudflare, secret reads, production endpoint calls, or remote mutation.
+* Current status: MIT licence and package candidate scaffold complete.
+* Selected skill: skills-library-packaging-skill / npm-package-readiness-skill / release-preflight-skill.
+* Last commands run: temp-copy route audit, library packaging readiness `--expect-open-source`, npm package readiness `--expect-package`, release preflight local mode, skill cleanup, validation, temp cleanup.
+* Files changed: local library records only; no product repos or remote services touched.
+* Validation evidence: clean temp path `/home/johnh/.openclaw/tmp/coding-workflow-library-package-smoke-20260618-125626`; route audit PASS; open-source readiness PASS; npm package readiness WARN; release preflight local WARN; skill-cleaner advisory only; validate-skills PASS; clean temp copy removed.
+* Blockers: No open-source/package scaffold blocker remains. Remaining release blockers are `NEEDS JOHN: confirm npm package name before publish`, no CLI bin selected, no lockfile, no pack dry-run approval, and dirty working tree/local uncommitted library changes.
+* Next recommended skill: skills-library-packaging-skill / production-handoff-skill.
+* Exact next action: confirm npm package name or run scheduled-run recheck.
+* Whether John is needed: Yes for the next permission boundary.
+
+## 2026-06-18 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: package-candidate-dry-run. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: Package candidate dry-run complete.
+* Selected skill: skills-library-packaging-skill / npm-package-readiness-skill / release-preflight-skill.
+* Last commands run: `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow package-candidate-dry-run`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; package candidate dry-run repo: /home/johnh/.openclaw/skills/coding-workflow-library; boundary: no npm publish, npm version, git tag, git push, GitHub PR/release creation, deploy, Supabase, Cloudflare, secret reads, production calls, registry mutation, or remote service mutation; package.json exists: PASS; package.json parses: PASS; package name: PASS; package version: PASS; package license: PASS; package is publishable candidate: PASS; repository owner/name: PASS; files allowlist: PASS; no CLI bin: PASS; description says autonomous workflow: PASS; library packaging readiness npm exit: 0; classification: PASS; npm package readiness pack dry-run exit: 0; classification: WARN; release preflight npm exit: 0; classification: WARN; npm pack dry-run JSON exit: 0; files: 61; risky paths: none; clean temp package smoke path: /home/johnh/.openclaw/tmp/coding-workflow-library-smoke-20260618-212547-package-candidate; clean temp files copied: 105; clean temp npm pack dry-run exit: 0; files: 61; risky paths: none; clean temp package smoke removed: yes; route audit exit: 0; result: PASS; skill-cleaner exit: 0; validate-skills exit: 0; result: PASS; remaining publish blocker: NEEDS JOHN: confirm final npm package name availability and ownership before publish.
+* Blockers: package candidate dry-run passed locally; packaging=PASS; npm-readiness=WARN; release-npm=WARN; pack files=61; temp pack files=61; validate=PASS.
+* Next recommended skill: skills-library-packaging-skill / npm-package-readiness-skill / production-handoff-skill.
+* Exact next action: choose CLI entrypoint or run scheduled-run recheck.
+* Whether John is needed: Yes for the next permission boundary..
+
+## 2026-06-19 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: cli-package-smoke. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: CLI entrypoint package smoke blocked.
+* Selected skill: skills-library-packaging-skill / npm-package-readiness-skill / release-preflight-skill.
+* Last commands run: `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cli-package-smoke`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; CLI package smoke repo: /home/johnh/.openclaw/skills/coding-workflow-library; boundary: no npm publish, npm version, git tag, git push, GitHub PR/release creation, deploy, Supabase, Cloudflare, secret reads, production calls, registry mutation, or remote service mutation; package.json exists: PASS; package.json parses: PASS; package name: PASS; package version: PASS; package license: PASS; repository owner/name: PASS; CLI bin mapping: PASS; CLI bin file exists: PASS; CLI bin executable: PASS; package files allowlist includes bin: PASS; description says autonomous workflow: PASS; CLI/package script syntax checks: passed; local CLI help exit: 0; local CLI routes exit: 0; local CLI package-readiness exit: 0; classification: NOT_VERIFIED; local CLI release-preflight exit: 0; classification: WARN; library packaging readiness CLI exit: 0; classification: PASS; npm package readiness CLI pack dry-run exit: 0; classification: NOT_VERIFIED; release preflight CLI exit: 0; classification: WARN; npm pack dry-run JSON exit: 0; files: 62; CLI bin included: yes; risky paths: none; clean temp CLI smoke path: /home/johnh/.openclaw/tmp/coding-workflow-cli-smoke-20260619-052633; clean temp tarball created: yes; clean temp package files: 62; risky paths: none; clean temp npm install exit: 0; installed CLI help exit: 0; installed CLI routes exit: 0; installed CLI validate exit: 1; clean temp CLI smoke removed: yes; route audit exit: 0; result: PASS; skill-cleaner exit: 0; validate-skills exit: 0; result: PASS; remaining publish blocker: NEEDS JOHN: confirm final npm package name availability and ownership before publish.
+* Blockers: command failures: installed CLI validate; installed CLI command failed in clean temp consumer.
+* Next recommended skill: error-evidence-skill / npm-package-readiness-skill.
+* Exact next action: fix CLI package smoke blockers.
+* Whether John is needed: Yes for the next permission boundary..
+
+## 2026-06-19 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: cli-package-smoke. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: NEEDS JOHN.
+* Selected skill: coding-workflow-orchestrator-skill.
+* Last commands run: `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cli-package-smoke`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md.
+* Blockers: unknown ledger status: CLI entrypoint package smoke blocked.
+* Next recommended skill: coding-workflow-orchestrator-skill.
+* Exact next action: unknown ledger status: CLI entrypoint package smoke blocked.
+* Whether John is needed: Yes for the next permission boundary..
+
+## 2026-06-19 - CLI Entrypoint Package Smoke Retry
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Retry the local CLI entrypoint package smoke after fixing the package allowlist that blocked installed CLI validation.
+* Current permission level: cli-package-smoke. No publish, version, tag, push, PR, GitHub release, deploy, Supabase, Cloudflare, secret reads, production endpoint calls, registry mutation, remote dependency install, or remote mutation.
+* Current status: CLI entrypoint package smoke blocked.
+* Selected skill: skills-library-packaging-skill / npm-package-readiness-skill / release-preflight-skill.
+* Last commands run: package allowlist update, guarded manual local tarball install smoke, installed `coding-workflow validate`.
+* Files changed: local library package metadata and docs only; no product repos or remote services touched.
+* Validation evidence: guarded manual local tarball install smoke succeeded; installed `coding-workflow validate` returned PASS; manual temp folder removed; route audit retry mapping added.
+* Blockers: previous blocker fixed; official run-next retry still required to update ledger/run log.
+* Next recommended skill: skills-library-packaging-skill / npm-package-readiness-skill / release-preflight-skill.
+* Exact next action: rerun `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cli-package-smoke`.
+* Whether John is needed: No; John already granted local CLI/package smoke permission for this run.
+
+## 2026-06-19 - run-next Autonomous Work Loop
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: cli-package-smoke. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: CLI entrypoint package smoke complete.
+* Selected skill: skills-library-packaging-skill / npm-package-readiness-skill / release-preflight-skill.
+* Last commands run: `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cli-package-smoke`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; CLI package smoke repo: /home/johnh/.openclaw/skills/coding-workflow-library; boundary: no npm publish, npm version, git tag, git push, GitHub PR/release creation, deploy, Supabase, Cloudflare, secret reads, production calls, registry mutation, or remote service mutation; package.json exists: PASS; package.json parses: PASS; package name: PASS; package version: PASS; package license: PASS; repository owner/name: PASS; CLI bin mapping: PASS; CLI bin file exists: PASS; CLI bin executable: PASS; package files allowlist includes bin: PASS; description says autonomous workflow: PASS; CLI/package script syntax checks: passed; local CLI help exit: 0; local CLI routes exit: 0; local CLI package-readiness exit: 0; classification: NOT_VERIFIED; local CLI release-preflight exit: 0; classification: WARN; library packaging readiness CLI exit: 0; classification: PASS; npm package readiness CLI pack dry-run exit: 0; classification: NOT_VERIFIED; release preflight CLI exit: 0; classification: WARN; npm pack dry-run JSON exit: 0; files: 64; CLI bin included: yes; risky paths: none; clean temp CLI smoke path: /home/johnh/.openclaw/tmp/coding-workflow-cli-smoke-20260619-055705; clean temp tarball created: yes; clean temp package files: 64; risky paths: none; clean temp npm install exit: 0; installed CLI help exit: 0; installed CLI routes exit: 0; installed CLI validate exit: 0; clean temp CLI smoke removed: yes; route audit exit: 0; result: PASS; skill-cleaner exit: 0; validate-skills exit: 0; result: PASS; remaining publish blocker: NEEDS JOHN: confirm final npm package name availability and ownership before publish.
+* Blockers: CLI package smoke passed locally; packaging=PASS; npm-readiness=NOT_VERIFIED; release-cli=WARN; pack files=64; installed CLI help/routes/validate passed; validate=PASS.
+* Next recommended skill: skills-library-packaging-skill / production-handoff-skill / github-handoff-skill.
+* Exact next action: run scheduled-run recheck or prepare GitHub repo handoff.
+* Whether John is needed: Yes for the next permission boundary..

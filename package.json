@@ -1,0 +1,66 @@
+{
+  "name": "autonomous-coding-workflow-library",
+  "version": "0.0.0",
+  "description": "Autonomous coding workflow skills library for local agent orchestration.",
+  "license": "MIT",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AyobamiH/coding-workflow-library.git"
+  },
+  "homepage": "https://github.com/AyobamiH/coding-workflow-library#readme",
+  "bugs": {
+    "url": "https://github.com/AyobamiH/coding-workflow-library/issues"
+  },
+  "bin": {
+    "coding-workflow": "bin/coding-workflow.js"
+  },
+  "keywords": [
+    "codex",
+    "skills",
+    "workflow",
+    "automation"
+  ],
+  "scripts": {
+    "check:js": "node scripts/check-js",
+    "test": "npm run check:js && node scripts/route-audit && node scripts/validate-skills",
+    "validate": "node scripts/validate-skills",
+    "cleaner": "node scripts/skill-cleaner",
+    "routes": "node scripts/route-audit",
+    "route:audit": "node scripts/route-audit",
+    "readiness": "node scripts/library-packaging-readiness --repo .",
+    "readiness:open-source": "node scripts/library-packaging-readiness --repo . --expect-open-source",
+    "readiness:npm": "node scripts/library-packaging-readiness --repo . --expect-npm",
+    "readiness:cli": "node scripts/library-packaging-readiness --repo . --expect-cli",
+    "package:readiness": "node scripts/npm-package-readiness --repo . --expect-package --expect-cli",
+    "release:preflight": "node scripts/release-preflight --repo . --mode cli",
+    "release:preflight:cli": "node scripts/release-preflight --repo . --mode cli --allow-pack-dry-run",
+    "pack:dry-run": "npm pack --dry-run --json --cache /home/johnh/.openclaw/tmp/npm-cache",
+    "check": "npm test && npm run package:readiness && npm run release:preflight",
+    "prepack": "npm test"
+  },
+  "files": [
+    "AGENTS.md",
+    "bin/",
+    "CHANGELOG.md",
+    "LICENSE",
+    "LICENSE-DECISION.md",
+    "package-lock.json",
+    "README.md",
+    "RUNBOOK.md",
+    "build-queue.md",
+    "command-library.md",
+    "docs/",
+    "evidence-checklist.md",
+    "routes/",
+    "runs/",
+    "scripts/",
+    "skill-files/",
+    "skills-index.md",
+    "templates/",
+    "tests/",
+    "tool-patterns.md",
+    "tools.md",
+    "work-ledger.md"
+  ]
+}

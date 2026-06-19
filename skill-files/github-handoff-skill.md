@@ -19,6 +19,8 @@ Use `scripts/committer` when a local commit is approved and the helper is availa
 
 Use `github-auth-gate-skill` before push or PR work when `gh auth status` fails, the active account is unclear, or credentials may be expired, revoked, wrong-account, or under-scoped.
 
+The reusable lifecycle is: auth gate, exact-file commit, feature-branch creation or recovery, push of that branch only, PR creation or confirmation, PR readiness inspection, merge decision, optional branch deletion as a separate gate, and post-merge handoff. Each step has its own permission boundary.
+
 ## When to Use
 
 Use after creating/editing files, before asking the user to review, when the user asks for commit readiness, or when a handoff needs to preserve validation caveats.
@@ -38,6 +40,8 @@ Use before any commit. Use it again before push, PR, or PR merge if the task lat
 - Whether push, PR, deploy, migration, or production verification is explicitly approved.
 - GitHub auth gate result before any approved push or PR work.
 - PR number, expected changed files, mergeability/checks evidence, and explicit merge approval before any PR merge.
+- Existing branch or PR URL when recovering an interrupted handoff.
+- Whether branch deletion is explicitly approved after merge.
 
 ## Commands
 
@@ -91,6 +95,19 @@ command -v gh || true
 gh auth status || true
 ```
 
+Feature branch and PR lifecycle, only when separately approved:
+
+```bash
+git -C "$TARGET_REPO" branch --show-current
+git -C "$TARGET_REPO" switch -c "$FEATURE_BRANCH"
+git -C "$TARGET_REPO" switch "$FEATURE_BRANCH"
+git -C "$TARGET_REPO" push -u origin "$FEATURE_BRANCH"
+gh pr view --repo "$OWNER_REPO" "$PR_NUMBER" --json url,title,state,headRefName,baseRefName,mergeable,files,commits
+gh pr checks --repo "$OWNER_REPO" "$PR_NUMBER" || true
+gh pr create --repo "$OWNER_REPO" --base main --head "$FEATURE_BRANCH" --title "$TITLE" --body-file "$BODY_FILE"
+gh pr merge --repo "$OWNER_REPO" "$PR_NUMBER" --merge
+```
+
 Never use `git add .`.
 
 ## Procedure
@@ -115,11 +132,18 @@ Never use `git add .`.
 16. If `gh auth status` fails, route to `github-auth-gate-skill`.
 17. Do not ask John for vague auth help; use the auth gate to produce exact local provisioning steps when needed.
 18. Do not proceed to push or PR until `github-auth-gate-skill` returns `PASS`.
-19. After `PASS`, continue the separately approved feature branch, push, and PR work.
-20. Do not push, create PRs, merge PRs, tag, release, deploy, run migrations, or verify production unless that separate gate is approved.
-21. If PR merge is approved, recheck the PR immediately before merging: expected account, repo access, `OPEN` state, exact changed files, `MERGEABLE`, nonblocking checks, and repo-local workflow deployment evidence.
-22. If a repo-local workflow clearly suggests merging `main` may deploy, stop with a deployment-aware owner decision instead of merging.
-23. After a merge, record `Merged, not deployed` and stop before deployment planning.
+19. After `PASS`, continue only the separately approved feature branch, push, and PR work.
+20. If already on the intended feature branch, keep it and verify the intended commit is present.
+21. If already on a different feature branch, report it and do not switch unless the gate allows branch switching.
+22. If a PR already exists, confirm URL, head/base, changed files, commits, and state instead of creating a duplicate.
+23. Do not push `main`; push only the intended feature branch.
+24. Do not force push unless John gives a separate force-push approval and recovery plan.
+25. Do not push, create PRs, merge PRs, tag, release, deploy, run migrations, or verify production unless that separate gate is approved.
+26. For PR readiness, inspect exact files, commits, checks, mergeability, review state, and any workflow/deploy implication without merging.
+27. If PR merge is approved, recheck the PR immediately before merging: expected account, repo access, `OPEN` state, exact changed files, `MERGEABLE`, nonblocking checks, and repo-local workflow deployment evidence.
+28. If a repo-local workflow clearly suggests merging `main` may deploy, stop with a deployment-aware owner decision instead of merging.
+29. Do not delete the feature branch during merge unless John explicitly approves branch deletion.
+30. After a merge, record `Merged, not deployed` or the repo-specific post-merge state and stop before deployment planning.
 
 ## Evidence Required
 
@@ -136,7 +160,10 @@ Never use `git add .`.
 - Final status.
 - Statement that push/PR/deploy were not performed unless explicitly approved.
 - GitHub auth gate result before any push or PR work.
-- For PR merge: repo-local workflow deployment scan, PR state, exact changed files, checks, merge command result, final PR state, and post-merge local repo state.
+- For PR creation: branch, pushed ref, PR URL, base/head, body file used, and files included/excluded.
+- For PR readiness: PR URL, state, base/head, exact files, commits, checks, mergeability, review state, and workflow/deploy implications.
+- For PR merge: repo-local workflow deployment scan, PR state, exact changed files, checks, merge command result, final PR state, branch deletion decision, and post-merge local repo state.
+- For open-source repository handoff: public hardening files, GitHub auth account, repository existence/visibility, exact files committed, commit hash, branch, remote URL, push result, local HEAD, remote `main` HEAD, and commands deliberately not run.
 
 ## Safety Rules
 
@@ -153,6 +180,10 @@ Never use `git add .`.
 - Do not push or create PRs without explicit request.
 - Do not merge PRs without explicit merge approval and immediate pre-merge safety checks.
 - Do not delete the feature branch during merge unless John explicitly approves branch deletion.
+- Do not force push unless John explicitly approves force-push recovery.
+- Do not create duplicate PRs when a suitable existing PR can be confirmed.
+- Do not use auth success as permission to push, PR, merge, release, deploy, or mutate external services.
+- For public/open-source handoff, do not publish npm packages, run `npm version`, create git tags, create GitHub releases, deploy, or use broad staging. Repository creation and one `main` push require explicit approval.
 - Do not describe a repo as `ready-to-deploy` just because it is `ready-to-commit`.
 - Do not hide unrelated lint/test failures; report them as caveats.
 - Do not reset, clean, restore, stash, delete, pull, rebase, or switch branches unless the user explicitly approves that gate.
@@ -170,6 +201,11 @@ Never use `git add .`.
 - Commit hash reported without a real commit: only report a hash from a successful approved commit.
 - Invalid `gh` auth: run `github-auth-gate-skill` and stop until it returns `PASS`.
 - Vague auth prompt: use the auth gate output format and exact local provisioning steps instead.
+- Existing branch already contains the commit: confirm and continue only within the approved branch gate.
+- Existing PR already exists: view and confirm it rather than creating a duplicate.
+- Merge blocked by checks or branch protection: report readiness evidence and stop.
+- Force-push temptation after branch divergence: stop for explicit recovery approval.
+- Treating public GitHub source handoff as npm release approval: stop before publish, version, tag, and GitHub release gates.
 
 ## Output Format
 
@@ -191,5 +227,6 @@ Git handoff:
 ## Upgrade Ideas
 
 - Add optional repo-specific references after a real GitHub workflow is confirmed.
+- Add a public-source handoff helper that verifies repository emptiness/conflicts, exact files, remote HEAD parity, and release blockers before push.
 - Add a GitHub deep-review skill that inspects open PRs, review comments, CI runs, and branch protection before PR handoff.
 - Add a pre-commit hook that runs `scripts/committer`-style path and secret checks before manual commits.

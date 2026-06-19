@@ -1,291 +1,119 @@
-# Build Queue
+# Immediate
 
-These are implementation goals an LLM can complete one by one to turn the Markdown skills into scripts, CLIs, or packaged local skills.
+## GitHub open-source handoff
 
-## Applied Peter-Pattern Uplifts
+- Why it matters: the package/CLI candidate has passed local smoke tests and now needs a public source handoff without conflating that with npm publication.
+- Evidence from current files/logs: package candidate `autonomous-coding-workflow-library`, CLI `coding-workflow`, MIT license, `package-lock.json`, route audit, package smoke, and validation have passed locally; `routes/skill-routes.json` now owns `github-open-source-handoff`.
+- Permission boundary: exact-file commit, public GitHub repo creation/verification, one non-force `main` push, and remote HEAD verification only; no npm publish, versioning, tags, GitHub release, deploy, Supabase, Cloudflare, production endpoints, secret printing, broad staging, or excluded-file staging.
+- Done definition: `AyobamiH/coding-workflow-library` exists publicly, local validation passes, exact-file commit exists, `main` is pushed, remote HEAD matches local HEAD, and ledger/log record `GitHub open-source handoff complete`.
 
-- AGENTS hard-rules uplift applied: root `AGENTS.md` created, downstream repo pointer template created, and README/RUNBOOK/index/command/tool/evidence docs wired to read `AGENTS.md` first.
-- Skill frontmatter and validator uplift applied: every `skill-files/*.md` file now has routing frontmatter, `templates/new-skill-template.md` includes the frontmatter pattern, and `scripts/validate-skills` validates the library without noisy marker self-hits.
-- Skill cleaner uplift applied: `skill-cleaner-skill.md` and `scripts/skill-cleaner` now provide advisory cleanup intelligence for duplication, bloat, weak routing, stale skills, overlap, and script candidates.
-- Peter-style tools catalogue uplift applied: `tools.md` now defines local tools, permission gates, safe and unsafe examples, approval requirements, and evidence rules.
-- Exact-file `scripts/committer` uplift applied: helper created for exact-file commit preparation, GitHub handoff now prefers it, and docs/evidence gates distinguish dry-run, no-commit staging, local commit, push, PR, deploy, and production verification.
-- GitHub auth gate skill uplift applied: `github-auth-gate-skill` now handles `gh` availability, auth validity, active account matching, runtime environment token presence, safe local account switching, and routing back to `github-handoff-skill`.
-- Autonomous `scripts/run-next` uplift applied: runner reads `work-ledger.md`, maps status to skill/permission gates, supports dry-run and explicit `--allow` flags, executes the first GitHub handoff path, inspects PR readiness after PR creation, updates ledger/run logs, and stops at human boundaries.
+## CLI entrypoint package smoke
 
-Next Peter-pattern upgrades:
+- Why it matters: John selected `coding-workflow` as the CLI command, so the package candidate needs to prove the wrapper, package `bin` metadata, clean-temp local install, and installed CLI behavior before any publish path is considered.
+- Evidence from current files/logs: `package.json` declares candidate package `autonomous-coding-workflow-library`; `bin/coding-workflow.js` exists; `scripts/run-next` supports `--allow cli-package-smoke`; `routes/skill-routes.json` contains `cli-entrypoint-package-smoke`; the active ledger state is `Package candidate dry-run complete`.
+- Permission boundary: local skills-library edits, package readiness, release preflight CLI mode, `npm pack --dry-run`, local temp tarball install, and validation only; no product repo edits, publish, version, tag, push, PR, GitHub release, deploy, Supabase, Cloudflare, secret reads, production endpoints, registry mutation, remote dependency install, or remote mutation.
+- Done definition: CLI wrapper syntax, local CLI help/routes/package-readiness/release-preflight, package readiness with `--expect-cli`, release preflight CLI mode, npm pack dry-run, clean-temp local tarball install, installed CLI help/routes/validate, package content inspection, ledger update, and run-log update all pass locally.
 
-1. Create `scripts/github-auth-gate`.
-2. Create `browser-live-proof-skill`.
-3. Create `github-deep-review-skill`.
-4. Create `hooks/pre-commit` validation hook.
-5. Create `one-password-secret-access-skill`.
-6. Add generated Markdown output for `skill-cleaner`.
+## NPM package name ownership confirmation
 
-## 1. Build Session Log Extractor
+- Why it matters: `autonomous-coding-workflow-library` is the local candidate name, but publishing still requires John to verify registry availability and ownership.
+- Evidence from current files/logs: `package.json` now uses `autonomous-coding-workflow-library`; `LICENSE-DECISION.md` records the blocker as final name availability and ownership before publish.
+- Permission boundary: planning and optional read-only registry name check only when approved; no npm auth, publish, version, tag, push, GitHub release, registry mutation, or package distribution without explicit approval.
+- Done definition: John confirms availability/ownership or chooses a different package name/source-only path.
 
-Goal: create `scripts/extract_session_workflows.mjs`.
+## Scheduled-run recheck option
 
-Inputs:
+- Why it matters: the previous Supabase production lane stopped with deployment/runtime gates separated from this local packaging lane.
+- Evidence from current files/logs: `work-ledger.md` has Supabase scheduler/function states, runtime verification skills exist, and current local packaging work must not drift back into product repos without a fresh permission gate.
+- Permission boundary: hold unless John explicitly selects the target repo, selected skill, and runtime/database/cloud permission.
+- Done definition: if selected, the runner resumes from the recorded ledger state with the exact allowed flag and does not combine it with packaging/release work.
 
-- Session directories.
-- Keyword filters.
-- Redaction regex list.
+# Next
 
-Done when:
+## NPM package publish readiness
 
-- It emits confirmed commands, tool calls, user prompts, assistant text, and errors.
-- It skips `thinking`.
-- It redacts secrets.
-- It writes Markdown and JSON outputs.
+- Why it matters: npm package readiness and release preflight exist, and the library now has a named local package candidate and CLI entrypoint, but no publish path is approved.
+- Evidence from current files/logs: `npm-package-readiness-skill.md`, `release-preflight-skill.md`, `scripts/npm-package-readiness`, `scripts/release-preflight`, route metadata, `package.json`, and `bin/coding-workflow.js` cover local package/CLI readiness.
+- Permission boundary: local readiness by default; package manifest edits, dependency installs, registry reads, `npm pack --dry-run`, publish, version changes, tags, pushes, and GitHub releases require separate gates.
+- Done definition: package name ownership is confirmed, package contents are controlled, lockfile/CLI evidence remains current, local preflight evidence passes, and no publish-like side effects occur.
 
-## 2. Build Repo Mapper
+## Release preflight hardening
 
-Goal: create `scripts/map_repo.sh`.
+- Why it matters: release preflight should remain reliable across local library, open-source source drop, npm package, and CLI package modes.
+- Evidence from current files/logs: `scripts/release-preflight` supports local/npm/CLI modes; clean-temp smoke exercises local mode from a copied library.
+- Permission boundary: local validation unless John authorizes network, registry, pack dry-run, publish, tag, push, release, or deploy gates.
+- Done definition: preflight reports stable local, npm, and CLI classifications and clearly separates blockers from release approval.
 
-Commands to codify:
+## Opstruth runtime truth self-test
 
-```bash
-pwd
-rg --files
-find . -maxdepth 3 -type f
-git status --short
-```
+- Why it matters: runtime truth should classify evidence without overclaiming skipped or not-verified checks.
+- Evidence from current files/logs: `opstruth-runtime-truth-skill.md` exists, but a local mixed-evidence self-test is still pending.
+- Permission boundary: local parsing or approved local CLI execution only; network, browser, package publish, deploy, and external mutation require separate gates.
+- Done definition: a self-test classifies a mixed evidence report into `Verified`, `Warning`, `Failure`, `Skipped`, and `Not Verified`, then recommends the next safe step.
 
-Done when:
+## Cloudflare real deploy proof
 
-- It handles missing `rg`.
-- It excludes credential contents.
-- It reports git root/status or no-git state.
+- Why it matters: Cloudflare deployment needs target-specific evidence before any deployed-state claim.
+- Evidence from current files/logs: `cloudflare-deploy-skill.md` is hardened for Pages/Workers planning, but no live Wrangler deploy proof has been run in this library.
+- Permission boundary: source inspection and planning only until John supplies a Cloudflare target and explicit preview or production deploy approval.
+- Done definition: a real Cloudflare run captures discovered commands, env/secret-name handling without values, deploy output, rollback notes, logs, and post-deploy proof.
 
-## 3. Build Error Evidence Lookup
+# Later
 
-Goal: create `references/common-errors.md`.
+## Repo-map, route-trace, and KB helpers
 
-Include:
+- Why it matters: repo orientation, route tracing, and project memory are reusable but still mostly Markdown-driven.
+- Evidence from current files/logs: `repo-map-skill.md`, `route-trace-skill.md`, and `project-kb-builder-skill.md` exist.
+- Permission boundary: local inspection and local docs only unless a target repo edit is explicitly approved.
+- Done definition: small helpers produce repo maps, route traces, and project memory updates with redaction and validation.
 
-- ENOENT.
-- command not found.
-- unsupported model/reasoning.
-- quota exceeded.
-- git identity missing.
-- agent history forbidden.
+## Migration review automation
 
-Done when:
+- Why it matters: source-only migration review is reusable beyond Supabase scheduler work.
+- Evidence from current files/logs: `migration-review-skill.md` exists, and scheduler migration work proved secret-safety and source-versus-deployed-state concerns.
+- Permission boundary: source-only by default; SQL execution, `db push`, migration apply, and deployed-state verification require separate gates.
+- Done definition: a helper inventories migration files, flags destructive changes, secret hardcoding, deploy ambiguity, rollback gaps, and source-only limits.
 
-- Each error has symptoms, evidence command, and recovery.
+## Browser live proof
 
-## 4. Build OpenClaw Config Diff Script
+- Why it matters: user-facing behavior sometimes needs browser evidence after build/source checks.
+- Evidence from current files/logs: `runtime-verification-skill.md` and `opstruth-runtime-truth-skill.md` exist, but generic browser-live proof is not yet packaged here.
+- Permission boundary: local browser or read-only public checks first; logged-in or mutating browser actions require separate approval.
+- Done definition: a skill defines browser checks, screenshots, console/network evidence, mutation boundaries, and final proof language.
 
-Goal: create `scripts/diff_openclaw_backups.sh`.
+## Deep GitHub review
 
-Commands to codify:
+- Why it matters: PR lifecycle handles files/checks/mergeability, but not full review-thread triage.
+- Evidence from current files/logs: GitHub handoff is hardened; review comment resolution is still outside the local skill set.
+- Permission boundary: read-only PR/review inspection by default; replies, resolutions, commits, and merges require separate gates.
+- Done definition: a skill inspects review threads, requested changes, check logs, and patch scope without mutating remote state by default.
 
-```bash
-ls -l --full-time openclaw.json*
-diff -u openclaw.json.bak.3 openclaw.json.bak.2
-diff -u -w openclaw.json.bak openclaw.json
-```
+# Hold
 
-Done when:
+## OneClickPostFactory / Devvit / Reddit lane
 
-- It prints backup timestamps.
-- It compares adjacent backups.
-- It explains that `diff` exit code 1 means differences exist.
+- Why it matters: Reddit-related work in this library came from one Supabase content import feature and should not become a Devvit lane by accident.
+- Evidence from current files/logs: the proven Reddit work is centered on `import-reddit-tips`; no OneClickPostFactory or Devvit target repo is currently selected.
+- Permission boundary: hold until John supplies a target repo, platform rules, commands, and a concrete goal.
+- Done definition: resume only with explicit repo, selected platform, safety requirements, and permission gates.
 
-## 5. Build Route Trace Script
+## HyperFrames/video workflow support
 
-Goal: create `scripts/check_subagents.sh`.
+- Why it matters: HyperFrames skills exist elsewhere, but this coding workflow library has not imported or wrapped them.
+- Evidence from current files/logs: no local `skill-files/` entry or route metadata owns HyperFrames/video work.
+- Permission boundary: hold unless John asks to integrate HyperFrames workflows here.
+- Done definition: decide whether to reference external HyperFrames skills or create local workflow wrappers.
 
-Done when:
+## One-password secret access
 
-- It lists agents.
-- It checks `allowAgents`.
-- It runs/records a harmless spawn test if tools allow it.
-- It reports history policy denial separately.
+- Why it matters: secret-manager integration is powerful and high-risk.
+- Evidence from current files/logs: secret handling rules exist, but no safe manager integration is proven.
+- Permission boundary: no secret-manager integration until John approves the tool, account scope, and non-printing behavior.
+- Done definition: a credential presence workflow exists that never prints values and only exports values into approved local runtime contexts.
 
-## 6. Build Security Hardening References
+## Live product/deploy work until selected
 
-Goal: create reference files:
-
-- `references/gate-a-e-template.md`
-- `references/windows-evidence.md`
-- `references/secrets-handling.md`
-- `references/rollback-template.md`
-
-Done when:
-
-- Every state-changing recommendation requires approval, verification, and rollback.
-
-## 7. Build Git Verification Script
-
-Goal: create `scripts/verify_git.sh`.
-
-Commands:
-
-```bash
-git status --short
-git diff --check
-```
-
-Done when:
-
-- It handles non-git directories.
-- It returns machine-readable status.
-
-## 8. Build LLM Drift Parser
-
-Goal: create a session-log parser that groups model/provider errors.
-
-Done when:
-
-- Unsupported reasoning, missing model, quota, and reasoning-item mismatch errors are grouped with recovery guidance.
-
-## 9. Build Daily Memory Helper
-
-Goal: create `scripts/ensure_daily_memory.sh`.
-
-Done when:
-
-- It creates `memory/YYYY-MM-DD.md` if missing.
-- It appends sanitized bullets.
-- It refuses obvious secret-looking content.
-
-## 10. Build Public Market Scanner
-
-Goal: create `scripts/stooq_scan.mjs`.
-
-Done when:
-
-- It accepts ticker list and filters.
-- It fetches Stooq CSV.
-- It emits JSON and Markdown.
-- It includes as-of date and proxy-data caveat.
-
-## 11. Defer Provider-Specific Deploy/DB Skills
-
-Do not automate Cloudflare, Supabase, or migration apply commands until a target repo provides confirmed commands and safety requirements.
-
-## 12. Build Redacted Env Scanner
-
-Status: `env-audit-skill` has now been upgraded from real validation feedback from `/home/johnh/wagging-web-wins`.
-
-Goal: create a reusable redacted env scanner that supports the upgraded `env-audit-skill`.
-
-Next automation candidate: redacted env scanner.
-
-Done when:
-
-- It discovers env/config files without printing values.
-- It checks tracked/ignored status for env-like and secret-like files.
-- It extracts variable names from env/example files.
-- It compares `.env.example` coverage with actual code usage.
-- It emits a secret-shaped marker report with masked previews only.
-- It produces a Supabase function/env/JWT matrix when Supabase files exist.
-- It classifies docs placeholders separately from real-looking committed values.
-- It writes Markdown and JSON evidence reports.
-
-Previous repo audit run: `supabase-rls-audit-skill` for `/home/johnh/wagging-web-wins` selected correctly and produced validation feedback.
-
-## 13. Build Supabase RLS Source-Audit Scanner
-
-Status: `supabase-rls-audit-skill` has now been upgraded from validation feedback.
-
-Goal: create a reusable source-only Supabase RLS/public-anon audit scanner that supports the upgraded `supabase-rls-audit-skill`.
-
-Next automation candidate: Supabase RLS source-audit scanner.
-
-Next repo workflow should be: `security-hardening-review-skill` for `/home/johnh/wagging-web-wins`.
-
-Priority hardening target: `import-reddit-tips`.
-
-Done when:
-
-- It builds a table/RLS inventory from migrations.
-- It extracts active policies and classifies broad access patterns.
-- It maps frontend `supabase.from`, `supabase.rpc`, `storage.from`, and `functions.invoke` usage.
-- It builds an Edge Function service-role/auth/JWT matrix.
-- It extracts storage bucket and `storage.objects` policy evidence.
-- It reviews SQL functions, RPC exposure, grants, and revokes.
-- It emits a source-only public-anon safety judgement with PASS, PASS WITH REVIEW ITEMS, FAIL, or INCONCLUSIVE.
-- It redacts secret-shaped values and reports only paths, lines, names, and risk categories.
-
-## 14. Build Coding Workflow Orchestrator Helper
-
-Status: first executable helper delivered as `scripts/run-next`.
-
-Goal: keep expanding helper scripts that make orchestration repeatable without replacing skill judgement.
-
-Candidate helpers:
-
-- `scripts/run-next` follow-up paths for `auth-check`, exact-file `commit`, and `local-validation`
-- `scripts/update_work_ledger.mjs`
-
-Done in first version:
-
-- Parses the latest ledger item for a requested repo.
-- Understands `Ready to commit with caveats`, `Committed locally, not pushed`, `Needs GitHub auth gate`, `Needs John token replacement`, `Auth pass for GitHub handoff`, and `PR opened, not merged`.
-- Implements the `Auth pass for GitHub handoff` path with isolated `GH_TOKEN`, repo access checks, expected commit/state checks, feature-branch push, and PR create/confirm logic.
-- Implements the `PR opened, not merged` path as read-only PR readiness inspection with metadata, files, commits, checks, mergeability/review evidence, local repo state, and explicit readiness status.
-- Implements the `PR ready for merge approval` path as a separate `pr-merge` gate that merges PR #11 only after safety checks and stops at `Merged, not deployed`.
-- Implements the `Merged, not deployed` path as a separate `deployment-plan` gate that inspects local/source evidence only, drafts future Supabase secret/deploy/scheduler/runtime verification commands as not run, and stops at `Deployment plan ready, not deployed`.
-- Implements the `Deployment plan ready, not deployed` path as a separate `supabase-preflight` gate that inspects source/local execution prerequisites only, drafts exact Supabase tooling/auth/secret/scheduler/deploy/runtime verification commands as not run, and stops at `Supabase execution preflight ready, not executed`.
-- Implements the `Supabase execution preflight ready, not executed` path as a separate `supabase-tooling-auth` gate that checks Node/npm/npx, `npx supabase --version`, local env variable names/presence, project-ref match, and read-only project listing with runtime `SUPABASE_ACCESS_TOKEN`, then stops before link, secrets, deploy, scheduler mutation, SQL, and runtime verification.
-- Implements the `Supabase tooling/auth ready, not linked` path as a separate `supabase-link-secret-readiness` gate that links the local repo, checks local link-created files, generates/stores `IMPORT_REDDIT_TIPS_SECRET` only in `/home/johnh/.openclaw/.env` if missing, and stops before remote secret setup, deploy, migrations, SQL, scheduler mutation, and runtime verification.
-- Provides dry-run mode that does not mutate branch, push, PR, or completion ledger state.
-- `scripts/classify_queue_item.mjs`
-- `scripts/validate_skill_file.sh`
-- `scripts/add_skill_gap.mjs`
-
-Done when:
-
-- It runs the local repo gate and reports no-git state cleanly.
-- It creates or updates `work-ledger.md` with normalized fields.
-- It checks every skill file for required sections.
-- It verifies `skills-index.md` references every skill file.
-- It can append a skill gap note to `build-queue.md`.
-- It never runs state-changing commands, installs, commits, pushes, deploys, migrations, database mutations, or external API calls.
-
-## 15. Build GitHub Auth Gate Helper
-
-Status: `github-auth-gate-skill` has been created after the `/home/johnh/wagging-web-wins` GitHub handoff was blocked by invalid local `gh` auth.
-
-Goal: create `scripts/github-auth-gate`.
-
-Done when:
-
-- It accepts `--repo`, `--expected-owner`, and `--expected-repo`.
-- It reports `gh` availability without mutating external state.
-- It reports environment token presence without printing values.
-- It parses `gh auth status` into PASS, NEEDS JOHN, or BLOCKED.
-- It can optionally switch to an already-authenticated account when allowed.
-- It never prints, writes, or commits token values.
-- It emits the next skill, usually `github-handoff-skill` after PASS.
-
-## Missing Skill Gaps
-
-Current required RUNBOOK mapping was checked against `skill-files/`.
-
-Missing mapped skill files:
-
-- None at this validation pass.
-
-Weak or inspection-first skills that need real project evidence before automation:
-
-- `cloudflare-deploy-skill`: exists, but has no confirmed deploy command. Upgrade after a real Cloudflare repo provides exact commands and verification steps.
-- `supabase-rls-audit-skill`: upgraded from real validation feedback. Next work is scanner automation plus hardening feedback from `security-hardening-review-skill` on `/home/johnh/wagging-web-wins`.
-- `migration-review-skill`: exists, but has no confirmed migration apply/test command. Upgrade after a target repo reveals framework-specific commands.
-- `github-handoff-skill`: exists, and now routes invalid or unclear GitHub CLI auth to `github-auth-gate-skill`. Upgrade after a repo-specific PR is successfully opened.
-
-When a future task needs a missing or weak skill, add a `Skill Upgrade Proposal` using `templates/skill-upgrade-template.md`.
-
-## 2026-06-13 - Supabase Official Agent Skill Intake Follow-Up
-
-Status: vendor guidance reviewed and adapted into local library rules.
-
-Useful automation candidates:
-
-- Add a Supabase migration-draft helper that can use `npx supabase migration new <name>` only after an explicit local migration-draft gate.
-- Add a source scanner for Data API grant exposure versus RLS policy coverage.
-- Extend the Supabase RLS source-audit scanner to flag `auth.role()`, `TO authenticated` without ownership, public `SECURITY DEFINER`, and view `security_invoker` gaps.
-
-Next repo workflow remains gated: continue scheduler migration draft with official Supabase guidance, without remote secret setup, migration apply, SQL execution, function deploy, scheduler mutation, or runtime endpoint calls until John grants those separate permissions.
+- Why it matters: this run is local skills-library work and must not drift back into a product lane.
+- Evidence from current files/logs: recent work spent many runs in `/home/johnh/wagging-web-wins`; current clean-temp smoke is local-only.
+- Permission boundary: hold product repo edits, Supabase, Cloudflare, GitHub mutations, npm publish, production endpoints, and remote service mutation until selected.
+- Done definition: resume only with a new explicit target repo, selected skill, and exact permission gate.

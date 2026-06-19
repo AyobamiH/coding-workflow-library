@@ -1,0 +1,289 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+const { spawnSync } = require("child_process");
+
+const VALID_STATUSES = new Set(["PASS", "WARN", "FAIL", "NOT_VERIFIED", "NOT_APPLICABLE"]);
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/npm-package-readiness --repo /path/to/repo
+  ./scripts/npm-package-readiness --repo /path/to/repo --json
+  ./scripts/npm-package-readiness --repo /path/to/repo --expect-package
+  ./scripts/npm-package-readiness --repo /path/to/repo --expect-cli
+  ./scripts/npm-package-readiness --repo /path/to/repo --allow-pack-dry-run
+
+Default mode is read-only and does not run npm pack.
+No mode publishes, changes versions, installs dependencies, mutates registries, tags, pushes, or creates releases.`);
+}
+
+function parseArgs(argv) {
+  const args = { json: false, allowPackDryRun: false, expectPackage: false, expectCli: false };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--repo") args.repo = argv[++i];
+    else if (arg === "--json") args.json = true;
+    else if (arg === "--allow-pack-dry-run") args.allowPackDryRun = true;
+    else if (arg === "--expect-package") args.expectPackage = true;
+    else if (arg === "--expect-cli") {
+      args.expectCli = true;
+      args.expectPackage = true;
+    } else if (arg === "--help" || arg === "-h") args.help = true;
+    else throw new Error(`unknown argument: ${arg}`);
+  }
+  return args;
+}
+
+function normalizeStatus(status) {
+  const value = String(status || "").trim().toUpperCase().replace(/\s+/g, "_");
+  return VALID_STATUSES.has(value) ? value : "NOT_VERIFIED";
+}
+
+function classify(statuses, override) {
+  if (override) return override;
+  const values = statuses.map((item) => normalizeStatus(item.status));
+  if (values.includes("FAIL")) return "FAIL";
+  if (values.includes("WARN")) return "WARN";
+  if (values.includes("NOT_VERIFIED")) return "NOT_VERIFIED";
+  if (values.length && values.every((value) => value === "NOT_APPLICABLE")) return "NOT_APPLICABLE";
+  if (values.includes("PASS")) return "PASS";
+  return "NOT_VERIFIED";
+}
+
+function check(statuses, status, label, evidence) {
+  statuses.push({ status: normalizeStatus(status), label, evidence });
+}
+
+function fileExists(repo, relative) {
+  return fs.existsSync(path.join(repo, relative));
+}
+
+function isExecutable(file) {
+  try {
+    return Boolean(fs.statSync(file).mode & 0o111);
+  } catch {
+    return false;
+  }
+}
+
+function readJson(file) {
+  return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+
+function run(command, args, cwd) {
+  const env = command === "npm" && args[0] === "pack" ? npmPackEnv() : process.env;
+  const result = spawnSync(command, args, { cwd, env, encoding: "utf8", maxBuffer: 1024 * 1024 });
+  return {
+    command: [command, ...args].join(" "),
+    status: result.status,
+    stdout: redact(result.stdout || ""),
+    stderr: redact(result.stderr || ""),
+    error: result.error ? String(result.error.message || result.error) : "",
+  };
+}
+
+function npmPackEnv() {
+  const preferred = "/home/johnh/.openclaw/tmp/npm-cache";
+  const fallback = "/tmp/coding-workflow-library-npm-cache";
+  let cache = preferred;
+  try {
+    fs.mkdirSync(preferred, { recursive: true, mode: 0o700 });
+  } catch {
+    cache = fallback;
+    fs.mkdirSync(fallback, { recursive: true, mode: 0o700 });
+  }
+  return { ...process.env, NPM_CONFIG_CACHE: cache };
+}
+
+function redact(input) {
+  let value = String(input || "");
+  value = value.replace(/eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, "[redacted-jwt]");
+  value = value.replace(new RegExp("sk-" + "[A-Za-z0-9_-]{12,}", "g"), "[redacted-api-key]");
+  value = value.replace(/postgres(?:ql)?:\/\/[^\s"'<>]+/gi, "postgres://[redacted]");
+  value = value.replace(/(token|secret|password|api[_-]?key)\s*[:=]\s*[^\s"'<>]+/gi, "$1=[redacted]");
+  return value;
+}
+
+function packRisk(output) {
+  const risky = [];
+  const lines = String(output || "").split(/\r?\n/);
+  for (const line of lines) {
+    if (/(^|\/)\.env($|[./-])/.test(line)) risky.push("env-like file in pack output");
+    if (/(^|\/)evidence($|\/)/.test(line)) risky.push("evidence folder in pack output");
+    if (/(^|\/)(node_modules|\.git|\.openclaw)($|\/)/.test(line)) risky.push("local cache/config folder in pack output");
+    if (/\.(pem|key|p12|pfx)\b/i.test(line)) risky.push("key-like file in pack output");
+  }
+  return [...new Set(risky)];
+}
+
+function main() {
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    usage();
+    process.exit(2);
+  }
+
+  if (args.help) {
+    usage();
+    return;
+  }
+
+  if (!args.repo) {
+    usage();
+    process.exit(2);
+  }
+
+  const repo = path.resolve(args.repo);
+  const statuses = [];
+  const packageJsonPath = path.join(repo, "package.json");
+  const report = {
+    repo,
+    expectPackage: args.expectPackage,
+    expectCli: args.expectCli,
+    allowPackDryRun: args.allowPackDryRun,
+    checks: statuses,
+    scripts: {},
+    bin: {},
+    packDryRun: { status: "NOT_VERIFIED", evidence: "not run; pass --allow-pack-dry-run to enable" },
+  };
+
+  if (!fs.existsSync(repo)) {
+    check(statuses, "FAIL", "repo exists", "path does not exist");
+    finish(report, args.json);
+    return;
+  }
+
+  if (!fs.existsSync(packageJsonPath)) {
+    const status = args.expectPackage ? "FAIL" : "NOT_APPLICABLE";
+    check(statuses, status, "package.json", args.expectPackage ? "missing; package was expected" : "missing; package checks not applicable");
+    report.finalStatus = args.expectPackage ? "FAIL" : "NOT_APPLICABLE";
+    finish(report, args.json);
+    return;
+  }
+
+  check(statuses, "PASS", "package.json", "found");
+
+  let pkg;
+  try {
+    pkg = readJson(packageJsonPath);
+    report.package = {
+      name: pkg.name || null,
+      version: pkg.version || null,
+      description: pkg.description || null,
+      license: pkg.license || null,
+      private: Boolean(pkg.private),
+    };
+    check(statuses, "PASS", "package.json parse", "valid JSON");
+  } catch (error) {
+    check(statuses, "FAIL", "package.json parse", error.message);
+    finish(report, args.json);
+    return;
+  }
+
+  check(statuses, pkg.name ? "PASS" : "FAIL", "name", pkg.name ? "present" : "missing");
+  check(statuses, pkg.version ? "PASS" : "FAIL", "version", pkg.version ? "present" : "missing");
+  check(statuses, pkg.description ? "PASS" : "WARN", "description", pkg.description ? "present" : "missing");
+  check(statuses, pkg.license ? "PASS" : "WARN", "license", pkg.license ? "present" : "missing");
+
+  const bin = pkg.bin || {};
+  if (typeof bin === "string") {
+    const target = path.join(repo, bin);
+    report.bin[pkg.name || "package"] = { target: bin, exists: fs.existsSync(target), executable: isExecutable(target) };
+  } else if (bin && typeof bin === "object") {
+    for (const [name, targetRel] of Object.entries(bin)) {
+      const target = path.join(repo, targetRel);
+      report.bin[name] = { target: targetRel, exists: fs.existsSync(target), executable: isExecutable(target) };
+    }
+  }
+
+  const binEntries = Object.entries(report.bin);
+  if (binEntries.length) {
+    for (const [name, info] of binEntries) {
+      check(statuses, info.exists ? "PASS" : "FAIL", `bin ${name} exists`, info.exists ? info.target : `${info.target} missing`);
+      check(statuses, info.executable ? "PASS" : args.expectCli ? "WARN" : "WARN", `bin ${name} executable`, info.executable ? "executable bit set" : "not executable");
+    }
+  } else {
+    check(statuses, args.expectCli ? "FAIL" : "WARN", "bin", args.expectCli ? "missing; CLI was expected" : "no bin field; package is not declared as a CLI");
+  }
+
+  const lockfiles = ["package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "yarn.lock", "bun.lockb"].filter((file) => fileExists(repo, file));
+  report.lockfiles = lockfiles;
+  check(statuses, lockfiles.length ? "PASS" : "WARN", "lockfile", lockfiles.length ? lockfiles.join(", ") : "none found");
+
+  const hasFiles = Array.isArray(pkg.files) && pkg.files.length > 0;
+  const hasNpmIgnore = fileExists(repo, ".npmignore");
+  check(statuses, hasFiles || hasNpmIgnore ? "PASS" : "WARN", "package contents control", hasFiles ? "files field present" : hasNpmIgnore ? ".npmignore present" : "no files field or .npmignore");
+
+  const readme = ["README.md", "readme.md", "README"].find((file) => fileExists(repo, file));
+  check(statuses, readme ? "PASS" : "WARN", "README", readme || "missing");
+
+  const changelog = ["CHANGELOG.md", "RELEASE.md", "RELEASE_NOTES.md", "docs/CHANGELOG.md", "docs/RELEASE.md"].find((file) => fileExists(repo, file));
+  check(statuses, changelog ? "PASS" : "NOT_VERIFIED", "changelog or release notes", changelog || "not found");
+
+  report.scripts = pkg.scripts || {};
+  const scriptExpectations = [
+    ["check:js", "NOT_VERIFIED", "local JavaScript syntax check is expected for this package"],
+    ["build", "NOT_APPLICABLE", "no compile/build step is required for this JavaScript, Markdown, JSON, and template library"],
+    ["test", "NOT_VERIFIED", "local validation test script is expected for this package"],
+    ["lint", "NOT_APPLICABLE", "no lint tool is configured; do not invent one just to silence readiness"],
+    ["typecheck", "NOT_APPLICABLE", "plain JavaScript package; no TypeScript project is configured"],
+    ["format", "NOT_APPLICABLE", "no formatter is configured; avoid rewriting files without separate approval"],
+    ["prepare", "NOT_APPLICABLE", "no prepare hook is required; avoid unexpected lifecycle side effects"],
+  ];
+  for (const [name, missingStatus, missingEvidence] of scriptExpectations) {
+    check(statuses, report.scripts[name] ? "PASS" : missingStatus, `script ${name}`, report.scripts[name] ? "present" : missingEvidence);
+  }
+
+  if (args.allowPackDryRun) {
+    const pack = run("npm", ["pack", "--dry-run"], repo);
+    const combined = `${pack.stdout}\n${pack.stderr}`;
+    const risks = packRisk(combined);
+    report.packDryRun = {
+      status: pack.status === 0 && !risks.length ? "PASS" : pack.status === 0 ? "WARN" : "FAIL",
+      evidence: `exit_status=${pack.status}`,
+      risks,
+      output: combined.trim().slice(0, 6000),
+    };
+    check(statuses, report.packDryRun.status, "npm pack dry-run", risks.length ? risks.join("; ") : `exit_status=${pack.status}`);
+  } else {
+    check(statuses, "NOT_VERIFIED", "npm pack dry-run", "not run; pass --allow-pack-dry-run to enable");
+  }
+
+  finish(report, args.json);
+}
+
+function finish(report, asJson) {
+  if (!report.finalStatus) report.finalStatus = classify(report.checks);
+  report.nextSafeStep =
+    report.finalStatus === "PASS"
+      ? "Create an evidence pack or run release preflight before any publish/tag/push gate."
+      : report.finalStatus === "NOT_APPLICABLE"
+        ? "Use release preflight local mode or provide --expect-package when npm packaging is intended."
+        : "Review FAIL/WARN/NOT_VERIFIED items before any publish/tag/push gate.";
+
+  if (asJson) {
+    console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+
+  console.log(`# NPM Package Readiness Report
+
+Repo: ${report.repo}
+Expect package: ${report.expectPackage ? "yes" : "no"}
+Expect CLI: ${report.expectCli ? "yes" : "no"}
+Pack dry-run allowed: ${report.allowPackDryRun ? "yes" : "no"}
+
+Checks:
+${report.checks.map((item) => `- ${item.status}: ${item.label} - ${item.evidence}`).join("\n")}
+
+Final classification: ${report.finalStatus}
+
+Next safe step:
+${report.nextSafeStep}`);
+}
+
+main();

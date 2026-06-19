@@ -20,6 +20,8 @@ This skill does not ask John to paste tokens into chat. It checks local `gh` aut
 
 Use this skill before returning to `github-handoff-skill` for push or PR work. Auth success is not push, PR, deploy, merge, release, or production permission.
 
+When the gate passes, return only an auth result and the next skill. Do not create branches, push, open PRs, merge, delete branches, or stage files from this skill.
+
 ## When to Use
 
 Use when:
@@ -116,9 +118,10 @@ Only John should run token provisioning steps. Agents must not ask John to paste
 14. If auth now matches the expected account, return `PASS`.
 15. If the token is invalid, missing, expired, revoked, wrong-account, or under-scoped, return `NEEDS JOHN` with exact local provisioning steps.
 16. Do not continue to push or PR work unless that separate permission exists and this auth gate returns `PASS`.
-17. Update `work-ledger.md` with the auth gate result, active account evidence, next skill, and exact next action.
-18. Append a run log entry to `runs/skill-runs.md`.
-19. Route back to `github-handoff-skill` after `PASS`.
+17. If `PASS`, record that the next skill is `github-handoff-skill` and that push/PR/merge still require their own permission gates.
+18. Update `work-ledger.md` with the auth gate result, active account evidence, next skill, and exact next action.
+19. Append a run log entry to `runs/skill-runs.md`.
+20. Route back to `github-handoff-skill` after `PASS`.
 
 ## Evidence Required
 
@@ -147,6 +150,7 @@ Only John should run token provisioning steps. Agents must not ask John to paste
 - Never commit auth files.
 - Never run push or PR commands as part of auth check unless separately permitted.
 - Never treat auth success as deploy, merge, release, migration, or production permission.
+- Never treat auth success as branch creation, push, PR creation, or branch deletion permission.
 - Never use an invalid or wrong account for repo push.
 - Do not run `gh auth token` unless explicitly needed, and never print its output.
 - If token scopes are shown, report scope names only.

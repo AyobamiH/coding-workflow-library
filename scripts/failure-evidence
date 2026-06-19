@@ -1,0 +1,200 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/failure-evidence --input /path/to/log.txt
+  cat /path/to/log.txt | ./scripts/failure-evidence --stdin
+
+Classifies local failure text without mutating files or printing secret values.`);
+}
+
+function parseArgs(argv) {
+  const args = { stdin: false };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--input") args.input = argv[++i];
+    else if (arg === "--stdin") args.stdin = true;
+    else if (arg === "--help" || arg === "-h") args.help = true;
+    else throw new Error(`unknown argument: ${arg}`);
+  }
+  return args;
+}
+
+function redact(input) {
+  let value = String(input || "");
+  value = value.replace(new RegExp("sk-" + "[A-Za-z0-9_-]{12,}", "g"), "[redacted-api-key]");
+  value = value.replace(/eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, "[redacted-jwt]");
+  value = value.replace(/postgres(?:ql)?:\/\/[^\s"'<>]+/gi, "postgres://[redacted]");
+  value = value.replace(/https?:\/\/[^:\s"'<>]+:[^@\s"'<>]+@[^\s"'<>]+/gi, "https://[redacted-credential]@[redacted-host]");
+  value = value.replace(/(token|secret|password|passwd|api[_-]?key|access[_-]?key|auth|bearer|credential)\s*[:=]\s*[^\s"'<>]+/gi, "$1=[redacted]");
+  return value;
+}
+
+const RULES = [
+  {
+    classification: "missing credential",
+    severity: "John-required",
+    pattern: /\b(token|credential|secret|api key|access token)\b.*\b(missing|required|not set|undefined)\b/i,
+    nextLedgerState: "Needs John: credential missing",
+    recovery: "Provision the credential locally without pasting it into chat, then rerun the auth/tooling gate.",
+  },
+  {
+    classification: "invalid credential",
+    severity: "John-required",
+    pattern: /\b(bad credentials|invalid token|expired token|revoked|401 unauthorized|authentication failed)\b/i,
+    nextLedgerState: "Needs John: credential invalid",
+    recovery: "Replace or refresh the local credential and rerun the auth gate.",
+  },
+  {
+    classification: "network unreachable",
+    severity: "retry-safe",
+    pattern: /\b(network is unreachable|ENOTFOUND|ECONNRESET|ETIMEDOUT|timeout|temporary failure in name resolution)\b/i,
+    nextLedgerState: "Blocked: network unreachable",
+    recovery: "Retry after network/DNS availability is confirmed; do not mutate state while connectivity is unclear.",
+  },
+  {
+    classification: "direct-host vs pooler mistake",
+    severity: "John-required",
+    pattern: /\b(db\.[a-z0-9-]+\.supabase\.co|direct host|pooler|IPv6|Network is unreachable).*(5432|pooler|direct host|IPv6)|\bport 5432 failed\b/i,
+    nextLedgerState: "Needs John: database connection URL repair",
+    recovery: "Use an approved IPv4-reachable pooler URL without printing it.",
+  },
+  {
+    classification: "CLI unavailable",
+    severity: "John-required",
+    pattern: /\b(command not found|not recognized|ENOENT|No such file or directory)\b/i,
+    nextLedgerState: "Needs John: local CLI unavailable",
+    recovery: "Install or provide the approved local tool; do not use curl installers or repo-local installs unless approved.",
+  },
+  {
+    classification: "auth unavailable",
+    severity: "John-required",
+    pattern: /\b(gh auth status|not logged in|not authenticated|authentication required|login required)\b/i,
+    nextLedgerState: "Needs John: auth unavailable",
+    recovery: "Run the relevant auth gate and stop before push, PR, deploy, or external mutation.",
+  },
+  {
+    classification: "permission denied",
+    severity: "John-required",
+    pattern: /\b(permission denied|access denied|403 forbidden|viewerPermission.*READ|resource not accessible)\b/i,
+    nextLedgerState: "Needs John: permission fix",
+    recovery: "Request the minimum required permission or token scope; do not retry with another account silently.",
+  },
+  {
+    classification: "merge blocked",
+    severity: "hard-stop",
+    pattern: /\b(mergeable.*false|merge conflict|required status check|branch protection|not mergeable|checks? failed)\b/i,
+    nextLedgerState: "PR blocked by mergeability or checks",
+    recovery: "Collect PR/check evidence and stop before merge.",
+  },
+  {
+    classification: "validation failed",
+    severity: "retry-safe",
+    pattern: /\b(validate-skills|lint|test|build|typecheck|syntax check).*\b(fail|failed|error|nonzero)\b/i,
+    nextLedgerState: "Blocked: validation failed",
+    recovery: "Fix the local validation issue or record it as a caveat before any handoff.",
+  },
+  {
+    classification: "unsafe secret exposure risk",
+    severity: "hard-stop",
+    pattern: /\b(secret|token|password|private key|database url|service role)\b.*\b(exposed|printed|leak|hardcoded|literal)\b/i,
+    nextLedgerState: "Blocked: unsafe secret exposure risk",
+    recovery: "Stop reading/printing values, report path/key/risk only, and contain the exposure.",
+  },
+  {
+    classification: "external service mutation not permitted",
+    severity: "hard-stop",
+    pattern: /\b(not allowed|forbidden|permission not granted).*\b(deploy|push|publish|migration|db push|secret set|production|external service)\b/i,
+    nextLedgerState: "Needs John: permission gate",
+    recovery: "Stop at the permission boundary and request the exact gate.",
+  },
+  {
+    classification: "environment format issue",
+    severity: "retry-safe",
+    pattern: /\b(env file format|bad substitution|unterminated quoted string|not a valid identifier|spaces around =|carriage return)\b/i,
+    nextLedgerState: "Needs John: env file format repair",
+    recovery: "Inspect variable-name shape only; do not print values.",
+  },
+];
+
+function classify(text) {
+  const matches = RULES.filter((rule) => rule.pattern.test(text));
+  if (matches.length) return matches;
+  return [
+    {
+      classification: "unknown failure",
+      severity: "John-required",
+      nextLedgerState: "Needs John: failure classification",
+      recovery: "Capture exact command, sanitized error, and smallest read-only confirming check.",
+    },
+  ];
+}
+
+function readInput(args) {
+  if (args.input) return fs.readFileSync(args.input, "utf8");
+  if (args.stdin) return fs.readFileSync(0, "utf8");
+  if (!process.stdin.isTTY) return fs.readFileSync(0, "utf8");
+  throw new Error("provide --input or --stdin");
+}
+
+function main() {
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    usage();
+    process.exit(2);
+  }
+
+  if (args.help) {
+    usage();
+    return;
+  }
+
+  let text;
+  try {
+    text = readInput(args);
+  } catch (error) {
+    console.error(error.message);
+    usage();
+    process.exit(2);
+  }
+
+  const redacted = redact(text);
+  const matches = classify(redacted);
+
+  console.log(`# Failure Evidence Report
+
+## Input
+
+${args.input ? args.input : "stdin"}
+
+## Classifications
+
+${matches.map((item) => `- ${item.classification} (${item.severity})`).join("\n")}
+
+Classification: ${matches[0].classification}
+
+## Recommended Ledger State
+
+${matches[0].nextLedgerState}
+
+## Recovery
+
+${matches[0].recovery}
+
+## Redacted Evidence
+
+\`\`\`text
+${redacted.trim().slice(0, 4000)}
+\`\`\`
+
+## Safety
+
+No files were modified. Secret-shaped values were redacted from output.`);
+}
+
+main();

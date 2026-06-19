@@ -1,0 +1,816 @@
+{
+  "version": 1,
+  "description": "Local route metadata for ledger-driven coding workflow skills. This is advisory routing and validation metadata; scripts/run-next remains the current executor until route-backed execution is intentionally migrated.",
+  "routes": [
+    {
+      "id": "verification-bundle-self-test",
+      "skill_file": "skill-files/release-preflight-skill.md",
+      "ledger_states_handled": [
+        "Local verification and release evidence bundle built"
+      ],
+      "permission_flag": "verification-bundle-self-test",
+      "helper_scripts": [
+        "scripts/run-next",
+        "scripts/npm-package-readiness",
+        "scripts/release-preflight",
+        "scripts/evidence-pack",
+        "scripts/skill-cleaner",
+        "scripts/validate-skills"
+      ],
+      "permission_level": "local-validation",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "npm publish",
+        "npm version",
+        "git tag",
+        "git push",
+        "GitHub release creation",
+        "deploy",
+        "remote mutation",
+        "secret value reads",
+        "production endpoint calls"
+      ],
+      "success_ledger_state": "Verification bundle self-test complete",
+      "blocked_ledger_state": "Verification bundle self-test blocked",
+      "next_permission": "approve evidence-pack write test or route next immediate skill bundle",
+      "evidence_required": [
+        "npm package readiness classification",
+        "release preflight classification",
+        "evidence-pack mode",
+        "helper syntax checks",
+        "skill-cleaner result",
+        "validate-skills result"
+      ],
+      "provenance": "local verification bundle workpack"
+    },
+    {
+      "id": "local-skill-workpack",
+      "skill_file": "skill-files/coding-workflow-orchestrator-skill.md",
+      "ledger_states_handled": [
+        "Verification bundle self-test complete"
+      ],
+      "permission_flag": "local-skill-workpack",
+      "helper_scripts": [
+        "scripts/run-next",
+        "scripts/evidence-pack",
+        "scripts/failure-evidence",
+        "scripts/npm-package-readiness",
+        "scripts/release-preflight",
+        "scripts/skill-cleaner",
+        "scripts/validate-skills",
+        "scripts/route-audit"
+      ],
+      "permission_level": "local-edit",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "product repo edits",
+        "npm publish",
+        "npm version",
+        "git tag",
+        "git push",
+        "GitHub PR creation",
+        "deploy",
+        "Supabase commands",
+        "Cloudflare commands",
+        "secret value reads",
+        "production endpoint calls"
+      ],
+      "success_ledger_state": "Local skill workpack complete",
+      "blocked_ledger_state": "Local skill workpack blocked",
+      "next_permission": "route next immediate skill bundle",
+      "evidence_required": [
+        "local evidence pack path when writing is approved",
+        "package readiness classification",
+        "release preflight classification",
+        "failure-evidence classification",
+        "helper syntax checks",
+        "route audit result",
+        "validate-skills result"
+      ],
+      "provenance": "local skill workpack"
+    },
+    {
+      "id": "supabase-function-deploy-lane",
+      "skill_file": "skill-files/supabase-function-deploy-skill.md",
+      "ledger_states_handled": [
+        "Scheduler migration draft merged, not applied",
+        "Scheduler applied via Vault, runtime not verified",
+        "Scheduler applied via Vault, runtime success not verified"
+      ],
+      "permission_flag": "supabase-secret-function-deploy | function-secret-deploy-negative-runtime",
+      "helper_scripts": [
+        "scripts/run-next",
+        "external:npx",
+        "external:curl",
+        "external:node"
+      ],
+      "permission_level": "secret-access, production-deploy, browser-live-proof",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "deploying unapproved functions",
+        "supabase db push",
+        "migration apply",
+        "SQL execution",
+        "scheduler mutation",
+        "app table writes",
+        "valid success invocation without separate gate",
+        "secret value printing",
+        "Git push or PR mutation"
+      ],
+      "success_ledger_state": "Function deployed and remote secret set, scheduler not applied | Function deployed, negative runtime verified, success path not run",
+      "blocked_ledger_state": "Function deploy blocked",
+      "next_permission": "runtime-negative-verification or controlled-success-invocation",
+      "evidence_required": [
+        "source auth and write-boundary inspection",
+        "env presence only",
+        "Supabase project access",
+        "temporary secret file deletion proof",
+        "single function deploy result",
+        "negative runtime status codes when included",
+        "success path decision"
+      ],
+      "provenance": "extracted from proven Wagging Web Wins Supabase lane"
+    },
+    {
+      "id": "supabase-scheduler-vault-lane",
+      "skill_file": "skill-files/supabase-scheduler-vault-skill.md",
+      "ledger_states_handled": [
+        "Runtime negative checks passed, scheduler not applied",
+        "Scheduler blocked: safe secret storage path not proven",
+        "Scheduler blocked: Vault/pg_cron/pg_net capability not proven",
+        "DB CONNECTIVITY BLOCKED"
+      ],
+      "permission_flag": "scheduler-application-decision | scheduler-vault-design-apply | scheduler-vault-apply-retry",
+      "helper_scripts": [
+        "scripts/run-next",
+        "external:psql",
+        "external:npx"
+      ],
+      "permission_level": "database-read, database-write, secret-access",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "supabase db push",
+        "migration apply",
+        "unrelated SQL",
+        "app table writes",
+        "Edge Function success invocation",
+        "function deploy",
+        "hardcoded scheduler secrets",
+        "secret value printing",
+        "Git push or PR mutation"
+      ],
+      "success_ledger_state": "Scheduler applied via Vault, runtime not verified",
+      "blocked_ledger_state": "Scheduler blocked: Vault/pg_cron/pg_net capability not proven",
+      "next_permission": "function-secret-deploy-negative-runtime or controlled scheduler success verification",
+      "evidence_required": [
+        "DB URL presence only",
+        "psql availability",
+        "read-only Vault, pg_cron, and pg_net capability discovery",
+        "current job metadata",
+        "Vault secret create or update result without value",
+        "temporary SQL deletion proof",
+        "cron command shape check",
+        "literal secret absence"
+      ],
+      "provenance": "extracted from proven Wagging Web Wins Supabase lane"
+    },
+    {
+      "id": "runtime-verification-lane",
+      "skill_file": "skill-files/runtime-verification-skill.md",
+      "ledger_states_handled": [
+        "Function deployed and remote secret set, scheduler not applied",
+        "Function deployed, negative runtime verified, success path not run",
+        "Function deployed, dry-run runtime verified, success path not run"
+      ],
+      "permission_flag": "runtime-negative-verification | controlled-success-invocation",
+      "helper_scripts": [
+        "scripts/run-next",
+        "external:curl",
+        "external:psql"
+      ],
+      "permission_level": "browser-live-proof, database-read",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "valid success request during negative checks",
+        "admin success request without separate gate",
+        "repeated success invocation",
+        "SQL writes",
+        "scheduler mutation",
+        "secret value printing",
+        "deploy"
+      ],
+      "success_ledger_state": "Runtime negative checks passed, scheduler not applied | Controlled success invocation completed",
+      "blocked_ledger_state": "Runtime negative checks failed, scheduler blocked",
+      "next_permission": "scheduler-application-decision or scheduled-run-monitoring-handoff",
+      "evidence_required": [
+        "source write and side-effect map",
+        "dry-run proof decision",
+        "negative check status codes",
+        "sanitized response summaries",
+        "before and after metadata for controlled success",
+        "secret exposure check"
+      ],
+      "provenance": "generic extraction from proven Supabase runtime gates"
+    },
+    {
+      "id": "production-handoff-lane",
+      "skill_file": "skill-files/production-handoff-skill.md",
+      "ledger_states_handled": [
+        "Controlled success invocation completed",
+        "Scheduled run pending, production handoff ready",
+        "Scheduled run observed, production handoff ready"
+      ],
+      "permission_flag": "scheduled-run-monitoring-handoff",
+      "helper_scripts": [
+        "scripts/run-next",
+        "external:psql"
+      ],
+      "permission_level": "database-read",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "function invocation",
+        "production endpoint call",
+        "deploy",
+        "supabase db push",
+        "migration apply",
+        "SQL writes",
+        "scheduler mutation",
+        "app table writes",
+        "secret value printing"
+      ],
+      "success_ledger_state": "Scheduled run pending, production handoff ready | Scheduled run observed, production handoff ready",
+      "blocked_ledger_state": "Scheduled run monitoring blocked",
+      "next_permission": "wait for scheduled run and recheck monitoring or finalize production handoff",
+      "evidence_required": [
+        "baseline time or commit",
+        "scheduler metadata",
+        "run history",
+        "safe app metadata",
+        "source and docs evidence",
+        "observed versus pending decision",
+        "commands not run"
+      ],
+      "provenance": "extracted from proven Wagging Web Wins scheduled monitoring lane"
+    },
+    {
+      "id": "github-pr-lifecycle-lane",
+      "skill_file": "skill-files/github-handoff-skill.md",
+      "ledger_states_handled": [
+        "Auth pass for GitHub handoff",
+        "PR opened, not merged",
+        "PR ready for merge approval",
+        "Scheduler migration PR opened, not merged"
+      ],
+      "permission_flag": "github-handoff | pr-readiness | pr-merge | scheduler-pr-merge",
+      "helper_scripts": [
+        "scripts/run-next",
+        "scripts/committer",
+        "external:gh",
+        "external:git"
+      ],
+      "permission_level": "github-remote, git-push, git-commit",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "git add .",
+        "direct main push",
+        "force push",
+        "duplicate PR creation",
+        "merge without explicit merge gate",
+        "branch deletion without explicit gate",
+        "deploy",
+        "migration apply",
+        "secret value printing"
+      ],
+      "success_ledger_state": "PR opened, not merged | PR ready for merge approval | Merged, not deployed | Scheduler migration draft merged, not applied",
+      "blocked_ledger_state": "PR blocked by checks | PR blocked by unexpected files | PR blocked by mergeability | PR readiness unknown",
+      "next_permission": "approve PR merge, deployment planning, or hold",
+      "evidence_required": [
+        "auth account and repo access without token values",
+        "exact changed files",
+        "branch evidence",
+        "PR URL",
+        "checks and mergeability",
+        "workflow deployment scan before merge",
+        "post-merge state when merge is approved"
+      ],
+      "provenance": "extracted from proven GitHub handoff and PR lifecycle runs"
+    },
+    {
+      "id": "cloudflare-opstruth-packaging-bundle",
+      "skill_file": "skill-files/coding-workflow-orchestrator-skill.md",
+      "ledger_states_handled": [
+        "Embedded production lanes extracted into reusable routes"
+      ],
+      "permission_flag": "cloudflare-opstruth-packaging-bundle",
+      "helper_scripts": [
+        "scripts/run-next",
+        "scripts/route-audit",
+        "scripts/library-packaging-readiness",
+        "scripts/release-preflight",
+        "scripts/skill-cleaner",
+        "scripts/validate-skills"
+      ],
+      "permission_level": "local-edit, local-validation",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "product repo edits",
+        "Cloudflare deploy",
+        "Wrangler deploy",
+        "npm publish",
+        "npm version",
+        "git tag",
+        "git push",
+        "GitHub PR creation",
+        "Supabase commands",
+        "secret value reads",
+        "production endpoint calls",
+        "remote service mutation"
+      ],
+      "success_ledger_state": "Cloudflare Opstruth packaging routes extracted",
+      "blocked_ledger_state": "Cloudflare Opstruth packaging bundle blocked",
+      "next_permission": "run clean-temp package/open-source readiness smoke or scheduled-run recheck",
+      "evidence_required": [
+        "Cloudflare deploy skill hardening",
+        "Opstruth runtime truth skill existence",
+        "skills library packaging skill existence",
+        "route metadata audit",
+        "library packaging readiness classification",
+        "release preflight local classification",
+        "validator result"
+      ],
+      "provenance": "local non-Supabase lane extraction workpack"
+    },
+    {
+      "id": "clean-temp-readiness-smoke",
+      "skill_file": "skill-files/skills-library-packaging-skill.md",
+      "ledger_states_handled": [
+        "Cloudflare Opstruth packaging routes extracted"
+      ],
+      "permission_flag": "clean-temp-readiness-smoke",
+      "helper_scripts": [
+        "scripts/run-next",
+        "scripts/route-audit",
+        "scripts/library-packaging-readiness",
+        "scripts/release-preflight",
+        "scripts/skill-cleaner",
+        "scripts/validate-skills"
+      ],
+      "permission_level": "local-edit, local-validation",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "product repo edits",
+        "OneClickPostFactory repo edits",
+        "Opstruth repo edits",
+        "npm publish",
+        "npm version",
+        "git tag",
+        "git push",
+        "GitHub PR creation",
+        "deploy",
+        "Supabase commands",
+        "Cloudflare commands",
+        "secret value reads",
+        "production endpoint calls",
+        "remote service mutation",
+        "license selection"
+      ],
+      "success_ledger_state": "Clean-temp readiness smoke complete",
+      "blocked_ledger_state": "Clean-temp readiness smoke blocked",
+      "next_permission": "choose licence/package path or run scheduled-run recheck",
+      "evidence_required": [
+        "clean temp path",
+        "copy exclusions",
+        "temp route-audit result",
+        "temp run-next route list result",
+        "temp packaging readiness classification",
+        "temp open-source readiness blocker classification",
+        "temp release preflight local classification",
+        "temp skill-cleaner result",
+        "temp validate-skills result",
+        "temp cleanup result",
+        "commands not run"
+      ],
+      "provenance": "local clean-temp portability and open-source readiness smoke"
+    },
+    {
+      "id": "license-package-candidate",
+      "skill_file": "skill-files/skills-library-packaging-skill.md",
+      "ledger_states_handled": [
+        "Clean-temp readiness smoke complete"
+      ],
+      "permission_flag": "license-package-candidate",
+      "helper_scripts": [
+        "scripts/run-next",
+        "scripts/library-packaging-readiness",
+        "scripts/npm-package-readiness",
+        "scripts/release-preflight",
+        "scripts/route-audit",
+        "scripts/skill-cleaner",
+        "scripts/validate-skills"
+      ],
+      "permission_level": "local-edit, local-validation",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "product repo edits",
+        "OneClickPostFactory repo edits",
+        "Opstruth repo edits",
+        "npm publish",
+        "npm version",
+        "git tag",
+        "git push",
+        "GitHub PR creation",
+        "GitHub release creation",
+        "deploy",
+        "Supabase commands",
+        "Cloudflare commands",
+        "secret value reads",
+        "production endpoint calls",
+        "remote service mutation"
+      ],
+      "success_ledger_state": "MIT licence and package candidate scaffold complete",
+      "blocked_ledger_state": "MIT licence and package candidate scaffold blocked",
+      "next_permission": "run package-candidate dry-run or scheduled-run recheck",
+      "evidence_required": [
+        "MIT LICENSE file",
+        "LICENSE-DECISION.md MIT decision",
+        "package.json candidate scaffold",
+        "package name confirmation blocker",
+        "open-source readiness classification",
+        "npm package readiness classification",
+        "release preflight local classification",
+        "commands not run"
+      ],
+      "provenance": "John-selected MIT licence and local package candidate scaffold route"
+    },
+    {
+      "id": "package-candidate-dry-run",
+      "skill_file": "skill-files/skills-library-packaging-skill.md",
+      "ledger_states_handled": [
+        "MIT licence and package candidate scaffold complete"
+      ],
+      "permission_flag": "package-candidate-dry-run",
+      "helper_scripts": [
+        "scripts/run-next",
+        "scripts/library-packaging-readiness",
+        "scripts/npm-package-readiness",
+        "scripts/release-preflight",
+        "scripts/route-audit",
+        "scripts/skill-cleaner",
+        "scripts/validate-skills",
+        "external:npm"
+      ],
+      "permission_level": "local-validation, package-dry-run",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "npm publish",
+        "npm version",
+        "git tag",
+        "git push",
+        "GitHub PR creation",
+        "GitHub release creation",
+        "deploy",
+        "Supabase commands",
+        "Cloudflare commands",
+        "secret value reads",
+        "production endpoint calls",
+        "registry mutation",
+        "remote service mutation"
+      ],
+      "success_ledger_state": "Package candidate dry-run complete",
+      "blocked_ledger_state": "Package candidate dry-run blocked",
+      "next_permission": "choose CLI entrypoint or run scheduled-run recheck",
+      "evidence_required": [
+        "package identity and repository metadata",
+        "package files allowlist",
+        "no CLI bin before approval",
+        "library packaging readiness classification",
+        "npm package readiness classification",
+        "release preflight npm classification",
+        "npm pack dry-run result",
+        "package contents risk inspection",
+        "clean-temp package smoke result",
+        "route audit result",
+        "validate-skills result",
+        "commands not run"
+      ],
+      "provenance": "John-approved local package candidate dry-run route for autonomous-coding-workflow-library"
+    },
+    {
+      "id": "cli-entrypoint-package-smoke",
+      "skill_file": "skill-files/skills-library-packaging-skill.md",
+      "ledger_states_handled": [
+        "Package candidate dry-run complete",
+        "CLI entrypoint package smoke blocked"
+      ],
+      "permission_flag": "cli-package-smoke",
+      "helper_scripts": [
+        "bin/coding-workflow.js",
+        "scripts/run-next",
+        "scripts/library-packaging-readiness",
+        "scripts/npm-package-readiness",
+        "scripts/release-preflight",
+        "scripts/route-audit",
+        "scripts/skill-cleaner",
+        "scripts/validate-skills",
+        "external:npm"
+      ],
+      "permission_level": "local-validation, package-dry-run, local-temp-install",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "npm publish",
+        "npm version",
+        "git tag",
+        "git push",
+        "GitHub PR creation",
+        "GitHub release creation",
+        "deploy",
+        "Supabase commands",
+        "Cloudflare commands",
+        "secret value reads",
+        "production endpoint calls",
+        "registry mutation",
+        "remote service mutation",
+        "remote dependency installation"
+      ],
+      "success_ledger_state": "CLI entrypoint package smoke complete",
+      "blocked_ledger_state": "CLI entrypoint package smoke blocked",
+      "next_permission": "run scheduled-run recheck or prepare GitHub repo handoff",
+      "evidence_required": [
+        "CLI bin metadata",
+        "local CLI help result",
+        "local CLI routes result",
+        "package readiness with --expect-cli",
+        "release preflight CLI mode",
+        "npm pack dry-run result",
+        "package contents risk inspection",
+        "clean-temp tarball install smoke",
+        "installed CLI help/routes/validate result",
+        "temp cleanup result",
+        "route audit result",
+        "validate-skills result",
+        "commands not run"
+      ],
+      "provenance": "John-approved local CLI entrypoint package smoke for autonomous-coding-workflow-library"
+    },
+    {
+      "id": "github-open-source-handoff",
+      "skill_file": "skill-files/github-handoff-skill.md",
+      "ledger_states_handled": [
+        "CLI entrypoint package smoke complete",
+        "GitHub open-source handoff blocked"
+      ],
+      "permission_flag": "github-open-source-handoff",
+      "helper_scripts": [
+        "scripts/run-next",
+        "scripts/committer",
+        "scripts/check-js",
+        "scripts/npm-package-readiness",
+        "scripts/release-preflight",
+        "scripts/route-audit",
+        "scripts/validate-skills",
+        "external:git",
+        "external:gh",
+        "external:npm"
+      ],
+      "permission_level": "local-edit, local-validation, exact-file-commit, github-repo-create, git-push-main",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "git add .",
+        "git add -A",
+        "force push",
+        "npm publish",
+        "npm version",
+        "git tag",
+        "GitHub release creation",
+        "deploy",
+        "Supabase commands",
+        "Cloudflare commands",
+        "production endpoint calls",
+        "token or secret value printing",
+        "evidence staging",
+        "temp/cache/tarball staging",
+        "private runtime config staging"
+      ],
+      "success_ledger_state": "GitHub open-source handoff complete",
+      "blocked_ledger_state": "GitHub open-source handoff blocked",
+      "next_permission": "run scheduled-run recheck or prepare first version/tag without publishing",
+      "evidence_required": [
+        "GitHub auth gate result",
+        "repository existence result",
+        "public repository hardening files",
+        "local validation result",
+        "npm package name read-only check",
+        "exact files committed",
+        "commit hash",
+        "branch",
+        "remote URL",
+        "push result",
+        "remote HEAD verification",
+        "commands deliberately not run"
+      ],
+      "provenance": "John-approved open-source GitHub handoff route for AyobamiH/coding-workflow-library"
+    },
+    {
+      "id": "cloudflare-deploy-proof-planning",
+      "skill_file": "skill-files/cloudflare-deploy-skill.md",
+      "ledger_states_handled": [
+        "Cloudflare deploy proof requested",
+        "Cloudflare deploy planning requested"
+      ],
+      "permission_flag": "cloudflare-deploy-proof-planning",
+      "helper_scripts": [
+        "scripts/run-next",
+        "external:git",
+        "external:rg",
+        "external:npm",
+        "external:npx",
+        "external:wrangler"
+      ],
+      "permission_level": "read-only-local, local-validation",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "Wrangler deploy",
+        "Cloudflare Pages deploy",
+        "Cloudflare Workers deploy",
+        "secret setting",
+        "route or DNS mutation",
+        "rollback execution",
+        "production endpoint calls",
+        "secret value printing"
+      ],
+      "success_ledger_state": "Cloudflare deploy proof plan ready, not deployed",
+      "blocked_ledger_state": "Cloudflare deploy proof blocked",
+      "next_permission": "approve Cloudflare preview deploy, production deploy, post-deploy verification, or hold",
+      "evidence_required": [
+        "Pages versus Workers classification",
+        "Cloudflare config files inspected",
+        "package scripts inspected",
+        "build output decision",
+        "secret names only",
+        "pre-deploy checks",
+        "commands not run"
+      ],
+      "provenance": "extracted from deferred Cloudflare deployment lane"
+    },
+    {
+      "id": "opstruth-runtime-truth-integration",
+      "skill_file": "skill-files/opstruth-runtime-truth-skill.md",
+      "ledger_states_handled": [
+        "Runtime truth evidence requested",
+        "Opstruth evidence classification requested"
+      ],
+      "permission_flag": "opstruth-runtime-truth",
+      "helper_scripts": [
+        "scripts/evidence-pack",
+        "scripts/failure-evidence",
+        "scripts/release-preflight",
+        "manual:opstruth-report"
+      ],
+      "permission_level": "read-only-local, local-validation",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "external Opstruth service calls",
+        "production endpoint calls",
+        "deploy",
+        "database writes",
+        "secret value reads",
+        "evidence file writes without evidence-pack write permission",
+        "remote service mutation"
+      ],
+      "success_ledger_state": "Runtime truth evidence classified",
+      "blocked_ledger_state": "Runtime truth evidence blocked",
+      "next_permission": "approve evidence-pack write, runtime verification, or hold",
+      "evidence_required": [
+        "claim under review",
+        "evidence source list",
+        "truth table",
+        "commands run",
+        "commands not run",
+        "source-only versus runtime proof distinction",
+        "next safe step"
+      ],
+      "provenance": "recovered paused Opstruth/runtime truth lane"
+    },
+    {
+      "id": "skills-library-packaging-readiness",
+      "skill_file": "skill-files/skills-library-packaging-skill.md",
+      "ledger_states_handled": [
+        "Cloudflare Opstruth packaging routes extracted",
+        "Skills library packaging readiness requested"
+      ],
+      "permission_flag": "library-packaging-readiness",
+      "helper_scripts": [
+        "scripts/library-packaging-readiness",
+        "scripts/npm-package-readiness",
+        "scripts/release-preflight",
+        "scripts/route-audit",
+        "scripts/validate-skills"
+      ],
+      "permission_level": "read-only-local, local-validation",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "npm publish",
+        "npm version",
+        "git tag",
+        "git push",
+        "GitHub release creation",
+        "dependency install",
+        "product repo install",
+        "secret value reads",
+        "remote service mutation"
+      ],
+      "success_ledger_state": "Skills library packaging readiness classified",
+      "blocked_ledger_state": "Skills library packaging readiness blocked",
+      "next_permission": "run clean-temp package/open-source readiness smoke or hold",
+      "evidence_required": [
+        "core file inventory",
+        "skill count",
+        "route manifest audit",
+        "helper script inventory",
+        "templates/tests/docs inventory",
+        "license and release note status",
+        "package or CLI expectation result"
+      ],
+      "provenance": "recovered skills-library packaging lane"
+    },
+    {
+      "id": "npm-package-readiness-route",
+      "skill_file": "skill-files/npm-package-readiness-skill.md",
+      "ledger_states_handled": [
+        "NPM package readiness requested",
+        "CLI package readiness requested"
+      ],
+      "permission_flag": "npm-package-readiness",
+      "helper_scripts": [
+        "scripts/npm-package-readiness",
+        "scripts/release-preflight",
+        "external:npm"
+      ],
+      "permission_level": "read-only-local, local-validation",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "npm publish",
+        "npm version",
+        "dependency install",
+        "registry mutation",
+        "git tag",
+        "git push",
+        "GitHub release creation",
+        "secret value reads"
+      ],
+      "success_ledger_state": "NPM package readiness classified",
+      "blocked_ledger_state": "NPM package readiness blocked",
+      "next_permission": "approve release preflight local mode, pack dry-run, clean-temp install smoke, or hold",
+      "evidence_required": [
+        "package metadata",
+        "bin entrypoint status when CLI is expected",
+        "lockfile status",
+        "package contents control",
+        "README and release note status",
+        "pack dry-run decision",
+        "final classification"
+      ],
+      "provenance": "recovered npm and CLI package candidate lane"
+    },
+    {
+      "id": "release-preflight-local-route",
+      "skill_file": "skill-files/release-preflight-skill.md",
+      "ledger_states_handled": [
+        "Release preflight local requested",
+        "Package release preflight requested"
+      ],
+      "permission_flag": "release-preflight-local",
+      "helper_scripts": [
+        "scripts/release-preflight",
+        "scripts/npm-package-readiness",
+        "scripts/evidence-pack"
+      ],
+      "permission_level": "read-only-local, local-validation",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "npm publish",
+        "npm version",
+        "git tag",
+        "git push",
+        "GitHub release creation",
+        "deploy",
+        "secret value reads",
+        "production endpoint calls",
+        "remote service mutation"
+      ],
+      "success_ledger_state": "Release preflight local classified",
+      "blocked_ledger_state": "Release preflight local blocked",
+      "next_permission": "approve evidence-pack write, pack dry-run, release gate, or hold",
+      "evidence_required": [
+        "mode",
+        "git state",
+        "package readiness classification",
+        "evidence-pack dry-run",
+        "README and release notes",
+        "release boundaries",
+        "final classification"
+      ],
+      "provenance": "recovered release preflight lane"
+    }
+  ]
+}

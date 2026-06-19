@@ -1,0 +1,56 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+const { spawnSync } = require("child_process");
+
+const root = path.resolve(__dirname, "..");
+const scriptDir = path.join(root, "scripts");
+const explicit = ["bin/coding-workflow.js"];
+
+function isNodeScript(relativePath) {
+  const absolute = path.join(root, relativePath);
+  if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) return false;
+  if (/\.(js|mjs|cjs)$/.test(relativePath)) return true;
+  const firstLine = fs.readFileSync(absolute, "utf8").split(/\r?\n/, 1)[0] || "";
+  return firstLine.includes("node");
+}
+
+function discover() {
+  const candidates = new Set(explicit);
+  for (const name of fs.readdirSync(scriptDir)) {
+    candidates.add(path.join("scripts", name));
+  }
+  return [...candidates].filter(isNodeScript).sort();
+}
+
+function main() {
+  const files = discover();
+  const failures = [];
+
+  for (const relativePath of files) {
+    const result = spawnSync(process.execPath, ["--check", path.join(root, relativePath)], {
+      encoding: "utf8",
+      maxBuffer: 1024 * 1024,
+    });
+    if (result.status !== 0) {
+      failures.push({
+        file: relativePath,
+        output: `${result.stdout || ""}${result.stderr || ""}`.trim(),
+      });
+    }
+  }
+
+  if (failures.length) {
+    console.error("JavaScript syntax check failed:");
+    for (const failure of failures) {
+      console.error(`- ${failure.file}`);
+      if (failure.output) console.error(failure.output);
+    }
+    process.exit(1);
+  }
+
+  console.log(`JavaScript syntax check passed for ${files.length} files.`);
+}
+
+main();

@@ -1,0 +1,61 @@
+name: Validate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install package metadata only
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run local test suite
+        run: npm test
+
+      - name: Run package readiness
+        run: npm run package:readiness
+
+      - name: Run release preflight
+        run: npm run release:preflight
+
+      - name: Run pack dry-run
+        run: npm pack --dry-run --json > /tmp/coding-workflow-pack.json
+
+      - name: Check package contents for unsafe paths
+        run: |
+          node - <<'NODE'
+          const fs = require("fs");
+          const pack = JSON.parse(fs.readFileSync("/tmp/coding-workflow-pack.json", "utf8"));
+          const files = (Array.isArray(pack) ? pack[0]?.files : pack?.files) || [];
+          const names = files.map((file) => file.path || "");
+          const blocked = [
+            /(^|\/)\.env($|[./-])/,
+            /(^|\/)evidence($|\/)/,
+            /(^|\/)node_modules($|\/)/,
+            /(^|\/)(tmp|\.tmp|\.npm|\.git|\.openclaw)($|\/)/,
+            /\.(pem|key|p12|pfx)$/i,
+            /\.tgz$/i,
+          ];
+          const offenders = names.filter((name) => blocked.some((pattern) => pattern.test(name)));
+          if (offenders.length) {
+            console.error(`Unsafe package paths: ${offenders.join(", ")}`);
+            process.exit(1);
+          }
+          console.log(`Package contents checked: ${names.length} files`);
+          NODE
