@@ -154,6 +154,15 @@ When infrastructure succeeds but business output is empty, use the source-only t
 
 The route combines `route-trace-skill`, `runtime-verification-skill`, and `error-evidence-skill`. It traces counter assignments and stage attrition, reproduces approved database-backed counts read-only, and stops at `EVIDENCE_INSUFFICIENT` when upstream or per-filter evidence is absent. It does not invoke jobs, fetch external sources, write data, deploy, or edit product code without a separately proven defect and permission.
 
+If the missing boundary requires instrumentation, use a separate count-only observability gate:
+
+```bash
+./scripts/run-next --lane <lane-id> --state-file /path/to/lanes.json --repo /path/to/repo --dry-run --allow zero-output-observability-patch
+./scripts/run-next --lane <lane-id> --state-file /path/to/lanes.json --repo /path/to/repo --allow zero-output-observability-patch
+```
+
+That route validates local aggregate telemetry only. Commit, PR, merge, deploy, and automatic-run recheck remain separate gates, and the recheck uses `--allow observability-run-recheck`.
+
 ## Route Metadata
 
 `routes/skill-routes.json` is the local manifest that connects ledger states to reusable skills, permission flags, helper scripts, forbidden actions, success states, blocked states, next permissions, and evidence requirements.

@@ -644,9 +644,12 @@ Lane commands are local state operations. They do not grant permission for the s
 ./scripts/pipeline-diagnostics --source "$PIPELINE_SOURCE" --json
 ./scripts/run-next --lane "$LANE_ID" --state-file "$STATE_FILE" --repo "$TARGET_REPO" --dry-run --allow zero-output-investigation
 ./scripts/run-next --lane "$LANE_ID" --state-file "$STATE_FILE" --repo "$TARGET_REPO" --allow zero-output-investigation
+./scripts/run-next --lane "$LANE_ID" --state-file "$STATE_FILE" --repo "$TARGET_REPO" --dry-run --allow zero-output-observability-patch
+./scripts/run-next --lane "$LANE_ID" --state-file "$STATE_FILE" --repo "$TARGET_REPO" --allow zero-output-observability-patch
+./scripts/run-next --lane "$LANE_ID" --state-file "$STATE_FILE" --repo "$TARGET_REPO" --dry-run --allow observability-run-recheck
 ```
 
-The real runner route may use only approved read-only metadata. It is not permission to invoke the pipeline, fetch its upstream source, write SQL, edit product code speculatively, deploy, or commit product changes.
+The real investigation route may use only approved read-only metadata. The observability preparation route may validate a local count-only patch, but it is still not permission to invoke the pipeline, fetch its upstream source, write SQL, deploy, merge, or commit product changes outside the separately approved GitHub handoff gate.
 # GitHub Open-Source Handoff Commands
 
 Use only after John grants `github-open-source-handoff`.

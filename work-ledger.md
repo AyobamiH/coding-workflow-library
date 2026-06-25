@@ -412,6 +412,21 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Exact next action: select the blocked product lane only when the missing read-only stage evidence is available.
 * Whether John is needed: Yes for any additional product observability, remediation, commit, or deploy gate.
 
+## 2026-06-25 - Zero-Output Observability Workflow
+
+* Active repo: `AyobamiH/coding-workflow-library`.
+* Current objective: Add permission-gated route support for count-only observability patches after evidence-insufficient zero-output investigations.
+* Current permission level: Local reusable library edits, lane-scoped product patch preparation, exact-file product PR handoff, and read-only PR/check inspection. Product deploy and runtime observation remained gated.
+* Current status: Zero-output observability workflow added; Wagging PR blocked by external preview check.
+* Selected skill: runtime-verification-skill / route-trace-skill / error-evidence-skill / github-handoff-skill.
+* Last commands run: lane-aware observability prep dry-run and real run, Wagging local validation, exact-file product commit, feature-branch push, PR creation, PR check inspection, and library validation planning.
+* Files changed: reusable route metadata, runner mapping, operator docs, and diagnostic skill guidance. Product patch files are in the Wagging repo and are not included in this public package.
+* Validation evidence: Wagging focused telemetry tests, full test suite, typecheck, build, lint, and diff check passed; GitHub Actions quality passed for PR #13; Cloudflare Pages external preview check failed.
+* Blockers: PR #13 must not be merged or deployed until John approves Cloudflare Pages failure investigation or explicitly waives the external preview check.
+* Next recommended skill: error-evidence-skill / cloudflare-deploy-skill / github-handoff-skill.
+* Exact next action: decide whether to investigate the Cloudflare Pages check failure or waive that external preview check before merge.
+* Whether John is needed: Yes for the Cloudflare/merge decision.
+
 ## 2026-06-19 - Project-Scoped Autonomous Workflow Lanes
 
 * Active repo: `AyobamiH/coding-workflow-library`.

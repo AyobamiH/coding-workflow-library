@@ -34,6 +34,13 @@ handles_state:
   - Scheduled run observed, production handoff ready
   - Scheduled run observed with failure: investigate scheduler/runtime
   - Zero-output pipeline investigation blocked
+  - Zero-output observability patch ready for review
+  - Zero-output observability patch merged, not deployed
+  - Zero-output observability deployed, awaiting automatic run
+  - Zero-output observability patch blocked
+  - Observability run pending
+  - Observability run failed: investigate runtime
+  - Observability evidence insufficient
   - Zero-output root cause proven, production handoff pending decision
   - Expected empty input proven, production handoff ready
   - Zero-output local fix drafted, not committed or deployed
@@ -69,6 +76,8 @@ requires_permission:
   - controlled-success-invocation
   - scheduled-run-monitoring-handoff
   - zero-output-investigation
+  - zero-output-observability-patch
+  - observability-run-recheck
   - scheduler-application-decision
   - scheduler-vault-design-apply
   - scheduler-vault-apply-retry

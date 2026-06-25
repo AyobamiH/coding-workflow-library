@@ -90,6 +90,8 @@ curl -s -o /tmp/runtime-success.out -w "%{http_code}\n" -X POST "$RUNTIME_URL" -
 12. Stop immediately if a request unexpectedly succeeds under a rejection check, returns unclear auth behavior, or appears to mutate data.
 13. Update `work-ledger.md` and `runs/skill-runs.md` with status, evidence, stop boundary, and next permission.
 14. For zero-output work, prove the first non-zero stage and first zero stage. If raw input or per-filter counts are absent, stop at `EVIDENCE_INSUFFICIENT` rather than invoking production again.
+15. If zero-output evidence is insufficient, a separately approved observability patch may add count-only telemetry. The patch must avoid response expansion for untrusted callers, avoid database writes, avoid migrations, avoid source/filter changes, and log only aggregate stage counts plus coarse failure categories.
+16. After an observability patch is deployed, wait for the normal scheduler or background job to run. Do not manually invoke the success path unless a separate controlled invocation gate is approved.
 
 ## Evidence Required
 
@@ -105,6 +107,7 @@ curl -s -o /tmp/runtime-success.out -w "%{http_code}\n" -X POST "$RUNTIME_URL" -
 - Scheduled monitoring evidence if used.
 - Final runtime status and next ledger state.
 - Zero-output classification and the smallest missing read-only evidence when attribution is incomplete.
+- Observability patch contracts: stage counters, privacy exclusions, tests, deployment boundary, and automatic-run wait evidence.
 
 ## Safety Rules
 

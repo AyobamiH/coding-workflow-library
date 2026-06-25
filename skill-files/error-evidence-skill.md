@@ -96,6 +96,7 @@ git config --global user.name "Your Name"
 8. Do not proceed to mutation until the failure is understood and the current permission gate covers recovery.
 9. For zero-output pipelines, classify exactly one of: `EXPECTED_EMPTY_INPUT`, `SOURCE_CONFIGURATION_MISSING`, `DATABASE_FILTER_EXCLUDES_ALL`, `UPSTREAM_RETRIEVAL_BLOCKED`, `PARSING_OR_NORMALISATION_EMPTY`, `INSERT_PRECONDITION_EXCLUDES_ALL`, `CODE_DEFECT_PROVEN`, or `EVIDENCE_INSUFFICIENT`.
 10. Record the first proven non-zero input and first proven zero output. A gap between them is evidence uncertainty, not proof of the most plausible cause.
+11. If an observability patch is used to close an evidence gap, classify the patch/PR/deploy/check state separately from the product root cause. A failed CI or preview check blocks merge/deploy; it is not product pipeline evidence.
 
 ## Evidence Required
 
@@ -108,6 +109,7 @@ git config --global user.name "Your Name"
 - Recovery action taken or requested.
 - Remaining uncertainty.
 - First non-zero/first zero boundary and zero-output classification when applicable.
+- For observability work: patch status, CI/preview status, deploy status, automatic-run status, and whether telemetry actually proves the stage boundary.
 
 ## Safety Rules
 

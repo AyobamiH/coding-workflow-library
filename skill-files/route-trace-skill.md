@@ -79,6 +79,7 @@ Source-only pipeline trace:
 10. Trace each response counter to its exact assignment. Do not infer that a counter named `candidates` represents raw upstream records.
 11. Reproduce database-backed filters with read-only counts when approved, then identify the first proven non-zero stage and first proven zero stage.
 12. If the gap spans an external boundary or uninstrumented filters, classify the result as evidence-insufficient rather than guessing.
+13. If a count-only observability patch is approved, place counters at real transformation boundaries, avoid content/URL/header/user fields, preserve business logic, and stop before deploy or runtime observation unless those gates are separately approved.
 
 ## Evidence Required
 
@@ -96,6 +97,7 @@ Source-only pipeline trace:
 - Do not enable cross-agent history without explicit approval.
 - Do not fetch external sources, invoke production jobs, or create data merely to diagnose zero output unless separately approved.
 - Do not edit product code unless a deterministic defect is proven and local edits are explicitly allowed.
+- Do not change filters, source configuration, dedupe behaviour, or insertion behaviour as part of a count-only observability patch.
 
 ## Common Failures
 

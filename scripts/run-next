@@ -67,6 +67,8 @@ const ALLOWED_FLAGS = new Set([
   "controlled-success-invocation",
   "scheduled-run-monitoring-handoff",
   "zero-output-investigation",
+  "zero-output-observability-patch",
+  "observability-run-recheck",
   "scheduler-application-decision",
   "scheduler-vault-design-apply",
   "scheduler-vault-apply-retry",
@@ -186,6 +188,8 @@ function main() {
       result = runScheduledRunMonitoringHandoff(active);
     } else if (route.kind === "zero-output-pipeline-investigation") {
       result = runZeroOutputPipelineInvestigation(active);
+    } else if (route.kind === "zero-output-observability-patch") {
+      result = runZeroOutputObservabilityPatch(active);
     } else if (route.kind === "scheduler-application-decision") {
       result = runSchedulerApplicationDecision(active);
     } else if (route.kind === "scheduler-vault-design-apply") {
@@ -784,6 +788,15 @@ function routeStatus(status) {
   }
 
   if (normalized === "zero-output pipeline investigation blocked") {
+    if (!args.allow.has("zero-output-investigation")) {
+      return {
+        skill: "runtime-verification-skill / route-trace-skill / error-evidence-skill",
+        permission: "zero-output-observability-patch",
+        kind: "zero-output-observability-patch",
+        nextAction: "prepare a local count-only observability patch and stop before commit, PR, deploy, or runtime observation",
+      };
+    }
+
     return {
       skill: "route-trace-skill / runtime-verification-skill / error-evidence-skill",
       permission: "zero-output-investigation",
@@ -822,6 +835,53 @@ function routeStatus(status) {
       finalStatus: "Zero-output local fix drafted, not committed or deployed",
       nextPermission: "review and approve exact-file Wagging fix commit",
       nextAction: "review the local product diff and validation before any commit",
+    };
+  }
+
+  if (normalized === "zero-output observability patch ready for review") {
+    return {
+      skill: "github-handoff-skill / build-verify-skill",
+      permission: null,
+      kind: "permission-boundary",
+      finalStatus: "Zero-output observability patch ready for review",
+      nextPermission: "exact-file Wagging commit, branch push, and PR creation",
+      nextAction: "review the local patch and proceed through a separate GitHub handoff gate",
+    };
+  }
+
+  if (normalized === "zero-output observability patch merged, not deployed") {
+    return {
+      skill: "supabase-function-deploy-skill",
+      permission: null,
+      kind: "permission-boundary",
+      finalStatus: "Zero-output observability patch merged, not deployed",
+      nextPermission: "deploy only import-reddit-tips",
+      nextAction: "deploy the merged import-reddit-tips function through a separate deploy gate",
+    };
+  }
+
+  if (normalized === "zero-output observability deployed, awaiting automatic run") {
+    return {
+      skill: "runtime-verification-skill / production-handoff-skill",
+      permission: "observability-run-recheck",
+      kind: "observability-run-recheck",
+      nextAction: "wait for a natural scheduled run and read safe telemetry without invoking production",
+    };
+  }
+
+  if (
+    normalized === "zero-output stage boundary proven" ||
+    normalized === "observability run pending" ||
+    normalized === "observability run failed: investigate runtime" ||
+    normalized === "observability evidence insufficient"
+  ) {
+    return {
+      skill: "runtime-verification-skill / error-evidence-skill",
+      permission: null,
+      kind: "permission-boundary",
+      finalStatus: status,
+      nextPermission: "review observability result and choose remediation, wait, or handoff",
+      nextAction: "do not change filters, sources, or data without a separate product decision",
     };
   }
 
@@ -7702,6 +7762,105 @@ function runZeroOutputPipelineInvestigation(active) {
     nextPermission: "provide retained read-only function logs with per-stage counts, or approve a separate observability patch plan",
     nextSkill: "route-trace-skill / runtime-verification-skill / error-evidence-skill",
     zeroOutputInvestigation: report,
+    exitCode: 1,
+  };
+}
+
+function runZeroOutputObservabilityPatch(active) {
+  const expectedFiles = [
+    "docs/import-reddit-tips-security.md",
+    "supabase/functions/import-reddit-tips/index.ts",
+    "supabase/functions/import-reddit-tips/pipelineTelemetry.ts",
+    "supabase/functions/import-reddit-tips/pipelineTelemetry.test.ts",
+  ];
+
+  if (dryRun) {
+    actions.push("would verify the local Wagging observability patch without staging or committing");
+    actions.push("would require exact expected files only, plus excluded evidence/ and supabase/.temp/");
+    actions.push("would run git diff --check and focused telemetry tests");
+    actions.push("would update only the selected lane to Zero-output observability patch ready for review");
+    return {
+      finalStatus: "DRY RUN PASS",
+      ledgerStatus: active.currentStatus,
+      summary: "zero-output observability patch preparation would validate local count-only telemetry and stop before GitHub handoff",
+      nextPermission: "zero-output-observability-patch",
+      nextSkill: "runtime-verification-skill / route-trace-skill / error-evidence-skill",
+      exitCode: 0,
+    };
+  }
+
+  if (!fs.existsSync(targetRepo)) {
+    return {
+      finalStatus: "Zero-output observability patch blocked",
+      ledgerStatus: "Zero-output observability patch blocked",
+      summary: "target repo is missing",
+      nextPermission: "restore target repo path and retry local preparation",
+      exitCode: 1,
+    };
+  }
+
+  const statusRun = run("git", ["-C", targetRepo, "status", "--short"], { allowFailure: true });
+  if (statusRun.code !== 0) {
+    return zeroOutputObservabilityPatchBlocked(`git status failed: ${firstLine(statusRun.stderr || statusRun.stdout)}`);
+  }
+
+  const lines = statusRun.stdout.split(/\r?\n/).filter(Boolean);
+  const allowedLines = new Set([
+    " M docs/import-reddit-tips-security.md",
+    " M supabase/functions/import-reddit-tips/index.ts",
+    "?? evidence/",
+    "?? supabase/.temp/",
+    "?? supabase/functions/import-reddit-tips/pipelineTelemetry.test.ts",
+    "?? supabase/functions/import-reddit-tips/pipelineTelemetry.ts",
+  ]);
+  const unexpected = lines.filter((line) => !allowedLines.has(line));
+  if (unexpected.length) {
+    return zeroOutputObservabilityPatchBlocked(`unexpected target repo changes: ${unexpected.join("; ")}`);
+  }
+
+  for (const file of expectedFiles) {
+    if (!fs.existsSync(path.join(targetRepo, file))) {
+      return zeroOutputObservabilityPatchBlocked(`expected observability file missing: ${file}`);
+    }
+  }
+
+  const diffCheck = run("git", ["-C", targetRepo, "diff", "--check"], { allowFailure: true });
+  evidence.push(`Wagging diff check exit: ${diffCheck.code}`);
+  if (diffCheck.code !== 0) {
+    return zeroOutputObservabilityPatchBlocked(`git diff --check failed: ${firstLine(diffCheck.stderr || diffCheck.stdout)}`);
+  }
+
+  const focusedTests = run("npm", ["test", "--", "--run", "supabase/functions/import-reddit-tips/pipelineTelemetry.test.ts"], {
+    cwd: targetRepo,
+    allowFailure: true,
+  });
+  evidence.push(`Wagging focused telemetry tests exit: ${focusedTests.code}`);
+  if (focusedTests.code !== 0) {
+    return zeroOutputObservabilityPatchBlocked(`focused telemetry tests failed: ${firstLine(focusedTests.stderr || focusedTests.stdout)}`);
+  }
+
+  for (const file of expectedFiles) filesChanged.push(file);
+  evidence.push("count-only telemetry helper and tests are present");
+  evidence.push("normal response remains business counters only");
+  evidence.push("no deploy, endpoint invocation, SQL write, scheduler mutation, or Git staging occurred");
+
+  return {
+    finalStatus: "Zero-output observability patch ready for review",
+    ledgerStatus: "Zero-output observability patch ready for review",
+    summary: "local count-only telemetry patch validated and ready for exact-file GitHub handoff",
+    nextPermission: "exact-file Wagging commit, branch push, and PR creation",
+    nextSkill: "github-handoff-skill",
+    exitCode: 0,
+  };
+}
+
+function zeroOutputObservabilityPatchBlocked(summary) {
+  return {
+    finalStatus: "Zero-output observability patch blocked",
+    ledgerStatus: "Zero-output observability patch blocked",
+    summary,
+    nextPermission: "fix local observability patch or approve a narrower preparation retry",
+    nextSkill: "build-verify-skill / route-trace-skill",
     exitCode: 1,
   };
 }

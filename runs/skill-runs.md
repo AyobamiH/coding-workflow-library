@@ -408,6 +408,20 @@ This file records every real use of the coding workflow skills library.
 * Follow-up skill needed: route-trace-skill / runtime-verification-skill / error-evidence-skill.
 * Upgrade idea: Add provider-neutral structured stage-counter ingestion after a real target exposes safe count-only logs.
 
+## 2026-06-25 - Zero-Output Observability Workflow
+
+* Skill used: runtime-verification-skill / route-trace-skill / error-evidence-skill / github-handoff-skill.
+* Goal: Prepare a privacy-safe count-only observability patch for a zero-output pipeline, open a product PR, and preserve separate commit/deploy/runtime gates.
+* Starting state: Wagging lane was `Zero-output pipeline investigation blocked`; library and OneClickPostFactory lanes were unchanged.
+* Commands/tools used: `scripts/run-next` dry-run and real observability prep; focused Vitest telemetry tests; full Wagging tests, typecheck, build, lint; exact-file committer; GitHub PR creation and check inspection.
+* Files inspected: library route metadata, runner, diagnostic skills, Wagging import function, Wagging security doc, package scripts, and private selected-lane state.
+* Files changed: reusable route metadata, runner mapping, docs/commands, and diagnostic skills. Product patch files were committed only in the Wagging repo branch.
+* Evidence collected: telemetry contract tests passed; normal response remains business counters only; privacy matcher excludes content/URL/header/token-shaped fields; PR #13 contains exactly four expected product files; GitHub Actions quality passed.
+* Result: Observability PR opened but not merged; deploy and automatic-run recheck did not run.
+* Failure/recovery notes: Cloudflare Pages external preview check failed for PR #13. No manual Edge Function invocation, production endpoint call, scheduler/Vault mutation, SQL write, migration, source/filter change, deployment, npm publish, tag, or release occurred.
+* Follow-up skill needed: error-evidence-skill / cloudflare-deploy-skill / github-handoff-skill.
+* Upgrade idea: Add a reusable PR-check policy adapter that distinguishes required CI from optional preview checks before merge decisions.
+
 ## 2026-06-19 - Multi-Lane Autonomy Uplift
 
 * Skill used: coding-workflow-orchestrator-skill / production-handoff-skill.

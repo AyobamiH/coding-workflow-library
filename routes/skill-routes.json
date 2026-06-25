@@ -95,7 +95,8 @@
       "ledger_states_handled": [
         "Scheduler migration draft merged, not applied",
         "Scheduler applied via Vault, runtime not verified",
-        "Scheduler applied via Vault, runtime success not verified"
+        "Scheduler applied via Vault, runtime success not verified",
+        "Zero-output observability patch merged, not deployed"
       ],
       "permission_flag": "supabase-secret-function-deploy | function-secret-deploy-negative-runtime",
       "helper_scripts": [
@@ -117,7 +118,7 @@
         "secret value printing",
         "Git push or PR mutation"
       ],
-      "success_ledger_state": "Function deployed and remote secret set, scheduler not applied | Function deployed, negative runtime verified, success path not run",
+      "success_ledger_state": "Function deployed and remote secret set, scheduler not applied | Function deployed, negative runtime verified, success path not run | Zero-output observability deployed, awaiting automatic run",
       "blocked_ledger_state": "Function deploy blocked",
       "next_permission": "runtime-negative-verification or controlled-success-invocation",
       "evidence_required": [
@@ -299,13 +300,96 @@
       "provenance": "generic staged data-pipeline diagnostics using route trace, runtime verification, and error evidence skills"
     },
     {
+      "id": "zero-output-observability-patch",
+      "skill_file": "skill-files/runtime-verification-skill.md",
+      "ledger_states_handled": [
+        "Zero-output pipeline investigation blocked"
+      ],
+      "permission_flag": "zero-output-observability-patch",
+      "helper_scripts": [
+        "scripts/run-next",
+        "scripts/lane-state",
+        "external:git",
+        "external:npm"
+      ],
+      "permission_level": "local-edit, local-validation, local-state-write",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "production function invocation",
+        "production endpoint call",
+        "external source fetch",
+        "SQL write",
+        "scheduler or Vault mutation",
+        "deploy",
+        "migration apply",
+        "secret output",
+        "product commit or push",
+        "automatic data creation"
+      ],
+      "success_ledger_state": "Zero-output observability patch ready for review",
+      "blocked_ledger_state": "Zero-output observability patch blocked",
+      "next_permission": "exact-file Wagging commit, branch push, and PR creation",
+      "evidence_required": [
+        "expected file list",
+        "count-only telemetry contract",
+        "privacy and secret review",
+        "focused telemetry tests",
+        "git diff --check",
+        "selected-lane-only state update proof",
+        "commands not run"
+      ],
+      "provenance": "count-only observability patch gate for evidence-insufficient zero-output pipelines"
+    },
+    {
+      "id": "zero-output-observability-run-recheck",
+      "skill_file": "skill-files/runtime-verification-skill.md",
+      "ledger_states_handled": [
+        "Zero-output observability deployed, awaiting automatic run",
+        "Observability run pending"
+      ],
+      "permission_flag": "observability-run-recheck",
+      "helper_scripts": [
+        "scripts/run-next",
+        "scripts/lane-state",
+        "external:psql",
+        "external:npx"
+      ],
+      "permission_level": "database-read, cloud-read, local-state-write",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "manual function invocation",
+        "production endpoint call",
+        "SQL write",
+        "scheduler or Vault mutation",
+        "deploy",
+        "migration apply",
+        "secret output",
+        "filter or source change",
+        "automatic data creation"
+      ],
+      "success_ledger_state": "Zero-output stage boundary proven | Observability run pending | Observability run failed: investigate runtime | Observability evidence insufficient",
+      "blocked_ledger_state": "Observability run recheck blocked",
+      "next_permission": "wait for next scheduled run, approve remediation planning, or approve a narrower read-only log source",
+      "evidence_required": [
+        "deployment timestamp",
+        "next scheduled run calculation",
+        "safe telemetry marker extraction",
+        "stage counter summary",
+        "first non-zero and first zero stage",
+        "read-only pet_tips metadata",
+        "commands not run"
+      ],
+      "provenance": "post-deploy count-only telemetry recheck gate"
+    },
+    {
       "id": "github-pr-lifecycle-lane",
       "skill_file": "skill-files/github-handoff-skill.md",
       "ledger_states_handled": [
         "Auth pass for GitHub handoff",
         "PR opened, not merged",
         "PR ready for merge approval",
-        "Scheduler migration PR opened, not merged"
+        "Scheduler migration PR opened, not merged",
+        "Zero-output observability patch ready for review"
       ],
       "permission_flag": "github-handoff | pr-readiness | pr-merge | scheduler-pr-merge",
       "helper_scripts": [
