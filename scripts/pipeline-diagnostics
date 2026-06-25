@@ -1,0 +1,123 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+
+function parseArgs(argv) {
+  const args = { source: "", json: false };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--source") args.source = argv[++index] || "";
+    else if (arg === "--json") args.json = true;
+    else if (["--help", "-h"].includes(arg)) args.help = true;
+    else throw new Error(`unknown argument: ${arg}`);
+  }
+  return args;
+}
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/pipeline-diagnostics --source /path/to/source
+  ./scripts/pipeline-diagnostics --source /path/to/source --json
+
+Performs source-only staged pipeline tracing. It makes no network or database calls.`);
+}
+
+function lineNumber(text, pattern) {
+  const lines = text.split(/\r?\n/);
+  const index = lines.findIndex((line) => pattern.test(line));
+  return index < 0 ? null : index + 1;
+}
+
+function findAllLines(text, pattern) {
+  return text.split(/\r?\n/).flatMap((line, index) => pattern.test(line) ? [index + 1] : []);
+}
+
+function stringArray(text, name) {
+  const match = text.match(new RegExp(`const\\s+${name}\\s*=\\s*\\[([\\s\\S]*?)\\];`));
+  if (!match) return [];
+  return [...match[1].matchAll(/["']([^"']+)["']/g)].map((item) => item[1]);
+}
+
+function assignments(text) {
+  const counterPosition = text.search(/\bcandidates\s*:\s*candidates\.length/);
+  if (counterPosition < 0) return [];
+  const responseStart = text.lastIndexOf("return jsonResponse({", counterPosition);
+  const responseEnd = text.indexOf("}, 200", counterPosition);
+  if (responseStart < 0 || responseEnd < 0) return [];
+  const block = text.slice(responseStart, responseEnd);
+  return [...block.matchAll(/^\s*([A-Za-z][A-Za-z0-9_]*)\s*:\s*([^,\n}]+)/gm)].map((match) => ({
+    counter: match[1],
+    expression: match[2].trim(),
+    line: text.slice(0, responseStart + (match.index || 0)).split(/\r?\n/).length,
+  }));
+}
+
+function inspectSource(source) {
+  const text = fs.readFileSync(source, "utf8");
+  const configuredSources = stringArray(text, "SUBREDDITS");
+  const stages = [
+    ["entrypoint", /Deno\.serve|serve\s*\(/],
+    ["authentication", /authorize[A-Za-z]*Request|auth\.get|verify/i],
+    ["source configuration", /const\s+SUBREDDITS\s*=|sourceConfig|sources/i],
+    ["upstream retrieval", /await\s+fetch\s*\(|fetchSubreddit|http[_A-Za-z]*\(/i],
+    ["raw collection", /allPosts|rawCandidates|rawRecords/i],
+    ["candidate filtering", /const\s+candidates\s*=/],
+    ["deduplication", /existingIds|dedup|alreadyProcessed|\.in\s*\(/i],
+    ["normalisation", /await\s+rewriteWithAI|await\s+normaliz|await\s+parse[A-Za-z]*\(/i],
+    ["insert preparation", /baseSlug|insertPayload|toInsert/i],
+    ["insert", /\.insert\s*\(|\.upsert\s*\(/],
+    ["response counters", /candidates\s*:\s*candidates\.length/],
+  ].map(([stage, pattern]) => ({ stage, line: lineNumber(text, pattern), present: lineNumber(text, pattern) !== null }));
+
+  const tables = Array.from(new Set([...text.matchAll(/\.from\s*\(\s*["']([A-Za-z0-9_]+)["']\s*\)/g)].map((match) => match[1])));
+  const filterLines = findAllLines(text, /\.filter\s*\(/);
+  const fetchLines = findAllLines(text, /await\s+fetch\s*\(/);
+  const insertLines = findAllLines(text, /\.(?:insert|upsert)\s*\(/);
+  const counters = assignments(text);
+
+  return {
+    source: path.resolve(source),
+    configured_sources: { count: configuredSources.length, names: configuredSources },
+    stages,
+    database_tables: tables,
+    filter_lines: filterLines,
+    fetch_lines: fetchLines,
+    insert_lines: insertLines,
+    response_counters: counters,
+    limitations: [
+      "Source inspection cannot prove runtime input counts.",
+      "A post-filter counter cannot distinguish upstream-empty from filter-excluded without earlier counters or logs.",
+      "No external request, database query, or production mutation was performed.",
+    ],
+  };
+}
+
+function printHuman(report) {
+  console.log("# Pipeline Diagnostics Source Trace");
+  console.log(`Source: ${report.source}`);
+  console.log(`Configured sources: ${report.configured_sources.count}`);
+  console.log(`Database tables: ${report.database_tables.join(", ") || "none detected"}`);
+  console.log("Stages:");
+  for (const stage of report.stages) console.log(`- ${stage.stage}: ${stage.present ? `line ${stage.line}` : "not found"}`);
+  console.log("Response counters:");
+  for (const counter of report.response_counters) console.log(`- ${counter.counter} = ${counter.expression} (line ${counter.line || "unknown"})`);
+  console.log("Limitations:");
+  for (const item of report.limitations) console.log(`- ${item}`);
+}
+
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  if (args.help) return usage();
+  if (!args.source) throw new Error("--source is required");
+  if (!fs.existsSync(args.source)) throw new Error(`source not found: ${args.source}`);
+  const report = inspectSource(args.source);
+  if (args.json) console.log(JSON.stringify(report, null, 2));
+  else printHuman(report);
+}
+
+if (require.main === module) {
+  try { main(); } catch (error) { console.error(error.message); process.exit(1); }
+}
+
+module.exports = { inspectSource };

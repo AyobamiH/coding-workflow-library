@@ -33,6 +33,10 @@ handles_state:
   - Scheduled run pending, production handoff ready
   - Scheduled run observed, production handoff ready
   - Scheduled run observed with failure: investigate scheduler/runtime
+  - Zero-output pipeline investigation blocked
+  - Zero-output root cause proven, production handoff pending decision
+  - Expected empty input proven, production handoff ready
+  - Zero-output local fix drafted, not committed or deployed
   - Local verification and release evidence bundle built
   - Verification bundle self-test complete
   - Local skill workpack complete
@@ -64,6 +68,7 @@ requires_permission:
   - function-secret-deploy-negative-runtime
   - controlled-success-invocation
   - scheduled-run-monitoring-handoff
+  - zero-output-investigation
   - scheduler-application-decision
   - scheduler-vault-design-apply
   - scheduler-vault-apply-retry

@@ -4,6 +4,7 @@
 
 - Added project-scoped runtime lanes with a portable schema, neutral template, atomic local state helper, lane-aware `run-next` routing, CLI lane commands, and isolation tests.
 - Kept `work-ledger.md` as historical evidence while moving active product state, local paths, monitoring baselines, and private runtime references into untracked local lane files.
+- Added a lane-scoped zero-output investigation route, generic source pipeline tracer, staged attrition classifications, and tests without granting production invocation or mutation.
 
 ## 0.1.0 - 2026-06-19
 

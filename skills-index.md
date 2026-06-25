@@ -175,6 +175,7 @@ Use for read-only migration review until repo-specific apply commands are confir
 - `schemas/work-lanes.schema.json`: portable schema for local project-scoped runtime state.
 - `templates/work-lanes.example.json`: neutral lane-state example with no John-specific paths or product evidence.
 - `scripts/lane-state`: dependency-free atomic helper for listing, creating, and updating local lanes.
+- `scripts/pipeline-diagnostics`: dependency-free source tracer for configured inputs, stage boundaries, filters, database tables, inserts, and response counter assignments.
 - `runs/skill-runs.md`: append-only run log for real skill use.
 - `templates/repo-agents-pointer-template.md`: downstream repo pointer file that references the shared hard rules without copying them.
 - `templates/skill-run-template.md`: reusable run log entry.

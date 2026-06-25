@@ -984,6 +984,20 @@ Rules:
 - Dry-run and explain modes must not update any lane.
 - Keep product-specific monitoring evidence local unless deliberately sanitised.
 
+### Zero-output diagnostic tools
+
+Purpose: locate the first stage where a successful pipeline becomes empty.
+
+Default permission: source-read. Database counts, log inspection, external retrieval, product edits, and production mutation are separate gates.
+
+Rules:
+
+- Prefer source counter tracing and aggregate metadata.
+- Do not print raw content, credentials, request headers, or database URLs.
+- Do not fetch external sources or invoke production merely to diagnose attrition.
+- Empty destination data may rule out deduplication but does not prove upstream input.
+- Stop at `EVIDENCE_INSUFFICIENT` when stage attribution is not supported.
+
 ## Tools That Require John Approval
 
 John approval is required for:

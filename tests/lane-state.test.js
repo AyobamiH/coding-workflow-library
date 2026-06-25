@@ -69,11 +69,29 @@ try {
   assert.equal(JSON.stringify(laneState.getLane(afterBlocked, "lane-a")), laneABeforeBlocked, "blocked route changed unselected lane");
   assert.match(laneState.getLane(afterBlocked, "lane-b").current_state, /target repo missing/i, "blocked route did not update selected lane");
 
+  laneState.updateLane(afterBlocked, "lane-b", {
+    current_state: "Scheduled run observed, production handoff ready",
+    next_permission: "run zero-output investigation",
+    status: "active",
+  });
+  laneState.atomicWrite(stateFile, afterBlocked);
+  const beforeZeroDryRun = fs.readFileSync(stateFile, "utf8");
+  const zeroDryRun = run(["--lane", "lane-b", "--state-file", stateFile, "--dry-run", "--allow", "zero-output-investigation"]);
+  assert.equal(zeroDryRun.status, 0, "zero-output dry-run should pass");
+  assert.equal(fs.readFileSync(stateFile, "utf8"), beforeZeroDryRun, "zero-output dry-run changed lane state");
+
+  const laneABeforeZeroBlocked = JSON.stringify(laneState.getLane(afterBlocked, "lane-a"));
+  const zeroBlocked = run(["--lane", "lane-b", "--state-file", stateFile, "--allow", "zero-output-investigation"]);
+  assert.equal(zeroBlocked.status, 1, "missing-repo zero-output route should stop blocked");
+  const afterZeroBlocked = laneState.readState(stateFile);
+  assert.equal(JSON.stringify(laneState.getLane(afterZeroBlocked, "lane-a")), laneABeforeZeroBlocked, "zero-output blocked route changed unselected lane");
+  assert.equal(laneState.getLane(afterZeroBlocked, "lane-b").current_state, "Zero-output pipeline investigation blocked");
+
   const missing = run(["--lane", "missing-lane", "--state-file", stateFile, "--explain-next"]);
   assert.equal(missing.status, 1, "missing lane should fail");
-  assert.throws(() => laneState.getLane(afterBlocked, "missing-lane"), /lane not found: missing-lane/, "missing lane error was unclear");
+  assert.throws(() => laneState.getLane(afterZeroBlocked, "missing-lane"), /lane not found: missing-lane/, "missing lane error was unclear");
 
-  const prohibited = JSON.parse(JSON.stringify(afterBlocked));
+  const prohibited = JSON.parse(JSON.stringify(afterZeroBlocked));
   prohibited.lanes[0].api_token = "not-a-real-value";
   assert.throws(() => laneState.validateState(prohibited), /prohibited secret-shaped key/);
 

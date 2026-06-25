@@ -1,23 +1,27 @@
 ---
 name: route-trace-skill
-description: Trace OpenClaw agent routing and subagent access.
+description: Trace control routes and staged data pipelines without skipping boundaries.
 category: debugging
 routing_triggers:
   - route trace
   - subagent routing
   - allowAgents
   - session history
+  - zero output pipeline
+  - candidate attrition
 status: active
 ---
 # Route Trace Skill
 
 ## Purpose
 
-Trace and repair OpenClaw agent/subagent routing, including allowlists, spawn access, session history access, and pipeline role connectivity.
+Trace control routing and staged data flow without skipping boundaries. This includes OpenClaw agent/subagent routing and generic zero-output pipelines where inputs pass through configuration, retrieval, filtering, deduplication, normalisation, and persistence.
 
 ## When to Use
 
 Use when an orchestrator cannot spawn agents, subagent history is inaccessible, a governed pipeline stalls, or OpenClaw config changes may have blocked routing.
+
+Use when a job succeeds operationally but produces zero business output, especially when response counters represent only a late stage and do not expose earlier attrition.
 
 ## Inputs Required
 
@@ -25,6 +29,7 @@ Use when an orchestrator cannot spawn agents, subagent history is inaccessible, 
 - Expected agent IDs, such as `researcher`, `trader`, `banker`, `executioner`.
 - Current config file path, usually `openclaw.json`.
 - User approval before widening agent permissions.
+- For data pipelines: source/entrypoint, configured inputs, each filter, external boundaries, database dependencies, response counter assignments, and the current mutation gate.
 
 ## Commands
 
@@ -53,6 +58,13 @@ sessions_history {"sessionKey":"agent:researcher:subagent:SESSION_KEY","limit":2
 gateway {"action":"config.patch","patch":{"agents":{"list":[{"id":"main","subagents":{"allowAgents":["researcher","trader","banker","executioner"]}}]}}}
 ```
 
+Source-only pipeline trace:
+
+```bash
+./scripts/pipeline-diagnostics --source /path/to/pipeline-source
+./scripts/pipeline-diagnostics --source /path/to/pipeline-source --json
+```
+
 ## Procedure
 
 1. Read current agent config and docs references for `allowAgents`.
@@ -63,6 +75,10 @@ gateway {"action":"config.patch","patch":{"agents":{"list":[{"id":"main","subage
 6. Verify with `agents_list` and `openclaw subagents list`.
 7. Run a harmless spawn test: `Output NOTES only: hello`.
 8. If `sessions_history` is forbidden, report the policy and use transcript path or ask before enabling cross-agent history.
+9. For a zero-output pipeline, map every stage in execution order and record its input, output, filter/stop condition, database dependency, external dependency, and available count evidence.
+10. Trace each response counter to its exact assignment. Do not infer that a counter named `candidates` represents raw upstream records.
+11. Reproduce database-backed filters with read-only counts when approved, then identify the first proven non-zero stage and first proven zero stage.
+12. If the gap spans an external boundary or uninstrumented filters, classify the result as evidence-insufficient rather than guessing.
 
 ## Evidence Required
 
@@ -70,6 +86,7 @@ gateway {"action":"config.patch","patch":{"agents":{"list":[{"id":"main","subage
 - `agents_list` showing expected agents.
 - Successful `sessions_spawn` result with child session key.
 - Either accessible session history or documented policy denial.
+- For data pipelines: stage map, counter assignment lines, count attrition, first non-zero/first zero boundary, exact classification, and remaining unverified evidence.
 
 ## Safety Rules
 
@@ -77,6 +94,8 @@ gateway {"action":"config.patch","patch":{"agents":{"list":[{"id":"main","subage
 - Preserve existing `tools.deny` blocks.
 - Use harmless smoke-test tasks only.
 - Do not enable cross-agent history without explicit approval.
+- Do not fetch external sources, invoke production jobs, or create data merely to diagnose zero output unless separately approved.
+- Do not edit product code unless a deterministic defect is proven and local edits are explicitly allowed.
 
 ## Common Failures
 
@@ -84,6 +103,8 @@ gateway {"action":"config.patch","patch":{"agents":{"list":[{"id":"main","subage
 - Old text mismatch during edit: reread config and patch narrower JSON block.
 - Spawn succeeds but history forbidden: report `tools.agentToAgent.enabled` requirement.
 - Wrong workspace: run commands from OpenClaw workspace/root as appropriate.
+- Late-stage counter hides earlier attrition: report the uninstrumented boundary and request logs or observability rather than choosing a speculative cause.
+- Empty destination table: it may rule out deduplication, but it does not prove upstream input existed.
 
 ## Output Format
 
@@ -93,7 +114,8 @@ Report:
 - Change made or recommended.
 - Verification commands/results.
 - Remaining policy limitations.
+- For data pipelines: staged flow, counter trace, safe counts, first non-zero/first zero, classification, and next evidence gate.
 
 ## Upgrade Ideas
 
-Create `scripts/check_subagents.sh` to list agents, inspect allowlist, run a safe spawn test, and summarize policy denials.
+Add adapters for structured application logs and configurable stage-counter schemas without embedding product-specific table names.

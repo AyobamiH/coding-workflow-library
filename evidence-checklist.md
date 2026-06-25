@@ -276,6 +276,16 @@ Use this before final response or before saying a workflow is complete.
 - Explicit monitoring baseline recorded in lane state; public ledger modification time was not used as a production baseline.
 - Before/after lane snapshots prove only the selected lane changed.
 
+## Zero-Output Pipelines
+
+- Actual execution-order stage map recorded.
+- Response counters traced to exact source assignments.
+- Database-backed filters reproduced with safe aggregate counts where approved.
+- First proven non-zero stage and first proven zero stage stated separately.
+- Exactly one classification selected from the route contract.
+- Missing raw/per-filter/upstream evidence recorded as `EVIDENCE_INSUFFICIENT`, not inferred.
+- External fetch, production invocation, writes, product commit, and deploy commands explicitly listed as not run.
+
 ## Local Skill Workpack
 
 - Ledger state was `Verification bundle self-test complete`.

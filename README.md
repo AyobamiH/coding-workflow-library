@@ -132,6 +132,17 @@ The frontmatter is the routing contract. `name` must match the filename without 
 
 Lane files must never contain secrets. The tracked schema and example are portable; real repo paths, product evidence, and monitoring baselines remain local. Omitting `--lane` preserves legacy ledger routing.
 
+## Zero-Output Pipeline Diagnostics
+
+When infrastructure succeeds but business output is empty, use the source-only tracer before any new production invocation:
+
+```bash
+./scripts/pipeline-diagnostics --source /path/to/pipeline-source
+./scripts/run-next --lane <lane-id> --state-file /path/to/lanes.json --repo /path/to/repo --dry-run --allow zero-output-investigation
+```
+
+The route combines `route-trace-skill`, `runtime-verification-skill`, and `error-evidence-skill`. It traces counter assignments and stage attrition, reproduces approved database-backed counts read-only, and stops at `EVIDENCE_INSUFFICIENT` when upstream or per-filter evidence is absent. It does not invoke jobs, fetch external sources, write data, deploy, or edit product code without a separately proven defect and permission.
+
 ## Route Metadata
 
 `routes/skill-routes.json` is the local manifest that connects ledger states to reusable skills, permission flags, helper scripts, forbidden actions, success states, blocked states, next permissions, and evidence requirements.

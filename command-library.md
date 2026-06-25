@@ -636,6 +636,17 @@ cp templates/repo-agents-pointer-template.md "$TARGET_REPO/AGENTS.md"
 ```
 
 Lane commands are local state operations. They do not grant permission for the selected route and must not be used with state files containing secrets.
+
+## Zero-Output Pipeline Investigation
+
+```bash
+./scripts/pipeline-diagnostics --source "$PIPELINE_SOURCE"
+./scripts/pipeline-diagnostics --source "$PIPELINE_SOURCE" --json
+./scripts/run-next --lane "$LANE_ID" --state-file "$STATE_FILE" --repo "$TARGET_REPO" --dry-run --allow zero-output-investigation
+./scripts/run-next --lane "$LANE_ID" --state-file "$STATE_FILE" --repo "$TARGET_REPO" --allow zero-output-investigation
+```
+
+The real runner route may use only approved read-only metadata. It is not permission to invoke the pipeline, fetch its upstream source, write SQL, edit product code speculatively, deploy, or commit product changes.
 # GitHub Open-Source Handoff Commands
 
 Use only after John grants `github-open-source-handoff`.

@@ -283,6 +283,12 @@ If a mapped skill file is missing:
 4. Recommend whether it should be created.
 5. Use only generic read-only inspection until the user approves creating the missing skill or selects another skill.
 
+## Zero-Output Investigation
+
+Use the existing trace/runtime/error skill combination when a successful job produces no business output. Map stages in actual execution order, trace response counters to source assignments, reproduce database filters with aggregate read-only queries, identify the first non-zero and first zero stages, then choose one documented classification. Do not create a duplicate diagnostic skill unless these skills cannot express the evidence contract.
+
+`EVIDENCE_INSUFFICIENT` is the required result when raw input counts, per-filter attrition, or safe upstream status evidence are unavailable. Never rerun production or fetch an external source merely to fill that gap under this route.
+
 ## Secret Handling
 
 If a secret-looking value is found:

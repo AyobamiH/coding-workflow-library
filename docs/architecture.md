@@ -17,3 +17,7 @@ Remote actions are deliberately split from local readiness. A route may prepare 
 `work-ledger.md` and `runs/skill-runs.md` remain public historical evidence. New project execution should use a local state file such as `$HOME/.coding-workflow/lanes.json`, or an explicit `--state-file`. Real paths, product evidence, and monitoring baselines belong in that private runtime file and are excluded from package contents.
 
 Only a selected lane may change during a lane-aware run. Dry-runs never update lane state. Product monitoring evidence remains local unless it is deliberately sanitised for public documentation.
+
+## Diagnostic Routes
+
+`zero-output-pipeline-investigation` is a lane-scoped read-only route. It composes existing trace, runtime, and error-classification skills with `scripts/pipeline-diagnostics`; the helper remains source-only, while approved adapters may add aggregate database metadata. Product-specific counts and paths remain private lane evidence rather than package content.

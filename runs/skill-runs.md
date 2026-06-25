@@ -394,6 +394,20 @@ This file records every real use of the coding workflow skills library.
 * Follow-up skill needed: github-handoff-skill.
 * Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.
 
+## 2026-06-19 - Zero-Output Pipeline Diagnostics Uplift
+
+* Skill used: route-trace-skill / runtime-verification-skill / error-evidence-skill / coding-workflow-orchestrator-skill.
+* Goal: Trace staged pipeline attrition, add a lane-scoped zero-output route, and preserve strict product mutation boundaries.
+* Starting state: Infrastructure success and destination emptiness were proven, but existing counters did not expose raw input or per-filter attrition.
+* Commands/tools used: source-only helper; route dry-run; approved aggregate database metadata; Supabase CLI help inspection; lane isolation tests; route audit and skill validation.
+* Files inspected: existing diagnostic skills, runner/routes, target function source, relevant migrations/docs, and private selected-lane state.
+* Files changed: reusable helper/test, runner route, route metadata, existing diagnostic skills, and sanitised library docs. No product files changed.
+* Evidence collected: stage and response-counter assignments traced; selected-lane dry-run was immutable; real investigation updated only the selected product lane; missing raw/per-filter/log evidence was classified rather than guessed.
+* Result: Zero-output pipeline diagnostics route added; product investigation stopped at a truthful evidence-insufficient boundary.
+* Failure/recovery notes: A reusable parser initially mishandled empty trailing aggregate fields and was fixed locally. No production invocation, external source fetch, SQL write, scheduler/Vault mutation, deploy, migration, product commit/push, secret output, npm publish, tag, or release occurred.
+* Follow-up skill needed: route-trace-skill / runtime-verification-skill / error-evidence-skill.
+* Upgrade idea: Add provider-neutral structured stage-counter ingestion after a real target exposes safe count-only logs.
+
 ## 2026-06-19 - Multi-Lane Autonomy Uplift
 
 * Skill used: coding-workflow-orchestrator-skill / production-handoff-skill.

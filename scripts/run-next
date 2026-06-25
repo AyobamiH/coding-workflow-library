@@ -64,6 +64,7 @@ const ALLOWED_FLAGS = new Set([
   "function-secret-deploy-negative-runtime",
   "controlled-success-invocation",
   "scheduled-run-monitoring-handoff",
+  "zero-output-investigation",
   "scheduler-application-decision",
   "scheduler-vault-design-apply",
   "scheduler-vault-apply-retry",
@@ -154,6 +155,8 @@ function main() {
       result = runControlledSuccessInvocation(active);
     } else if (route.kind === "scheduled-run-monitoring-handoff") {
       result = runScheduledRunMonitoringHandoff(active);
+    } else if (route.kind === "zero-output-pipeline-investigation") {
+      result = runZeroOutputPipelineInvestigation(active);
     } else if (route.kind === "scheduler-application-decision") {
       result = runSchedulerApplicationDecision(active);
     } else if (route.kind === "scheduler-vault-design-apply") {
@@ -323,6 +326,8 @@ function printHelp() {
   ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow controlled-success-invocation --dry-run
   ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduled-run-monitoring-handoff
   ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduled-run-monitoring-handoff --dry-run
+  ./scripts/run-next --lane wagging-web-wins --state-file /path/to/lanes.json --repo /home/johnh/wagging-web-wins --allow zero-output-investigation
+  ./scripts/run-next --lane wagging-web-wins --state-file /path/to/lanes.json --repo /home/johnh/wagging-web-wins --allow zero-output-investigation --dry-run
   ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-application-decision
   ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-application-decision --dry-run
   ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-vault-design-apply
@@ -368,6 +373,7 @@ Supported --allow values:
   function-secret-deploy-negative-runtime
   controlled-success-invocation
   scheduled-run-monitoring-handoff
+  zero-output-investigation
   scheduler-application-decision
   scheduler-vault-design-apply
   scheduler-vault-apply-retry
@@ -725,12 +731,52 @@ function routeStatus(status) {
 
   if (normalized === "scheduled run observed, production handoff ready") {
     return {
-      skill: "production-handoff-skill / final production handoff",
+      skill: "route-trace-skill / runtime-verification-skill / error-evidence-skill",
+      permission: "zero-output-investigation",
+      kind: "zero-output-pipeline-investigation",
+      nextAction: "trace staged candidate attrition with source, safe database metadata, and available read-only logs without invoking production",
+    };
+  }
+
+  if (normalized === "zero-output pipeline investigation blocked") {
+    return {
+      skill: "route-trace-skill / runtime-verification-skill / error-evidence-skill",
+      permission: "zero-output-investigation",
+      kind: "zero-output-pipeline-investigation",
+      nextAction: "retry the read-only staged pipeline investigation when the missing evidence source is available",
+    };
+  }
+
+  if (normalized === "expected empty input proven, production handoff ready") {
+    return {
+      skill: "production-handoff-skill",
       permission: null,
       kind: "permission-boundary",
-      finalStatus: "Scheduled run observed, production handoff ready",
-      nextPermission: "complete production handoff or investigate zero-candidate source behaviour separately",
-      nextAction: "select the final production handoff or a separate zero-candidate investigation lane",
+      finalStatus: "Expected empty input proven, production handoff ready",
+      nextPermission: "complete production handoff or configure additional source inputs separately",
+      nextAction: "choose production handoff completion or a separately approved source-configuration lane",
+    };
+  }
+
+  if (normalized === "zero-output root cause proven, production handoff pending decision") {
+    return {
+      skill: "error-evidence-skill / coding-workflow-orchestrator-skill",
+      permission: null,
+      kind: "permission-boundary",
+      finalStatus: "Zero-output root cause proven, production handoff pending decision",
+      nextPermission: "approve configuration/data remediation plan",
+      nextAction: "review the proven non-code cause before any remediation mutation",
+    };
+  }
+
+  if (normalized === "zero-output local fix drafted, not committed or deployed") {
+    return {
+      skill: "github-handoff-skill / build-verify-skill",
+      permission: null,
+      kind: "permission-boundary",
+      finalStatus: "Zero-output local fix drafted, not committed or deployed",
+      nextPermission: "review and approve exact-file Wagging fix commit",
+      nextAction: "review the local product diff and validation before any commit",
     };
   }
 
@@ -7505,6 +7551,215 @@ function scheduledMonitoringBaseline(active) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function runZeroOutputPipelineInvestigation(active) {
+  const source = path.join(targetRepo, IMPORT_FUNCTION_DIR, "index.ts");
+  const helper = path.join(LIBRARY_ROOT, "scripts", "pipeline-diagnostics");
+  if (dryRun) {
+    actions.push("would inspect the target repo and import function without editing it");
+    actions.push("would trace configured sources, fetches, filters, dedupe, normalisation, insert preparation, insert, and response counters");
+    actions.push("would load local env for presence only and use the DB URL only for read-only metadata queries");
+    actions.push("would inspect retained pg_net response counters if available and report function logs as NOT VERIFIED when unsupported");
+    actions.push("would not invoke the function, call its endpoint, fetch Reddit, write SQL, mutate scheduler/Vault, deploy, migrate, or edit Wagging without a proven deterministic defect");
+    return {
+      finalStatus: "DRY RUN PASS",
+      ledgerStatus: active.currentStatus,
+      summary: "zero-output investigation would run source tracing and read-only metadata checks, then update only the selected lane",
+      nextPermission: "zero-output-investigation",
+      nextSkill: "route-trace-skill / runtime-verification-skill / error-evidence-skill",
+      zeroOutputInvestigation: buildZeroOutputInvestigationSkeleton(),
+      exitCode: 0,
+    };
+  }
+
+  if (!fs.existsSync(targetRepo) || !fs.existsSync(source)) {
+    return zeroOutputBlocked("target repo or import function source is missing");
+  }
+  const repo = collectScheduledRunMonitoringRepoEvidence(targetRepo);
+  if (!repo.ok) return zeroOutputBlocked(repo.result.summary || "target repo state is not safe for read-only investigation");
+
+  const sourceRun = run(helper, ["--source", source, "--json"], { cwd: LIBRARY_ROOT });
+  if (sourceRun.code !== 0) return zeroOutputBlocked(`source pipeline trace failed: ${firstLine(sourceRun.stderr || sourceRun.stdout)}`);
+  let sourceTrace;
+  try {
+    sourceTrace = JSON.parse(sourceRun.stdout);
+  } catch (error) {
+    return zeroOutputBlocked(`source pipeline trace returned invalid JSON: ${error.message}`);
+  }
+
+  const env = loadEnvFile("/home/johnh/.openclaw/.env");
+  const envPresence = {
+    SUPABASE_ACCESS_TOKEN: Boolean(env.SUPABASE_ACCESS_TOKEN),
+    SUPABASE_PROJECT_REF: Boolean(env.SUPABASE_PROJECT_REF),
+    SUPABASE_DB_URL: Boolean(env.SUPABASE_DB_URL),
+    IMPORT_REDDIT_TIPS_SECRET: Boolean(env[REQUIRED_IMPORT_SECRET]),
+  };
+  for (const [key, value] of Object.entries(envPresence)) evidence.push(`zero-output env ${key}: ${value ? "set" : "not set"}`);
+  if (!env.SUPABASE_DB_URL) return zeroOutputBlocked("SUPABASE_DB_URL is not set", { sourceTrace, envPresence });
+
+  const sqlTooling = checkSchedulerVaultSqlTooling();
+  if (!sqlTooling.ok) return zeroOutputBlocked(sqlTooling.summary, { sourceTrace, envPresence, sqlTooling: sqlTooling.report });
+
+  const database = collectZeroOutputDatabaseEvidence(env);
+  if (!database.ok) return zeroOutputBlocked(database.summary, { sourceTrace, envPresence, sqlTooling: sqlTooling.report, database });
+
+  const configuredCount = sourceTrace.configured_sources ? sourceTrace.configured_sources.count : 0;
+  const petTipsCount = database.petTipsCount;
+  const counters = {
+    candidates: 0,
+    inserted: 0,
+    provenance: "user-provided evidence from the previously approved controlled scheduler-path response",
+  };
+  const classification = "EVIDENCE_INSUFFICIENT";
+  const firstNonZero = `in-code source configuration contains ${configuredCount} subreddit entries`;
+  const firstZero = "post-filter candidates counter is 0";
+  const rootCauseEvidence = [
+    `configured source list count=${configuredCount}`,
+    "response candidates=0 and inserted=0 from prior controlled-run evidence",
+    `pet_tips count=${petTipsCount}; database deduplication cannot remove candidates when the table is empty`,
+    "candidates is assigned after upstream fetch and score/body/UK-suitability filters",
+    "raw allPosts and per-filter attrition are not counted in the response",
+  ];
+  const remaining = [
+    "raw records returned by each upstream fetch",
+    "score-filter attrition",
+    "body-length-filter attrition",
+    "UK-suitability-filter attrition",
+    "safe per-subreddit upstream status categories for the 18 and 19 June runs",
+    "function logs, because the installed Supabase CLI functions command exposes no logs subcommand",
+  ];
+  evidence.push(`zero-output configured sources: ${configuredCount}`);
+  evidence.push(`zero-output database pet_tips count: ${petTipsCount}`);
+  evidence.push(`zero-output classification: ${classification}`);
+  evidence.push(`zero-output first proven non-zero stage: ${firstNonZero}`);
+  evidence.push(`zero-output first proven zero stage: ${firstZero}`);
+
+  const report = {
+    repo: repo.data,
+    sourceTrace,
+    envPresence,
+    sqlTooling: sqlTooling.report,
+    database,
+    functionLogs: "NOT VERIFIED: Supabase CLI 2.107.0 functions help lists no logs subcommand",
+    counters,
+    firstNonZero,
+    firstZero,
+    classification,
+    rootCauseEvidence,
+    remaining,
+    productFilesUpdated: [],
+    commandsNotRun: zeroOutputCommandsNotRun(),
+  };
+
+  return {
+    finalStatus: "Zero-output pipeline investigation blocked",
+    ledgerStatus: "Zero-output pipeline investigation blocked",
+    summary: "EVIDENCE_INSUFFICIENT: zero is proven at the post-filter candidates stage, but available evidence cannot distinguish upstream-empty from filter-excluded-all",
+    nextPermission: "provide retained read-only function logs with per-stage counts, or approve a separate observability patch plan",
+    nextSkill: "route-trace-skill / runtime-verification-skill / error-evidence-skill",
+    zeroOutputInvestigation: report,
+    exitCode: 1,
+  };
+}
+
+function collectZeroOutputDatabaseEvidence(env) {
+  const counts = runPsqlRedacted({
+    dbUrl: env.SUPABASE_DB_URL,
+    secretValue: env[REQUIRED_IMPORT_SECRET] || "",
+    label: "zero-output pet_tips safe counts",
+    input: `
+select count(*) || E'\\t' || count(*) filter (where published) || E'\\t' || count(distinct source_reddit_id) || E'\\t' || coalesce(min(published_at)::text, '') || E'\\t' || coalesce(max(published_at)::text, '')
+from public.pet_tips;
+`,
+  });
+  const parts = firstNonEmptyLine(counts.stdout).split("\t");
+  if (counts.code !== 0 || parts.length < 3) {
+    return { ok: false, summary: `pet_tips read-only metadata failed: ${firstLine(counts.stderr || counts.stdout)}` };
+  }
+
+  const retained = runPsqlRedacted({
+    dbUrl: env.SUPABASE_DB_URL,
+    secretValue: env[REQUIRED_IMPORT_SECRET] || "",
+    label: "zero-output retained pg_net counter metadata",
+    allowFailure: true,
+    input: `
+select coalesce(to_regclass('net._http_response')::text, 'missing');
+select created::text || E'\\t' || status_code || E'\\t' || coalesce(content::jsonb->>'candidates', '') || E'\\t' || coalesce(content::jsonb->>'fresh', '') || E'\\t' || coalesce(content::jsonb->>'inserted', '') || E'\\t' || coalesce(content::jsonb->>'skipped', '')
+from net._http_response
+where content like '%"candidates"%'
+  and content like '%"inserted"%'
+  and (
+    created between '2026-06-18 07:59:00+00' and '2026-06-18 08:02:00+00'
+    or created between '2026-06-19 07:59:00+00' and '2026-06-19 08:02:00+00'
+  )
+order by created desc
+limit 10;
+`,
+  });
+  const retainedLines = retained.code === 0
+    ? retained.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(1)
+    : [];
+  const retainedSummary = retained.code !== 0
+    ? "NOT VERIFIED: retained pg_net response counter query unavailable"
+    : retainedLines.length
+      ? `${retainedLines.length} retained response counter row(s) found`
+      : "no retained response counter rows found";
+  evidence.push(`zero-output retained pg_net metadata: ${retainedSummary}`);
+  return {
+    ok: true,
+    summary: `pet_tips total=${parts[0]}; published=${parts[1]}; distinct source ids=${parts[2]}; retained responses=${retainedLines.length}`,
+    petTipsCount: Number(parts[0]),
+    publishedCount: Number(parts[1]),
+    distinctSourceIds: Number(parts[2]),
+    earliestPublishedAt: parts[3] || "none",
+    latestPublishedAt: parts[4] || "none",
+    retainedResponseRows: retainedLines,
+    retainedResponseSummary: retainedSummary,
+  };
+}
+
+function zeroOutputBlocked(summary, partial = {}) {
+  return {
+    finalStatus: "Zero-output pipeline investigation blocked",
+    ledgerStatus: "Zero-output pipeline investigation blocked",
+    summary,
+    nextPermission: "provide the smallest missing read-only evidence needed for staged count attribution",
+    nextSkill: "route-trace-skill / runtime-verification-skill / error-evidence-skill",
+    zeroOutputInvestigation: { ...buildZeroOutputInvestigationSkeleton(), ...partial },
+    exitCode: 1,
+  };
+}
+
+function buildZeroOutputInvestigationSkeleton() {
+  return {
+    repo: null,
+    sourceTrace: null,
+    envPresence: null,
+    sqlTooling: null,
+    database: null,
+    functionLogs: "not checked",
+    counters: null,
+    firstNonZero: "not proven",
+    firstZero: "not proven",
+    classification: "not classified",
+    rootCauseEvidence: [],
+    remaining: [],
+    productFilesUpdated: [],
+    commandsNotRun: zeroOutputCommandsNotRun(),
+  };
+}
+
+function zeroOutputCommandsNotRun() {
+  return [
+    "Edge Function invocation or production endpoint call",
+    "Reddit or other upstream fetch",
+    "SQL write or app-table mutation",
+    "scheduler or Vault mutation",
+    "function deploy or migration apply",
+    "Wagging commit, push, or PR",
+    "npm publish, version, tag, or GitHub Release",
+  ];
+}
+
 function collectScheduledRunMonitoringRepoEvidence(repo) {
   const status = run("git", ["-C", repo, "status", "--short"]);
   const branch = run("git", ["-C", repo, "branch", "--show-current"]);
@@ -11081,7 +11336,11 @@ function updateSelectedLane(result, route) {
   const lane = laneState.getLane(state, args.lane);
   const finalStatus = result.ledgerStatus || result.finalStatus;
   const blocked = result.exitCode && result.exitCode !== 0 || /blocked|failure|needs john/i.test(finalStatus || "");
-  const routeId = route.kind === "scheduled-run-monitoring-handoff" ? "production-handoff-lane" : route.kind;
+  const routeId = route.kind === "scheduled-run-monitoring-handoff"
+    ? "production-handoff-lane"
+    : route.kind === "zero-output-pipeline-investigation"
+      ? "zero-output-pipeline-investigation"
+      : route.kind;
   const routeIds = Array.from(new Set([...(lane.route_ids || []), routeId].filter(Boolean)));
   const evidenceRefs = Array.from(new Set([
     ...(lane.evidence_refs || []),
@@ -11139,6 +11398,10 @@ function appendRunLog({ dryRun: isDryRun, status, result, route }) {
 }
 
 function printReport(result, active, route) {
+  if (result.zeroOutputInvestigation) {
+    printZeroOutputInvestigationReport(result, active, route);
+    return;
+  }
   if (result.schedulerDraftPr) {
     printSchedulerDraftPrReport(result, active, route);
     return;
@@ -11707,6 +11970,73 @@ function printControlledSuccessInvocationReport(result, active, route) {
   console.log("");
   console.log("## Next Permission Needed From John");
   console.log(result.nextPermission || report.nextPermission || "hold");
+  console.log("");
+  console.log("Actions:");
+  for (const action of actions) console.log(`- ${action}`);
+  console.log("");
+  console.log("Evidence:");
+  for (const item of evidence) console.log(`- ${item}`);
+}
+
+function printZeroOutputInvestigationReport(result, active, route) {
+  const report = result.zeroOutputInvestigation;
+  console.log("# Zero-Output Pipeline Investigation Runner Report");
+  console.log("");
+  console.log(`Mode: ${modeLabel()}`);
+  console.log(`Lane: ${active.laneId || "legacy ledger"}`);
+  console.log(`Selected skill: ${route.skill || "unknown"}`);
+  console.log(`Final status: ${result.finalStatus}`);
+  console.log(`Summary: ${result.summary}`);
+  console.log("");
+  console.log("## Static Pipeline Trace");
+  if (report.sourceTrace) {
+    console.log(`Configured sources: ${report.sourceTrace.configured_sources.count}`);
+    console.log(`Database tables: ${report.sourceTrace.database_tables.join(", ") || "none"}`);
+    for (const stage of report.sourceTrace.stages) console.log(`- ${stage.stage}: ${stage.present ? `line ${stage.line}` : "not found"}`);
+  } else console.log("not collected");
+  console.log("");
+  console.log("## Response Counters");
+  if (report.sourceTrace) {
+    for (const counter of report.sourceTrace.response_counters) console.log(`- ${counter.counter} = ${counter.expression} (line ${counter.line || "unknown"})`);
+  } else console.log("not collected");
+  console.log("");
+  console.log("## Env Presence");
+  if (report.envPresence) for (const [key, value] of Object.entries(report.envPresence)) console.log(`- ${key}: ${value ? "set" : "not set"}`);
+  else console.log("not checked");
+  console.log("");
+  console.log("## Safe Database Evidence");
+  console.log(report.database ? report.database.summary : "not collected");
+  if (report.database) console.log(`Retained response evidence: ${report.database.retainedResponseSummary}`);
+  console.log("");
+  console.log("## Function Log Evidence");
+  console.log(report.functionLogs);
+  console.log("");
+  console.log("## First Proven Non-Zero Stage");
+  console.log(report.firstNonZero);
+  console.log("");
+  console.log("## First Proven Zero Stage");
+  console.log(report.firstZero);
+  console.log("");
+  console.log("## Classification");
+  console.log(report.classification);
+  console.log("");
+  console.log("## Root-Cause Evidence");
+  for (const item of report.rootCauseEvidence || []) console.log(`- ${item}`);
+  console.log("");
+  console.log("## Remaining Unverified");
+  for (const item of report.remaining || []) console.log(`- ${item}`);
+  console.log("");
+  console.log("## Product Files Updated");
+  console.log(report.productFilesUpdated && report.productFilesUpdated.length ? report.productFilesUpdated.join(", ") : "none");
+  console.log("");
+  console.log("## Commands Not Run");
+  for (const item of report.commandsNotRun || []) console.log(`- ${item}`);
+  console.log("");
+  console.log("## Lane Update");
+  console.log(dryRun ? "none; dry-run" : `selected lane only: ${active.laneId || "legacy"}`);
+  console.log("");
+  console.log("## Next Permission");
+  console.log(result.nextPermission || "hold");
   console.log("");
   console.log("Actions:");
   for (const action of actions) console.log(`- ${action}`);

@@ -1,5 +1,12 @@
 # Immediate
 
+## Zero-output observability adapter
+
+- Why it matters: a successful pipeline can still hide whether zero output began at upstream retrieval or a later filter.
+- Evidence from current files/logs: the generic source tracer and lane route identify first-non-zero/first-zero boundaries, but existing runtime counters may omit raw and per-filter counts.
+- Permission boundary: source/read-only evidence by default; observability edits, product commits, deploys, external fetches, and production invocations remain separate gates.
+- Done definition: target pipelines expose safe count-only stage metadata or retained logs sufficient to distinguish upstream-empty from filter-excluded-all without revealing content or credentials.
+
 ## Multi-lane autonomy follow-through
 
 - Why it matters: the library, Wagging Web Wins, and later product repos now need independent execution state instead of one global latest ledger status.

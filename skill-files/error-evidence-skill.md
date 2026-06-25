@@ -21,6 +21,8 @@ Use this skill to decide whether a failure is retry-safe, John-required, or a ha
 
 Use when a command, file read, model call, git operation, subagent route, or evidence check fails.
 
+Use when an operationally successful pipeline produces zero output and the cause must be classified without guessing.
+
 ## Inputs Required
 
 - Exact command/tool call.
@@ -92,6 +94,8 @@ git config --global user.name "Your Name"
 6. Run the smallest read-only check that confirms the diagnosis.
 7. Choose a fallback or ask for the missing input.
 8. Do not proceed to mutation until the failure is understood and the current permission gate covers recovery.
+9. For zero-output pipelines, classify exactly one of: `EXPECTED_EMPTY_INPUT`, `SOURCE_CONFIGURATION_MISSING`, `DATABASE_FILTER_EXCLUDES_ALL`, `UPSTREAM_RETRIEVAL_BLOCKED`, `PARSING_OR_NORMALISATION_EMPTY`, `INSERT_PRECONDITION_EXCLUDES_ALL`, `CODE_DEFECT_PROVEN`, or `EVIDENCE_INSUFFICIENT`.
+10. Record the first proven non-zero input and first proven zero output. A gap between them is evidence uncertainty, not proof of the most plausible cause.
 
 ## Evidence Required
 
@@ -103,6 +107,7 @@ git config --global user.name "Your Name"
 - Suggested next ledger state.
 - Recovery action taken or requested.
 - Remaining uncertainty.
+- First non-zero/first zero boundary and zero-output classification when applicable.
 
 ## Safety Rules
 

@@ -397,6 +397,21 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Exact next action: merge/deploy planning boundary.
 * Whether John is needed: Yes for the next permission boundary..
 
+## 2026-06-19 - Zero-Output Pipeline Diagnostics Route
+
+* Active repo: `AyobamiH/coding-workflow-library`.
+* Current objective: Add reusable lane-scoped diagnostics for operationally successful pipelines that produce zero business output.
+* Current permission level: Local reusable library edits, read-only selected-lane evidence, exact-file library commit, non-force push, and CI verification. Product mutation remained blocked.
+* Current status: Zero-output pipeline diagnostics route added.
+* Selected skill: route-trace-skill / runtime-verification-skill / error-evidence-skill.
+* Last commands run: source-only pipeline diagnostics, lane-aware route dry-run, selected-lane read-only investigation, and library validation.
+* Files changed: reusable helper, route metadata, runner integration, tests, skills, and sanitised public documentation.
+* Validation evidence: source-stage/counter tests and lane-isolation tests pass; the selected product lane stopped at an evidence-insufficient boundary without product edits or production invocation. Product-specific counts and paths remain private.
+* Blockers: none for the reusable diagnostic route; product attribution requires a separate safe evidence or observability gate.
+* Next recommended skill: route-trace-skill / runtime-verification-skill / error-evidence-skill.
+* Exact next action: select the blocked product lane only when the missing read-only stage evidence is available.
+* Whether John is needed: Yes for any additional product observability, remediation, commit, or deploy gate.
+
 ## 2026-06-19 - Project-Scoped Autonomous Workflow Lanes
 
 * Active repo: `AyobamiH/coding-workflow-library`.

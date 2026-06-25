@@ -28,6 +28,8 @@ Use after deploy-like work when the next step could call a live service, trigger
 
 Use before any success-path request if the source does not prove a true no-write dry-run mode.
 
+Use after operational success with zero business output to inspect existing logs and safe metadata without rerunning the job. Separate upstream retrieval, filtering, deduplication, normalisation, insert preparation, and persistence counters.
+
 ## Inputs Required
 
 - Target repo path.
@@ -39,6 +41,7 @@ Use before any success-path request if the source does not prove a true no-write
 - Whether credentials, tokens, secrets, admin auth, or production provider keys are allowed.
 - Expected status codes and failure modes.
 - Any tables, queues, files, providers, emails, payments, posts, or external side effects that could be mutated.
+- Existing stage counters/logs and the exact code assignments behind them.
 
 ## Commands
 
@@ -86,6 +89,7 @@ curl -s -o /tmp/runtime-success.out -w "%{http_code}\n" -X POST "$RUNTIME_URL" -
 11. If scheduled monitoring is approved, inspect job metadata, run history, logs, or read-only downstream effects without manually triggering the job unless separately approved.
 12. Stop immediately if a request unexpectedly succeeds under a rejection check, returns unclear auth behavior, or appears to mutate data.
 13. Update `work-ledger.md` and `runs/skill-runs.md` with status, evidence, stop boundary, and next permission.
+14. For zero-output work, prove the first non-zero stage and first zero stage. If raw input or per-filter counts are absent, stop at `EVIDENCE_INSUFFICIENT` rather than invoking production again.
 
 ## Evidence Required
 
@@ -100,6 +104,7 @@ curl -s -o /tmp/runtime-success.out -w "%{http_code}\n" -X POST "$RUNTIME_URL" -
 - Before/after read-only evidence for controlled success checks.
 - Scheduled monitoring evidence if used.
 - Final runtime status and next ledger state.
+- Zero-output classification and the smallest missing read-only evidence when attribution is incomplete.
 
 ## Safety Rules
 
@@ -112,6 +117,7 @@ curl -s -o /tmp/runtime-success.out -w "%{http_code}\n" -X POST "$RUNTIME_URL" -
 - Do not write app tables, queues, files, provider resources, payments, emails, posts, or scheduler state unless a controlled success or mutation gate explicitly allows it.
 - Do not treat scheduled monitoring as permission to manually trigger the scheduled job.
 - Do not mix deploy, secret setup, database migration, runtime verification, and success invocation into one permission gate.
+- Do not make a fresh upstream request solely to distinguish missing input from filter attrition under a read-only evidence gate.
 
 ## Common Failures
 
