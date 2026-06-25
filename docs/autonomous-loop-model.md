@@ -23,6 +23,8 @@ John should not have to describe the same next-step sequence each time. The ledg
 7. Update only the selected lane after lane-aware real execution; legacy mode updates `work-ledger.md` and `runs/skill-runs.md`.
 8. Stop at the next boundary.
 
+Real runs also create a local ignored checkpoint under `.run-next/`. The checkpoint records phase, completed steps, required permission, last verified commit, and stop reason so an interrupted run can be inspected with `--status` and resumed with `--resume --dry-run` before any real continuation.
+
 ## Lane State And Historical Ledger
 
 Local lane state owns active multi-project execution state. `work-ledger.md` remains historical public evidence and a backwards-compatible route source. If a requested lane does not exist, `run-next` stops instead of borrowing another lane or repo state.
@@ -53,6 +55,8 @@ Each real run must record detected repo, current ledger state, selected skill/jo
 ## Stop Conditions
 
 The loop stops when no ledger item exists for the repo, the status is unknown, the route is not implemented, the required permission was not granted, credentials are missing or under-scoped, a safety scan finds a real secret value, or the next step would cross a deploy/database/production/release boundary without explicit permission.
+
+Resume mode also stops when the branch changed, tracked files changed unexpectedly, checkpoint state is invalid, or continuing would replay a potentially completed mutation.
 
 ## Relationship To OpsTruth
 

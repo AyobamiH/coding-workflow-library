@@ -1199,3 +1199,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: release-preflight-skill / github-handoff-skill.
 * Exact next action: prepare GitHub release or npm publication gate, or run scheduled-run recheck.
 * Whether John is needed: Yes for the next permission boundary..
+
+## 2026-06-25 - Interrupted Run Resume Support
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Add local checkpoint and resume support so interrupted bounded runs can be inspected without a large manual reconstruction prompt.
+* Current permission level: local workflow-library edit, local validation, exact-file commit, and push. No product repo mutation, Supabase mutation, deployment, release, npm publish, force push, history rewrite, or secret output.
+* Current status: Interrupted-run checkpoint and resume support implemented.
+* Selected skill: coding-workflow-orchestrator-skill.
+* Last commands run: `npm test`; `./scripts/validate-skills`; `./scripts/run-next --repo /home/johnh/wagging-web-wins --status`; `./scripts/run-next --repo /home/johnh/wagging-web-wins --resume --dry-run`.
+* Files changed: `.gitignore`; `AGENTS.md`; `README.md`; `RUNBOOK.md`; `docs/autonomous-loop-model.md`; `docs/job-selection-contract.md`; `docs/interrupted-run-resume.md`; `package.json`; `scripts/check-js`; `scripts/run-next`; `tests/run-next-resume.test.js`; `work-ledger.md`; `runs/skill-runs.md`.
+* Validation evidence: resume tests covered status output, incomplete run discovery, dry-run immutability, permission stop, branch mismatch stop, and secret-safe state; skill validation passed; Wagging status/resume dry-run reported no incomplete checkpoint.
+* Blockers: real resume intentionally stops before replaying a potentially mutating execution checkpoint until route-specific continuation is approved.
+* Next recommended skill: coding-workflow-orchestrator-skill / build-verify-skill.
+* Exact next action: use `run-next --status` and `run-next --resume --dry-run` before manual resume prompts on future interrupted runs.
+* Whether John is needed: Yes for any future route-specific real resume that could replay a mutation.

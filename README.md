@@ -132,6 +132,17 @@ The frontmatter is the routing contract. `name` must match the filename without 
 
 Lane files must never contain secrets. The tracked schema and example are portable; real repo paths, product evidence, and monitoring baselines remain local. Omitting `--lane` preserves legacy ledger routing.
 
+## Interrupted Runs
+
+`run-next` records safe local checkpoint metadata for real runs under `.run-next/`, which is ignored by git.
+
+```bash
+./scripts/run-next --repo /path/to/repo --status
+./scripts/run-next --repo /path/to/repo --resume --dry-run
+```
+
+Resume mode verifies branch, tracked changes, required permissions, and checkpoint validity before continuing. It does not store secret values or command output bodies.
+
 ## Zero-Output Pipeline Diagnostics
 
 When infrastructure succeeds but business output is empty, use the source-only tracer before any new production invocation:

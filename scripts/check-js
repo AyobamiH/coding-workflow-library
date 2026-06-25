@@ -6,7 +6,7 @@ const { spawnSync } = require("child_process");
 
 const root = path.resolve(__dirname, "..");
 const scriptDir = path.join(root, "scripts");
-const explicit = ["bin/coding-workflow.js", "tests/lane-state.test.js", "tests/pipeline-diagnostics.test.js"];
+const explicit = ["bin/coding-workflow.js", "tests/lane-state.test.js", "tests/pipeline-diagnostics.test.js", "tests/run-next-resume.test.js"];
 
 function isNodeScript(relativePath) {
   const absolute = path.join(root, relativePath);

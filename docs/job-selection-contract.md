@@ -4,10 +4,11 @@
 
 - selected lane from `--lane` and `--state-file`, or target repo path from `--repo` in legacy mode
 - local lane state, or `work-ledger.md` in legacy mode
+- local ignored `.run-next/` checkpoint state for `--status` and `--resume`
 - skill frontmatter
 - `skills-index.md`
 - supplied `--allow` flags
-- mode: real, `--dry-run`, or `--explain`
+- mode: real, `--dry-run`, `--explain`, `--status`, or `--resume`
 
 ## Lane And Ledger States
 
@@ -45,6 +46,8 @@ The route's `requires_permission` value must match one supplied `--allow` flag b
 
 Real execution runs one bounded job. Dry-run and explain modes only report what would happen.
 
+Resume dry-run must inspect the latest incomplete checkpoint for the target repo and explain the first incomplete checkpoint without mutating files. Real resume may continue only after branch, tracked-change, permission, and checkpoint checks pass.
+
 ## Evidence Rules
 
 The output must include detected repo, current ledger state, selected skill/job, required permission, whether it can run now, why it stopped, and the next command if approval is required.
@@ -52,6 +55,8 @@ The output must include detected repo, current ledger state, selected skill/job,
 ## Stop Rules
 
 Stop immediately when a required permission is absent, a secret value is found, a repo state is unexpected, a route is unknown, a credential check fails, or the next action crosses a deploy/database/production/release boundary.
+
+Resume additionally stops when the checkpoint references a missing repo, the branch changed, tracked files changed outside the recorded scope, or continuation could repeat a completed mutation.
 
 ## Output Contract
 

@@ -289,6 +289,10 @@ Use the existing trace/runtime/error skill combination when a successful job pro
 
 `EVIDENCE_INSUFFICIENT` is the required result when raw input counts, per-filter attrition, or safe upstream status evidence are unavailable. Never rerun production or fetch an external source merely to fill that gap under this route.
 
+## Interrupted Run Resume
+
+Use `./scripts/run-next --repo /path/to/repo --status` to inspect the latest checkpoint. Use `./scripts/run-next --repo /path/to/repo --resume --dry-run` before any real resume. Resume must verify branch, tracked working tree, permission flags, and checkpoint validity before continuing. It must not reset, clean, stash, force push, or replay a possible mutation.
+
 ## Secret Handling
 
 If a secret-looking value is found:

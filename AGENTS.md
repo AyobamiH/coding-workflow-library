@@ -117,6 +117,7 @@ John is required for:
 - Give the next exact action.
 - Do not ask vague "what next?" questions.
 - Prefer `scripts/run-next --explain` when the next safe job should be selected without mutating any files, repos, or external services.
+- For interrupted work, prefer `scripts/run-next --repo <repo> --status` and `scripts/run-next --repo <repo> --resume --dry-run` before asking John to reconstruct state manually.
 - When John is needed, provide a decision brief with options and recommendation.
 - Keep reports evidence-backed.
 - Include commands run, files changed, validation results, risks, and next skill.
@@ -126,3 +127,5 @@ John is required for:
 Use project-scoped local lane state for active work. The public `work-ledger.md` is historical evidence and a legacy routing source, not a single global current state.
 
 Real repo paths, monitoring baselines, private evidence, and product-specific runtime status belong in a local secret-free state file outside the tracked package. Select one lane explicitly and never advance another lane as a side effect.
+
+Real `run-next` executions also write secret-free local checkpoint metadata under `.run-next/`. This directory is ignored by git and is used only to inspect or resume interrupted bounded runs.

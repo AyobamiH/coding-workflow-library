@@ -17,6 +17,7 @@ supabase/.temp/
 .tmp/
 tmp/
 .coding-workflow/
+.run-next/
 lanes.local.json
 vendor-intake/
 .DS_Store

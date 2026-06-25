@@ -1298,3 +1298,17 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: No forbidden npm publish, npm version, GitHub release creation, deploy, Supabase command, Cloudflare command, production endpoint call, secret printing, force push, history rewrite, broad staging, excluded-file staging, or extra repository creation occurred..
 * Follow-up skill needed: release-preflight-skill / github-handoff-skill.
 * Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.
+
+## 2026-06-25 - Interrupted Run Resume Support
+
+* Skill used: coding-workflow-orchestrator-skill.
+* Goal: Add first-class checkpoint/status/resume support to `scripts/run-next`.
+* Starting state: Workflow library was clean after commit `20c033c`; validation passed; no product repo mutation was approved.
+* Commands/tools used: `npm test`; `./scripts/validate-skills`; `./scripts/run-next --repo /home/johnh/wagging-web-wins --status`; `./scripts/run-next --repo /home/johnh/wagging-web-wins --resume --dry-run`.
+* Files inspected: `scripts/run-next`; `AGENTS.md`; `RUNBOOK.md`; `README.md`; autonomous-loop docs; job-selection docs; package scripts; tests.
+* Files changed: `.gitignore`; `AGENTS.md`; `README.md`; `RUNBOOK.md`; `docs/autonomous-loop-model.md`; `docs/job-selection-contract.md`; `docs/interrupted-run-resume.md`; `package.json`; `scripts/check-js`; `scripts/run-next`; `tests/run-next-resume.test.js`; `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: local checkpoint directory is ignored; status and resume commands are documented; simulated resume test uses a disposable git repo; resume dry-run makes no checkpoint changes; missing permission and branch mismatch block; checkpoint state scan stays secret-safe; Wagging had no incomplete checkpoint.
+* Result: Interrupted-run checkpoint and resume support implemented.
+* Failure/recovery notes: A sandbox nested-process artifact was handled by validating the test suite with normal child-process permissions. No reset, clean, stash, force push, production mutation, release, npm publish, deployment, or secret output occurred.
+* Follow-up skill needed: coding-workflow-orchestrator-skill / error-evidence-skill.
+* Upgrade idea: Add route-specific real-resume adapters for operations that can prove work already committed or safely continue at the record checkpoint.
