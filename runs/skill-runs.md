@@ -1340,3 +1340,17 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: A sandbox nested-process artifact was handled by validating the test suite with normal child-process permissions. No reset, clean, stash, force push, production mutation, release, npm publish, deployment, or secret output occurred.
 * Follow-up skill needed: coding-workflow-orchestrator-skill / error-evidence-skill.
 * Upgrade idea: Add route-specific real-resume adapters for operations that can prove work already committed or safely continue at the record checkpoint.
+
+## 2026-06-26 - Observability Automatic-Run Recheck Route Recovery
+
+* Skill used: runtime-verification-skill / production-handoff-skill with coding-workflow-orchestrator-skill routing.
+* Goal: Recover the missing executable path for lane-scoped `observability-run-recheck`, then run the approved read-only Wagging automatic-run recheck.
+* Starting state: `wagging-web-wins` lane was `Observability run pending`; library lane remained `v0.1.0 tagged and pushed, npm unpublished`; OneClickPostFactory remained on hold.
+* Commands/tools used: `date -u`; lane-state show commands; Wagging read-only git metadata; `scripts/run-next --dry-run --allow observability-run-recheck`; `scripts/run-next --allow observability-run-recheck`; psql read-only metadata through the runner; Supabase CLI help/log-discovery through the runner; `npm test`; `route-audit`; `skill-cleaner`; `validate-skills`.
+* Files inspected: workflow controls, `scripts/run-next`, lane-state file metadata, Wagging `import-reddit-tips` source and telemetry helper, scheduler metadata, cron run metadata, and safe `pet_tips` metadata.
+* Files changed: `scripts/run-next`; `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: current UTC was after the expected `2026-06-26T08:00:00Z` run; initial dry-run selected the wrong boundary, proving a reusable route defect; fixed route dispatch selected `observability-run-recheck`; natural cron row succeeded at `2026-06-26 08:00:00.189379+00`; safe `pet_tips` count was `0`; telemetry marker retrieval was unavailable because the installed Supabase CLI does not expose supported function log retrieval; no secret-shaped values were exposed.
+* Result: Wagging lane updated to `Observability evidence insufficient`.
+* Failure/recovery notes: No Edge Function invocation, production endpoint call, scheduler trigger/mutation, Vault mutation, SQL write, data write, deploy, migration, secret set/rotation, Wagging commit/push, npm publish, tag, or GitHub Release occurred.
+* Follow-up skill needed: runtime-verification-skill / error-evidence-skill.
+* Upgrade idea: Add a future read-only log-import adapter once Supabase function logs are available through an approved source, so telemetry markers can be parsed without raw log exposure.

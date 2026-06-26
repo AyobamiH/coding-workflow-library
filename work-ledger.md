@@ -1244,3 +1244,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: `runtime-verification-skill` / `production-handoff-skill` for read-only telemetry recheck after the scheduled run.
 * Exact next action: Wait for the next natural `0 8 * * *` UTC scheduler run, then run lane-scoped `observability-run-recheck`.
 * Whether John is needed: Yes for the scheduled-run recheck permission after the run occurs; no manual invocation, SQL write, scheduler mutation, or secret change was performed.
+
+## 2026-06-26 - Observability Run Recheck Route Recovery
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`; selected product lane: `wagging-web-wins`.
+* Current objective: Repair reusable `observability-run-recheck` routing, then run the approved read-only automatic-run recheck without invoking production.
+* Current permission level: lane-scoped read-only scheduler/log/database monitoring, reusable runner correction, local validation, exact-file library commit/push. Forbidden: Edge Function invocation, endpoint calls, SQL writes, scheduler/Vault mutation, deploy, secret output, Wagging commit/push, npm publish, tags, or GitHub releases.
+* Current status: Observability evidence insufficient.
+* Selected skill: `runtime-verification-skill` / `production-handoff-skill`.
+* Last commands run: lane-scoped `scripts/run-next --dry-run --allow observability-run-recheck`; lane-scoped `scripts/run-next --allow observability-run-recheck`; `npm test`; `./scripts/route-audit`; `./scripts/skill-cleaner`; `./scripts/validate-skills`.
+* Files changed: `scripts/run-next`; `work-ledger.md`; `runs/skill-runs.md`.
+* Validation evidence: dry-run initially proved a reusable route defect because `Observability run pending` stopped at a permission boundary; runner now dispatches `observability-run-recheck`. Read-only recheck proved `import-reddit-tips-daily` is active on `0 8 * * *`, the natural `2026-06-26 08:00:00 UTC` run succeeded, safe `pet_tips` count remains `0`, and Supabase CLI log access does not expose a supported function logs subcommand for telemetry retrieval. Library validation passed.
+* Blockers: Stage-count telemetry for the natural run remains unavailable, so the zero-output root cause cannot be classified beyond `EVIDENCE_INSUFFICIENT`.
+* Next recommended skill: `runtime-verification-skill` / `error-evidence-skill`.
+* Exact next action: Provide a read-only Supabase function log export containing `IMPORT_REDDIT_TIPS_PIPELINE_TELEMETRY` for the natural scheduled run, or approve an alternate supported read-only telemetry retrieval method.
+* Whether John is needed: Yes for the next evidence source; no production mutation was performed.
