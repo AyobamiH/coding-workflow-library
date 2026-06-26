@@ -346,6 +346,24 @@ if (exists(routeMetadataPath)) {
         if (!nonEmptyString(route.blocked_ledger_state)) {
           addError(`${routeMetadataPath}:${routeId}: blocked_ledger_state must be non-empty`);
         }
+
+        for (const key of ["requires_authority", "requires_capabilities", "stage_dependencies", "safety_gates", "idempotency_evidence"]) {
+          if (route[key] !== undefined && (!Array.isArray(route[key]) || route[key].some((item) => !nonEmptyString(item)))) {
+            addError(`${routeMetadataPath}:${routeId}: ${key} must be an array of non-empty strings when present`);
+          }
+        }
+
+        if (route.checkpoint !== undefined && !nonEmptyString(route.checkpoint)) {
+          addError(`${routeMetadataPath}:${routeId}: checkpoint must be non-empty when present`);
+        }
+
+        if (route.blocked_checkpoint !== undefined && !nonEmptyString(route.blocked_checkpoint)) {
+          addError(`${routeMetadataPath}:${routeId}: blocked_checkpoint must be non-empty when present`);
+        }
+
+        if (route.continue_after_blocker !== undefined && typeof route.continue_after_blocker !== "boolean") {
+          addError(`${routeMetadataPath}:${routeId}: continue_after_blocker must be boolean when present`);
+        }
       }
     }
   }

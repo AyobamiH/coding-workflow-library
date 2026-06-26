@@ -3,9 +3,11 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const objectiveAuthority = require("./objective-authority");
 
 const VERSION = 1;
 const PROHIBITED_KEYS = /(token|secret|password|credential|private[_-]?key|database[_-]?url|db[_-]?url)/i;
+const ALLOWED_CONTROL_KEYS = new Set(["secret_mutation"]);
 const SECRET_VALUES = [
   /postgres(?:ql)?:\/\/[^:\s"']+:[^@\s"']+@/i,
   /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/,
@@ -22,8 +24,10 @@ function parseArgs(argv) {
     const arg = argv[i];
     if (arg === "--state-file") parsed.stateFile = requireValue(argv, ++i, arg);
     else if (arg === "--json") parsed.json = true;
-    else if (["--repo", "--repository", "--display-name", "--state", "--permission", "--status", "--hold-reason", "--notes", "--monitoring-baseline"].includes(arg)) {
+    else if (["--repo", "--repository", "--display-name", "--state", "--permission", "--status", "--hold-reason", "--notes", "--monitoring-baseline", "--grant", "--objective-id", "--description"].includes(arg)) {
       parsed.options[arg.slice(2)] = requireValue(argv, ++i, arg);
+    } else if (arg === "--lane") {
+      parsed.options.lane = requireValue(argv, ++i, arg);
     } else if (!parsed.command) parsed.command = arg;
     else parsed.positionals.push(arg);
   }
@@ -79,6 +83,19 @@ function validateLane(lane) {
   if (!["active", "blocked", "hold", "complete"].includes(lane.status)) throw new Error(`lane ${lane.lane_id} has invalid status`);
   if (Number.isNaN(Date.parse(lane.last_updated))) throw new Error(`lane ${lane.lane_id} has invalid last_updated`);
   if (lane.monitoring_baseline && Number.isNaN(Date.parse(lane.monitoring_baseline))) throw new Error(`lane ${lane.lane_id} has invalid monitoring_baseline`);
+  if (lane.objective) validateObjective(lane.objective, lane.lane_id);
+}
+
+function validateObjective(objective, laneId) {
+  const normalized = objectiveAuthority.normalizeObjective(objective);
+  if (!/^[a-z0-9][a-z0-9.-]*$/.test(normalized.id)) throw new Error(`lane ${laneId} has invalid objective id`);
+  if (!["active", "blocked", "waiting", "complete"].includes(normalized.status)) throw new Error(`lane ${laneId} has invalid objective status`);
+  if (Number.isNaN(Date.parse(normalized.created_at)) || Number.isNaN(Date.parse(normalized.updated_at))) {
+    throw new Error(`lane ${laneId} has invalid objective timestamps`);
+  }
+  for (const key of objectiveAuthority.AUTHORITY_CLASSES) {
+    if (typeof normalized.authority[key] !== "boolean") throw new Error(`lane ${laneId} objective authority ${key} must be boolean`);
+  }
 }
 
 function rejectSensitiveShape(value, trail = []) {
@@ -90,7 +107,7 @@ function rejectSensitiveShape(value, trail = []) {
     return;
   }
   for (const [key, item] of Object.entries(value)) {
-    if (PROHIBITED_KEYS.test(key)) throw new Error(`prohibited secret-shaped key: ${trail.concat(key).join(".")}`);
+    if (PROHIBITED_KEYS.test(key) && !ALLOWED_CONTROL_KEYS.has(key)) throw new Error(`prohibited secret-shaped key: ${trail.concat(key).join(".")}`);
     rejectSensitiveShape(item, trail.concat(key));
   }
 }
@@ -127,6 +144,11 @@ function initLane(state, laneId, options) {
     evidence_refs: [],
     hold_reason: options["hold-reason"] || "",
     notes: options.notes || "",
+    objective: objectiveAuthority.createObjective({
+      id: options["objective-id"] || `${laneId}-objective`,
+      description: options.description || options.notes || "",
+      status: "active",
+    }),
     ...(options["monitoring-baseline"] ? { monitoring_baseline: options["monitoring-baseline"] } : {}),
   });
   return getLane(state, laneId);
@@ -137,6 +159,37 @@ function updateLane(state, laneId, changes) {
   Object.assign(lane, changes, { last_updated: new Date().toISOString() });
   validateState(state);
   return lane;
+}
+
+function setObjective(state, laneId, options) {
+  const lane = getLane(state, laneId);
+  const current = lane.objective ? objectiveAuthority.normalizeObjective(lane.objective) : objectiveAuthority.createObjective();
+  lane.objective = objectiveAuthority.createObjective({
+    ...current,
+    id: options["objective-id"] || current.id,
+    description: options.description || current.description,
+    status: options.status || current.status,
+    authority: current.authority,
+    checkpoints: current.checkpoints,
+    blockers: current.blockers,
+    created_at: current.created_at,
+    updated_at: new Date().toISOString(),
+  });
+  lane.last_updated = new Date().toISOString();
+  validateState(state);
+  return lane.objective;
+}
+
+function approveObjectiveAuthority(state, laneId, grant) {
+  const lane = getLane(state, laneId);
+  const current = lane.objective || objectiveAuthority.createObjective({
+    id: `${laneId}-objective`,
+    description: lane.notes || lane.current_state,
+  });
+  lane.objective = objectiveAuthority.approveAuthority(current, grant);
+  lane.last_updated = new Date().toISOString();
+  validateState(state);
+  return lane.objective;
 }
 
 function publicLane(lane) {
@@ -158,17 +211,21 @@ function usage() {
   ./scripts/lane-state [--state-file <path>] show <lane-id> [--json]
   ./scripts/lane-state [--state-file <path>] init <lane-id> --repo <path> [options]
   ./scripts/lane-state [--state-file <path>] set-state <lane-id> --state <state>
-  ./scripts/lane-state [--state-file <path>] set-next <lane-id> --permission <permission>`);
+  ./scripts/lane-state [--state-file <path>] set-next <lane-id> --permission <permission>
+  ./scripts/lane-state [--state-file <path>] objective-show <lane-id> [--json]
+  ./scripts/lane-state [--state-file <path>] objective-set <lane-id> --objective-id <id> [--description <text>]
+  ./scripts/lane-state [--state-file <path>] objective-approve <lane-id> --grant <authority-class>`);
 }
 
 function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
   if (!args.command || ["help", "--help", "-h"].includes(args.command)) return usage();
-  const laneId = args.positionals[0];
+  const laneId = args.positionals[0] || args.options.lane;
   const state = readState(args.stateFile, { allowMissing: args.command === "init" });
   let output;
   if (args.command === "list") output = state.lanes.map(publicLane);
   else if (args.command === "show") output = publicLane(getLane(state, laneId));
+  else if (args.command === "objective-show") output = objectiveAuthority.normalizeObjective(getLane(state, laneId).objective);
   else if (args.command === "init") {
     output = initLane(state, laneId, args.options);
     atomicWrite(args.stateFile, state);
@@ -180,6 +237,14 @@ function main(argv = process.argv.slice(2)) {
     if (!args.options.permission) throw new Error("set-next requires --permission");
     output = updateLane(state, laneId, { next_permission: args.options.permission });
     atomicWrite(args.stateFile, state);
+  } else if (args.command === "objective-set") {
+    if (!args.options["objective-id"]) throw new Error("objective-set requires --objective-id");
+    output = setObjective(state, laneId, args.options);
+    atomicWrite(args.stateFile, state);
+  } else if (args.command === "objective-approve") {
+    if (!args.options.grant) throw new Error("objective-approve requires --grant");
+    output = approveObjectiveAuthority(state, laneId, args.options.grant);
+    atomicWrite(args.stateFile, state);
   } else throw new Error(`unknown command: ${args.command}`);
   if (args.json) console.log(JSON.stringify(output, null, 2));
   else printHuman(output);
@@ -189,4 +254,4 @@ if (require.main === module) {
   try { main(); } catch (error) { console.error(error.message); process.exit(1); }
 }
 
-module.exports = { atomicWrite, defaultStateFile, getLane, readState, updateLane, validateState };
+module.exports = { atomicWrite, approveObjectiveAuthority, defaultStateFile, getLane, readState, setObjective, updateLane, validateState };

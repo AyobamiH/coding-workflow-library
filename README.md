@@ -37,6 +37,7 @@ skills/coding-workflow-library/
     coding-workflow.js
   scripts/
     committer
+    objective-authority
     lane-state
     evidence-pack
     failure-evidence
@@ -54,6 +55,7 @@ skills/coding-workflow-library/
     skill-upgrade-template.md
     evidence-report-template.md
   tests/
+    objective-authority.test.js
     library-validation-checklist.md
   skill-files/
     coding-workflow-orchestrator-skill.md
@@ -131,6 +133,28 @@ The frontmatter is the routing contract. `name` must match the filename without 
 ```
 
 Lane files must never contain secrets. The tracked schema and example are portable; real repo paths, product evidence, and monitoring baselines remain local. Omitting `--lane` preserves legacy ledger routing.
+
+## Objective-Level Autonomy
+
+The system requests authority for consequences, not permission for every tool call.
+
+Each lane may carry an active objective with an authority envelope. `local_execution` is granted by default for normal local work. Consequence-bearing classes are granted once per objective:
+
+- `remote_publication`: push, PR mutation, merge, tag push, GitHub Release, npm publish, public repository settings.
+- `production_mutation`: deploys, migrations, SQL writes, scheduler/Vault changes, app-data writes, production success calls.
+- `secret_mutation`: setting or rotating external secrets.
+- `destructive_action`: force push, history rewrite, deletion, destructive migrations, teardown.
+
+Child skills inherit the parent objective authority. Capability failures are recorded separately from permission: unavailable npm auth, missing `gh`, missing DB URL, or absent binaries are `BLOCKED_CAPABILITY`, while failed tests or unsafe package contents are `BLOCKED_SAFETY`.
+
+```bash
+coding-workflow objective show --lane example-project --state-file /path/to/lanes.json
+coding-workflow objective approve --lane example-project --grant remote_publication --state-file /path/to/lanes.json
+coding-workflow run-next --lane example-project --state-file /path/to/lanes.json --until-blocked
+coding-workflow resume --lane example-project --state-file /path/to/lanes.json
+```
+
+Legacy `--allow <route>` flags remain compatible. In lane mode, new work should prefer objective authority classes so one `remote_publication` grant covers the approved push, tag, GitHub Release, and npm publication consequences for that objective.
 
 ## Interrupted Runs
 

@@ -1,0 +1,273 @@
+#!/usr/bin/env node
+
+const AUTHORITY_CLASSES = [
+  "local_execution",
+  "remote_publication",
+  "production_mutation",
+  "secret_mutation",
+  "destructive_action",
+];
+
+const BLOCKER_STATES = [
+  "BLOCKED_CAPABILITY",
+  "BLOCKED_PERMISSION",
+  "BLOCKED_SAFETY",
+  "BLOCKED_DECISION",
+  "WAITING_CONDITION",
+  "COMPLETE",
+];
+
+const REMOTE_PUBLICATION_PERMISSIONS = new Set([
+  "github-handoff",
+  "push-pr",
+  "pr-merge",
+  "scheduler-draft-pr",
+  "scheduler-pr-merge",
+  "observability-pr-recovery",
+  "github-open-source-handoff",
+  "first-version-tag",
+  "github-release",
+  "npm-publish",
+  "tag-push",
+]);
+
+const PRODUCTION_MUTATION_PERMISSIONS = new Set([
+  "supabase-secret-function-deploy",
+  "runtime-negative-verification",
+  "function-secret-deploy-negative-runtime",
+  "controlled-success-invocation",
+  "scheduler-application-decision",
+  "scheduler-vault-design-apply",
+  "scheduler-vault-apply-retry",
+  "observability-deploy",
+  "cloudflare-deploy",
+]);
+
+const SECRET_MUTATION_PERMISSIONS = new Set([
+  "supabase-secret-function-deploy",
+  "function-secret-deploy-negative-runtime",
+  "scheduler-vault-design-apply",
+  "scheduler-vault-apply-retry",
+  "secret-rotation",
+]);
+
+const DESTRUCTIVE_PERMISSIONS = new Set([
+  "force-push",
+  "history-rewrite",
+  "delete-repo",
+  "delete-production-data",
+  "destructive-cleanup",
+]);
+
+function defaultAuthority(overrides = {}) {
+  const authority = {};
+  for (const name of AUTHORITY_CLASSES) authority[name] = name === "local_execution";
+  return { ...authority, ...overrides };
+}
+
+function createObjective(input = {}) {
+  const now = input.created_at || new Date().toISOString();
+  return {
+    id: input.id || "unclassified-objective",
+    description: input.description || "",
+    status: input.status || "active",
+    created_at: now,
+    updated_at: input.updated_at || now,
+    authority: defaultAuthority(input.authority || {}),
+    checkpoints: input.checkpoints || {},
+    blockers: input.blockers || [],
+  };
+}
+
+function normalizeObjective(objective) {
+  if (!objective) return createObjective();
+  return {
+    ...objective,
+    authority: defaultAuthority(objective.authority || {}),
+    checkpoints: objective.checkpoints || {},
+    blockers: Array.isArray(objective.blockers) ? objective.blockers : [],
+  };
+}
+
+function assertAuthorityClass(name) {
+  if (!AUTHORITY_CLASSES.includes(name)) throw new Error(`unknown authority class: ${name}`);
+}
+
+function approveAuthority(objective, grant) {
+  assertAuthorityClass(grant);
+  const normalized = normalizeObjective(objective);
+  return {
+    ...normalized,
+    updated_at: new Date().toISOString(),
+    authority: {
+      ...normalized.authority,
+      [grant]: true,
+    },
+  };
+}
+
+function authorityForPermission(permission) {
+  if (!permission) return "local_execution";
+  if (AUTHORITY_CLASSES.includes(permission)) return permission;
+  if (DESTRUCTIVE_PERMISSIONS.has(permission)) return "destructive_action";
+  if (SECRET_MUTATION_PERMISSIONS.has(permission)) return "secret_mutation";
+  if (PRODUCTION_MUTATION_PERMISSIONS.has(permission)) return "production_mutation";
+  if (REMOTE_PUBLICATION_PERMISSIONS.has(permission)) return "remote_publication";
+  return "local_execution";
+}
+
+function routeAuthority(route = {}) {
+  const explicit = route.requiresAuthority || route.requires_authority;
+  if (Array.isArray(explicit) && explicit.length) return explicit[0];
+  return authorityForPermission(route.permission);
+}
+
+function hasAuthority(objective, authorityClass) {
+  assertAuthorityClass(authorityClass);
+  return Boolean(normalizeObjective(objective).authority[authorityClass]);
+}
+
+function permissionGrantedForRoute({ route = {}, objective = null, allow = new Set() } = {}) {
+  const requiredAuthority = routeAuthority(route);
+  const legacyPermission = route.permission || null;
+  const normalizedAllow = allow instanceof Set ? allow : new Set(allow || []);
+
+  if (requiredAuthority === "local_execution") {
+    return { granted: true, requiredAuthority, source: "local_execution" };
+  }
+
+  if (objective && hasAuthority(objective, requiredAuthority)) {
+    return { granted: true, requiredAuthority, source: "objective_authority" };
+  }
+
+  if (normalizedAllow.has(requiredAuthority)) {
+    return { granted: true, requiredAuthority, source: "legacy_authority_flag" };
+  }
+
+  if (legacyPermission && normalizedAllow.has(legacyPermission)) {
+    return { granted: true, requiredAuthority, source: "legacy_route_flag" };
+  }
+
+  if (route.alternatePermission && normalizedAllow.has(route.alternatePermission)) {
+    return { granted: true, requiredAuthority, source: "legacy_alternate_route_flag" };
+  }
+
+  return { granted: false, requiredAuthority, source: "missing_authority" };
+}
+
+function classifyBlocker(input = {}) {
+  if (input.safety) return { state: "BLOCKED_SAFETY", reason: input.safety };
+  if (input.decision) return { state: "BLOCKED_DECISION", reason: input.decision };
+  if (input.waiting) return { state: "WAITING_CONDITION", reason: input.waiting };
+  if (input.capability) return { state: "BLOCKED_CAPABILITY", reason: input.capability };
+  if (input.permission) return { state: "BLOCKED_PERMISSION", reason: input.permission };
+  return { state: "COMPLETE", reason: "acceptance criteria satisfied" };
+}
+
+function runObjectiveStages({ objective, stages, capabilities = {}, safety = {}, decisions = {}, waiting = {}, maxTransitions = 50 }) {
+  const activeObjective = normalizeObjective(objective);
+  const completed = new Set(Object.entries(activeObjective.checkpoints || {})
+    .filter(([, status]) => status === "complete")
+    .map(([name]) => name));
+  const stageById = new Map(stages.map((stage) => [stage.id, stage]));
+  const blocked = {
+    capability: [],
+    permission: [],
+    safety: [],
+    decision: [],
+    waiting: [],
+  };
+  const executed = [];
+  let transitions = 0;
+  let progressed = true;
+
+  while (progressed && transitions < maxTransitions) {
+    progressed = false;
+    for (const stage of stages) {
+      if (completed.has(stage.id)) continue;
+      const deps = stage.depends_on || stage.dependsOn || [];
+      if (deps.some((dep) => !completed.has(dep))) continue;
+
+      if (stage.capability && capabilities[stage.capability] === false) {
+        pushUnique(blocked.capability, `${stage.id}: ${stage.capability}`);
+        continue;
+      }
+      if (safety[stage.id] === false || stage.safety === false) {
+        pushUnique(blocked.safety, `${stage.id}: safety gate failed`);
+        continue;
+      }
+      if (decisions[stage.id] || stage.decision) {
+        pushUnique(blocked.decision, `${stage.id}: ${decisions[stage.id] || stage.decision}`);
+        continue;
+      }
+      if (waiting[stage.id] || stage.waiting) {
+        pushUnique(blocked.waiting, `${stage.id}: ${waiting[stage.id] || stage.waiting}`);
+        continue;
+      }
+
+      const requiredAuthority = stage.authority || "local_execution";
+      if (!hasAuthority(activeObjective, requiredAuthority)) {
+        pushUnique(blocked.permission, `${requiredAuthority}: ${stage.id}`);
+        continue;
+      }
+
+      completed.add(stage.id);
+      executed.push(stage.id);
+      progressed = true;
+      transitions += 1;
+    }
+  }
+
+  if (transitions >= maxTransitions) {
+    blocked.safety.push("autonomous loop transition limit reached");
+  }
+
+  const remaining = stages.filter((stage) => !completed.has(stage.id)).map((stage) => stage.id);
+  let state = "COMPLETE";
+  let reason = "all stages complete";
+  if (blocked.safety.length) ({ state, reason } = classifyBlocker({ safety: blocked.safety.join("; ") }));
+  else if (blocked.decision.length) ({ state, reason } = classifyBlocker({ decision: blocked.decision.join("; ") }));
+  else if (blocked.waiting.length) ({ state, reason } = classifyBlocker({ waiting: blocked.waiting.join("; ") }));
+  else if (blocked.capability.length) ({ state, reason } = classifyBlocker({ capability: blocked.capability.join("; ") }));
+  else if (blocked.permission.length) ({ state, reason } = classifyBlocker({ permission: blocked.permission.join("; ") }));
+
+  return {
+    state,
+    reason,
+    executed,
+    completed: [...completed],
+    remaining,
+    blocked,
+    checkpoints: Object.fromEntries([...completed].map((id) => [id, "complete"])),
+    stageCount: stageById.size,
+  };
+}
+
+function pushUnique(list, value) {
+  if (!list.includes(value)) list.push(value);
+}
+
+function main() {
+  console.log(JSON.stringify({
+    authority_classes: AUTHORITY_CLASSES,
+    blocker_states: BLOCKER_STATES,
+    core_sentence: "The system requests authority for consequences, not permission for every tool call.",
+  }, null, 2));
+}
+
+if (require.main === module) main();
+
+module.exports = {
+  AUTHORITY_CLASSES,
+  BLOCKER_STATES,
+  approveAuthority,
+  authorityForPermission,
+  classifyBlocker,
+  createObjective,
+  defaultAuthority,
+  hasAuthority,
+  normalizeObjective,
+  permissionGrantedForRoute,
+  routeAuthority,
+  runObjectiveStages,
+};

@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 const laneState = require("./lane-state");
+const objectiveAuthority = require("./objective-authority");
 
 const LIBRARY_ROOT = path.resolve(__dirname, "..");
 const DEFAULT_REPO = "/home/johnh/wagging-web-wins";
@@ -54,6 +55,9 @@ const OPEN_SOURCE_REPO_DESCRIPTION = "Autonomous coding workflow skills, routing
 const FIRST_VERSION = "0.1.0";
 const FIRST_VERSION_TAG = `v${FIRST_VERSION}`;
 const FIRST_VERSION_RELEASE_NOTES = `docs/releases/${FIRST_VERSION_TAG}.md`;
+const SECOND_VERSION = "0.2.0";
+const SECOND_VERSION_TAG = `v${SECOND_VERSION}`;
+const SECOND_VERSION_RELEASE_NOTES = `docs/releases/${SECOND_VERSION_TAG}.md`;
 const DEFAULT_RUN_NEXT_DIR = process.env.RUN_NEXT_DIR || path.join(LIBRARY_ROOT, ".run-next");
 const CHECKPOINT_NAMES = ["inspect", "route", "permission", "execute", "verify", "record"];
 
@@ -95,6 +99,11 @@ const ALLOWED_FLAGS = new Set([
   "cli-package-smoke",
   "github-open-source-handoff",
   "first-version-tag",
+  "local_execution",
+  "remote_publication",
+  "production_mutation",
+  "secret_mutation",
+  "destructive_action",
 ]);
 
 const args = parseArgs(process.argv.slice(2));
@@ -145,12 +154,12 @@ function main() {
       active = findActiveWorkItem(ledgerText, targetRepo);
     }
     const status = active.currentStatus || "Unknown";
-    const route = routeStatus(status);
+    const route = routeStatus(status, active);
 
     actions.push(`selected work item: ${active.heading || "latest ledger entry"}`);
     actions.push(`current status: ${status}`);
     actions.push(`next skill: ${route.skill}`);
-    actions.push(`required permission: ${route.permission || "none"}`);
+    actions.push(`required authority/grant: ${route.required_authority || route.permission || "none"}`);
 
     if (!dryRun) {
       activeCheckpointRun = createCheckpointRun({ active, route });
@@ -231,6 +240,8 @@ function main() {
       result = runGithubOpenSourceHandoff(active);
     } else if (route.kind === "first-version-tag") {
       result = runFirstVersionTag(active);
+    } else if (route.kind === "v0-2-local-prep") {
+      result = runV020LocalPrep(active);
     } else {
       result = notImplemented(route, active);
     }
@@ -279,6 +290,7 @@ function parseArgs(rawArgs) {
     status: false,
     listRoutes: false,
     listLanes: false,
+    untilBlocked: false,
     lane: null,
     stateFile: laneState.defaultStateFile(),
     repo: null,
@@ -312,6 +324,10 @@ function parseArgs(rawArgs) {
     }
     if (arg === "--list-lanes") {
       parsed.listLanes = true;
+      continue;
+    }
+    if (arg === "--until-blocked") {
+      parsed.untilBlocked = true;
       continue;
     }
     if (arg === "--lane") {
@@ -364,6 +380,7 @@ function printHelp() {
   ./scripts/run-next --list-lanes --state-file /path/to/lanes.json
   ./scripts/run-next --lane example-project --state-file /path/to/lanes.json --explain-next
   ./scripts/run-next --lane example-project --state-file /path/to/lanes.json --dry-run --allow <permission>
+  ./scripts/run-next --lane example-project --state-file /path/to/lanes.json --until-blocked
   ./scripts/run-next --repo /home/johnh/wagging-web-wins
   ./scripts/run-next --repo /home/johnh/wagging-web-wins --explain
   ./scripts/run-next --repo /home/johnh/wagging-web-wins --allow github-handoff
@@ -464,8 +481,14 @@ Supported --allow values:
   cli-package-smoke
   github-open-source-handoff
   first-version-tag
+  local_execution
+  remote_publication
+  production_mutation
+  secret_mutation
+  destructive_action
 
 Lane mode reads and updates only the selected local lane. If --lane is omitted, legacy work-ledger.md routing remains available.
+Legacy --allow route flags still work; authority-class flags now mean objective-level authority for that consequence class.
 Dry-run and explain modes do not mutate target repos, lane state, work-ledger.md, or runs/skill-runs.md.`);
 }
 
@@ -478,6 +501,12 @@ function printLaneList() {
     console.log(`Status: ${lane.status}`);
     console.log(`Current state: ${lane.current_state}`);
     console.log(`Next permission: ${lane.next_permission || "none"}`);
+    if (lane.objective) {
+      const objective = objectiveAuthority.normalizeObjective(lane.objective);
+      const grants = objectiveAuthority.AUTHORITY_CLASSES.filter((name) => objective.authority[name]).join(", ") || "none";
+      console.log(`Objective: ${objective.id}`);
+      console.log(`Authority: ${grants}`);
+    }
     console.log("");
   }
   console.log("This command reads local lane metadata only. State files must not contain secrets.");
@@ -520,7 +549,7 @@ ${routes.map((route) => {
     return [
       `## ${route.id || "(missing id)"}`,
       `Skill: ${route.skill_file || "(missing skill file)"}`,
-      `Permission: ${route.permission_flag || "(missing permission)"}`,
+      `Authority grant: ${route.permission_flag || "(missing legacy grant flag)"}`,
       `States: ${states || "(none)"}`,
       `Success: ${route.success_ledger_state || "(missing success state)"}`,
       `Blocked: ${route.blocked_ledger_state || "(missing blocked state)"}`,
@@ -591,8 +620,22 @@ function cleanField(value) {
     .trim();
 }
 
-function routeStatus(status) {
+function routeStatus(status, active = {}) {
   const normalized = status.toLowerCase();
+  const activeObjective = active.rawLane?.objective ? objectiveAuthority.normalizeObjective(active.rawLane.objective) : null;
+
+  if (
+    activeObjective?.id === "release-coding-workflow-library-v0-2-0" ||
+    activeObjective?.id === "release-coding-workflow-library-v0.2.0"
+  ) {
+    return {
+      skill: "release-preflight-skill / skills-library-packaging-skill / github-handoff-skill",
+      permission: null,
+      requiresAuthority: ["local_execution"],
+      kind: "v0-2-local-prep",
+      nextAction: "prepare and verify every local/read-only v0.2.0 stage, then stop before remote publication",
+    };
+  }
 
   if (normalized === "no ledger item for repo") {
     return {
@@ -1183,10 +1226,11 @@ function routeStatus(status) {
 }
 
 function permissionGranted(route) {
-  if (!route.permission) return true;
-  if (args.allow.has(route.permission)) return true;
-  if (route.alternatePermission && args.allow.has(route.alternatePermission)) return true;
-  return false;
+  const objective = selectedLane?.objective || null;
+  const result = objectiveAuthority.permissionGrantedForRoute({ route, objective, allow: args.allow });
+  route.requiredAuthority = result.requiredAuthority;
+  route.permissionSource = result.source;
+  return result.granted;
 }
 
 function hasSchedulerVaultApplyPermission() {
@@ -1211,11 +1255,12 @@ function modeLabel() {
 }
 
 function needsJohn(route) {
+  const requiredAuthority = route.requiredAuthority || objectiveAuthority.routeAuthority(route);
   return {
-    finalStatus: "NEEDS JOHN",
-    ledgerStatus: "Needs John: permission gate",
-    summary: `permission not granted for ${route.permission}`,
-    nextPermission: route.permission,
+    finalStatus: `BLOCKED_PERMISSION: ${requiredAuthority} is not granted`,
+    ledgerStatus: `BLOCKED_PERMISSION: ${requiredAuthority} is not granted`,
+    summary: `${requiredAuthority} is not granted for ${route.permission || route.kind || "selected route"}`,
+    nextPermission: `grant ${requiredAuthority} once for this objective`,
     nextSkill: route.skill,
     exitCode: dryRun ? 0 : 2,
   };
@@ -2906,6 +2951,113 @@ function inspectNpmPackDryRun(repo) {
   const files = parsePackFiles(result.stdout);
   const risks = packagePathRisks(files);
   return { result, files, risks };
+}
+
+function runV020LocalPrep() {
+  const expectedRepo = LIBRARY_ROOT;
+  const releaseNotesPath = path.join(LIBRARY_ROOT, SECOND_VERSION_RELEASE_NOTES);
+
+  if (dryRun) {
+    actions.push("would verify the selected lane objective release-coding-workflow-library-v0.2.0");
+    actions.push("would verify package.json and package-lock.json version 0.2.0");
+    actions.push(`would require CHANGELOG.md and ${SECOND_VERSION_RELEASE_NOTES}`);
+    actions.push("would run local validation, package readiness, release preflight, npm pack dry-run, and clean package smoke when invoked outside dry-run");
+    actions.push("would record npm authentication as BLOCKED_CAPABILITY if unavailable, while continuing independent local/read-only work");
+    actions.push("would stop before push, tag, GitHub Release, and npm publish because remote_publication is not granted");
+    evidence.push("dry-run made no lane, repo, package, git, npm, or remote changes");
+    return {
+      finalStatus: "DRY RUN PASSED",
+      ledgerStatus: "v0.1.0 tagged and pushed, npm unpublished",
+      summary: "v0.2.0 objective would complete local/read-only preparation and consolidate remote publication at one boundary",
+      nextPermission: "remote_publication",
+      nextSkill: "release-preflight-skill / github-handoff-skill",
+      exitCode: 0,
+    };
+  }
+
+  if (path.resolve(targetRepo) !== expectedRepo) {
+    return {
+      finalStatus: "BLOCKED_SAFETY",
+      ledgerStatus: "v0.2.0 local preparation blocked",
+      summary: `v0.2.0 local prep may only run against ${expectedRepo}`,
+      nextPermission: "select the coding-workflow-library lane and repo",
+      nextSkill: "coding-workflow-orchestrator-skill",
+      exitCode: 1,
+    };
+  }
+
+  const blockers = [];
+  const packagePath = path.join(LIBRARY_ROOT, "package.json");
+  const lockPath = path.join(LIBRARY_ROOT, "package-lock.json");
+  const changelogPath = path.join(LIBRARY_ROOT, "CHANGELOG.md");
+  let pkg = null;
+  let lock = null;
+  try {
+    pkg = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+  } catch (error) {
+    blockers.push(`package.json parse failed: ${error.message}`);
+  }
+  try {
+    lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+  } catch (error) {
+    blockers.push(`package-lock.json parse failed: ${error.message}`);
+  }
+  const changelog = fs.existsSync(changelogPath) ? fs.readFileSync(changelogPath, "utf8") : "";
+  const releaseNotes = fs.existsSync(releaseNotesPath) ? fs.readFileSync(releaseNotesPath, "utf8") : "";
+
+  if (pkg?.version !== SECOND_VERSION) blockers.push(`package.json version is ${pkg?.version || "missing"}, expected ${SECOND_VERSION}`);
+  if (lock?.version !== SECOND_VERSION) blockers.push(`package-lock.json version is ${lock?.version || "missing"}, expected ${SECOND_VERSION}`);
+  if (lock?.packages?.[""]?.version !== SECOND_VERSION) blockers.push(`package-lock root package version is ${lock?.packages?.[""]?.version || "missing"}, expected ${SECOND_VERSION}`);
+  if (!new RegExp(`## \\[?${escapeRegExp(SECOND_VERSION)}\\]? - 2026-06-26`).test(changelog)) blockers.push("CHANGELOG.md lacks dated v0.2.0 entry");
+  if (!releaseNotes.includes(SECOND_VERSION_TAG) || !/npm unpublished/i.test(releaseNotes)) blockers.push(`${SECOND_VERSION_RELEASE_NOTES} missing required npm-unpublished release notes`);
+
+  evidence.push(`package version: ${pkg?.version || "unavailable"}`);
+  evidence.push(`lockfile version: ${lock?.version || "unavailable"}`);
+  evidence.push(`release notes present: ${fs.existsSync(releaseNotesPath) ? "yes" : "no"}`);
+
+  const commands = [
+    ["npm test", "npm", ["test"]],
+    ["route audit", "./scripts/route-audit", []],
+    ["skill validation", "./scripts/validate-skills", []],
+    ["package readiness", "./scripts/npm-package-readiness", ["--repo", ".", "--expect-package", "--expect-cli", "--allow-pack-dry-run"]],
+    ["release preflight", "./scripts/release-preflight", ["--repo", ".", "--mode", "cli", "--allow-pack-dry-run"]],
+    ["npm pack dry-run", "npm", ["pack", "--dry-run", "--json", "--cache", "/home/johnh/.openclaw/tmp/npm-cache"]],
+  ];
+
+  for (const [label, command, commandArgs] of commands) {
+    const result = run(command, commandArgs, { cwd: LIBRARY_ROOT, env: npmPackDryRunEnv(), allowFailure: true });
+    evidence.push(`${label} exit: ${result.code}`);
+    if (result.code !== 0) blockers.push(`${label} failed`);
+  }
+
+  const npmAuth = run("npm", ["whoami", "--cache", "/home/johnh/.openclaw/tmp/npm-cache"], {
+    cwd: LIBRARY_ROOT,
+    env: npmPackDryRunEnv(),
+    allowFailure: true,
+  });
+  const npmAuthAvailable = npmAuth.code === 0;
+  evidence.push(`npm authentication: ${npmAuthAvailable ? "available" : "BLOCKED_CAPABILITY"}`);
+
+  if (blockers.length) {
+    return {
+      finalStatus: "BLOCKED_SAFETY",
+      ledgerStatus: "v0.2.0 local preparation blocked",
+      summary: blockers.join("; "),
+      nextPermission: "fix failed local safety gate",
+      nextSkill: "release-preflight-skill / error-evidence-skill",
+      exitCode: 1,
+    };
+  }
+
+  return {
+    finalStatus: "READY: v0.2.0 locally prepared; one remote_publication approval will complete push, tag, GitHub Release and npm publication",
+    ledgerStatus: "v0.2.0 locally prepared and validated; remote publication awaiting one objective-level approval",
+    summary: "local/read-only v0.2.0 stages passed; remote publication remains ungranted; npm authentication is recorded as capability evidence, not a permission prompt",
+    nextPermission: "grant remote_publication once for push, tag, GitHub Release, and npm publication",
+    nextSkill: "github-handoff-skill / release-preflight-skill",
+    capabilityBlockers: npmAuthAvailable ? [] : ["npm authentication unavailable for eventual npm publication"],
+    exitCode: 0,
+  };
 }
 
 function npmPackDryRunEnv() {
@@ -12763,7 +12915,7 @@ function updateSelectedLane(result, route) {
   const state = laneState.readState(args.stateFile);
   const lane = laneState.getLane(state, args.lane);
   const finalStatus = result.ledgerStatus || result.finalStatus;
-  const blocked = result.exitCode && result.exitCode !== 0 || /blocked|failure|needs john/i.test(finalStatus || "");
+  const blocked = result.exitCode && result.exitCode !== 0 || /blocked|failure|needs john|BLOCKED_/i.test(finalStatus || "");
   const routeId = route.kind === "scheduled-run-monitoring-handoff"
     ? "production-handoff-lane"
     : route.kind === "zero-output-pipeline-investigation"
@@ -12774,15 +12926,52 @@ function updateSelectedLane(result, route) {
     ...(lane.evidence_refs || []),
     `local-run:${today()}:${routeId || "run-next"}`,
   ]));
-  laneState.updateLane(state, args.lane, {
+  const changes = {
     current_state: finalStatus,
     next_permission: result.nextPermission || route.nextPermission || route.nextAction || "manual review",
     status: blocked ? "blocked" : "active",
     route_ids: routeIds,
     evidence_refs: evidenceRefs,
-  });
+  };
+  if (lane.objective) {
+    const objective = objectiveAuthority.normalizeObjective(lane.objective);
+    const checkpoint = route.kind || route.permission || "run-next";
+    changes.objective = {
+      ...objective,
+      status: blocked ? "blocked" : "active",
+      updated_at: new Date().toISOString(),
+      checkpoints: {
+        ...objective.checkpoints,
+        [checkpoint]: blocked ? "blocked" : "complete",
+      },
+      blockers: blocked
+        ? [
+            ...objective.blockers,
+            {
+              state: String(result.finalStatus || "").startsWith("BLOCKED_") ? result.finalStatus.split(":")[0] : "BLOCKED_SAFETY",
+              reason: result.summary || finalStatus,
+              stage: checkpoint,
+              recorded_at: new Date().toISOString(),
+            },
+          ]
+        : nonFatalBlockers(result, checkpoint),
+    };
+  }
+  laneState.updateLane(state, args.lane, changes);
   laneState.atomicWrite(args.stateFile, state);
   actions.push(`updated selected lane only: ${args.lane}`);
+}
+
+function nonFatalBlockers(result, checkpoint) {
+  const now = new Date().toISOString();
+  const blockers = [];
+  for (const reason of result.capabilityBlockers || []) {
+    blockers.push({ state: "BLOCKED_CAPABILITY", reason, stage: checkpoint, recorded_at: now });
+  }
+  for (const reason of result.waitingConditions || []) {
+    blockers.push({ state: "WAITING_CONDITION", reason, stage: checkpoint, recorded_at: now });
+  }
+  return blockers;
 }
 
 function appendLedger({ status, result, route }) {
@@ -12902,7 +13091,8 @@ function printReport(result, active, route) {
   console.log(`Ledger item: ${active.heading || "unknown"}`);
   console.log(`Current status: ${active.currentStatus || "unknown"}`);
   console.log(`Selected skill: ${route.skill || "unknown"}`);
-  console.log(`Required permission: ${route.permission || "none"}`);
+  console.log(`Required authority: ${route.requiredAuthority || objectiveAuthority.routeAuthority(route) || "none"}`);
+  console.log(`Legacy allow flag: ${route.permission || "none"}`);
   console.log(`Can run now: ${canRunNow(route) ? "yes" : "no"}`);
   console.log(`Final status: ${result.finalStatus}`);
   console.log(`Summary: ${result.summary}`);

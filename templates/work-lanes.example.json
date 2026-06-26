@@ -14,7 +14,23 @@
       "evidence_refs": [],
       "hold_reason": "",
       "notes": "Neutral example only. Keep real project state in a local runtime file.",
-      "monitoring_baseline": "2026-01-01T00:00:00.000Z"
+      "monitoring_baseline": "2026-01-01T00:00:00.000Z",
+      "objective": {
+        "id": "example-local-readiness",
+        "description": "Prepare and validate local work until an external consequence boundary is reached.",
+        "status": "active",
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z",
+        "authority": {
+          "local_execution": true,
+          "remote_publication": false,
+          "production_mutation": false,
+          "secret_mutation": false,
+          "destructive_action": false
+        },
+        "checkpoints": {},
+        "blockers": []
+      }
     }
   ]
 }

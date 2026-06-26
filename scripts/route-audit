@@ -52,9 +52,13 @@ function routeHasSensitivePower(route) {
   const text = [
     route.permission_flag,
     route.permission_level,
-    ...(Array.isArray(route.forbidden_actions) ? route.forbidden_actions : []),
+    ...(Array.isArray(route.requires_authority) ? route.requires_authority : []),
   ].join(" ");
-  return /\b(deploy|push|publish|secret|database|db|sql|production|github|merge|supabase|cloudflare|migration)\b/i.test(text);
+  return /\b(production[_-]?mutation|secret[_-]?mutation|destructive[_-]?action|remote[_-]?publication|deploy|push|publish|database|db|sql|production|merge|supabase|cloudflare|migration)\b/i.test(text);
+}
+
+function stringArrayOrMissing(value) {
+  return value === undefined || (Array.isArray(value) && value.every(nonEmptyString));
 }
 
 function validateRoutes() {
@@ -160,6 +164,24 @@ function validateRoutes() {
 
     if (!nonEmptyString(route.provenance)) {
       warnings.push(`${id}: provenance is not recorded`);
+    }
+
+    for (const key of ["requires_authority", "requires_capabilities", "stage_dependencies", "safety_gates", "idempotency_evidence"]) {
+      if (!stringArrayOrMissing(route[key])) {
+        errors.push(`${id}: ${key} must be an array of non-empty strings when present`);
+      }
+    }
+
+    if (route.checkpoint !== undefined && !nonEmptyString(route.checkpoint)) {
+      errors.push(`${id}: checkpoint must be non-empty when present`);
+    }
+
+    if (route.blocked_checkpoint !== undefined && !nonEmptyString(route.blocked_checkpoint)) {
+      errors.push(`${id}: blocked_checkpoint must be non-empty when present`);
+    }
+
+    if (route.continue_after_blocker !== undefined && typeof route.continue_after_blocker !== "boolean") {
+      errors.push(`${id}: continue_after_blocker must be boolean when present`);
     }
   }
 

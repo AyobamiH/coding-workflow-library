@@ -59,7 +59,9 @@ handles_state:
   - Needs John: database connection URL missing
   - Needs John: psql unavailable for non-interactive DB inspection
   - Scheduler blocked: Vault/pg_cron/pg_net capability not proven
-requires_permission:
+requires_authority:
+  - local_execution
+legacy_allow_flags:
   - auth-check
   - github-handoff
   - pr-readiness
@@ -106,15 +108,17 @@ evidence:
   - selected ledger item
   - current status
   - selected skill
-  - required permission
+  - required authority or legacy grant flag
   - validation evidence for executed bounded step
 stop_conditions:
   - missing ledger item
-  - missing permission flag
+  - BLOCKED_CAPABILITY
+  - BLOCKED_PERMISSION
+  - BLOCKED_SAFETY
+  - BLOCKED_DECISION
+  - WAITING_CONDITION
   - unknown status
   - unimplemented route
-  - credential blocker
-  - production mutation boundary
 ---
 # coding-workflow-orchestrator-skill
 
@@ -126,11 +130,19 @@ Lane-aware execution must never replace another lane's state. Dry-run and explai
 
 This is the control-plane skill for the local coding workflow system.
 
+The system requests authority for consequences, not permission for every tool call. Skills inherit authority from the parent lane objective and must not ask again for the same consequence class. They should return structured blockers:
+
+- `BLOCKED_CAPABILITY` for missing tools, missing credentials, unavailable network, or under-scoped accounts.
+- `BLOCKED_PERMISSION` only for an ungranted authority class.
+- `BLOCKED_SAFETY` for failed validation, unsafe diffs, secret scans, repo drift, or idempotency failures.
+- `BLOCKED_DECISION` for product/business/security judgement.
+- `WAITING_CONDITION` for CI, scheduled jobs, deployment completion, or propagation.
+
 Use it to decide which work should happen next, classify the queue item, select the correct downstream skill, run one bounded work loop, collect evidence, update the work ledger, update the run log, and stop at the correct permission boundary.
 
 The orchestrator must not perform deep implementation itself unless the selected downstream skill authorizes it. It should avoid random prompting and decide the next safe step from evidence.
 
-`scripts/run-next` is the executable implementation of this orchestrator loop. It reads ledger state, selects the next skill, checks supplied permission flags, runs covered safe actions, updates ledger/run-log evidence, and stops at permission boundaries. Manual prompts are fallback control, not the default, when `scripts/run-next` covers the current ledger state.
+`scripts/run-next` is the executable implementation of this orchestrator loop. It reads lane objective state or legacy ledger state, selects the next skill, checks objective authority or legacy `--allow` flags, runs covered safe actions, updates lane or ledger/run-log evidence, and stops at structured blockers. Manual prompts are fallback control, not the default, when `scripts/run-next` covers the current state.
 
 `routes/skill-routes.json` is the route ownership layer. Use it to keep reusable skills from becoming manual-only documents and to keep proven production workflow logic from staying hidden inside `scripts/run-next`. The runner should remain a bounded orchestrator over skills, route metadata, and helper scripts. Product-specific live actions still require explicit permission gates.
 

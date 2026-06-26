@@ -36,11 +36,21 @@ Read `AGENTS.md` first. Its hard rules and permission gates override individual 
 9. `./scripts/validate-skills`: library validation after skill edits.
 10. `evidence-checklist.md`: final evidence gate.
 
-Permission gates in `AGENTS.md` override individual skill convenience. A skill may suggest a command, but that does not grant permission to install, edit, build, commit, push, deploy, migrate, mutate data, call external services, access secrets, release, or delete.
+The system requests authority for consequences, not permission for every tool call.
 
-Git handoff requires its own gate. Use `github-handoff-skill` before any commit, use `scripts/committer` for approved local commits when available, and treat push, PR creation, deploy, migration, release, and merge as separate later decisions.
+Objective authority in `AGENTS.md` overrides individual skill convenience. Local execution is normally autonomous inside the selected objective. A skill may suggest a command, but only consequence-bearing actions need a granted authority class: `remote_publication`, `production_mutation`, `secret_mutation`, or `destructive_action`.
 
-`scripts/run-next` is the default executable path when the next step is already represented in `work-ledger.md`. It must never assume permission: it can only act when a matching `--allow` flag is present. Use `--explain` or `--dry-run` when the next selected job should be reported without mutating the ledger, run log, target repo, or external services. Manual prompts remain the fallback when the runner stops at a missing ledger item, unimplemented state, missing permission, credential repair, merge, deploy, migration, production verification, or security decision boundary.
+Use `github-handoff-skill` before publication-oriented git work, use `scripts/committer` for exact-file local commits, and treat push, PR mutation, merge, tag push, GitHub Release, and npm publication as `remote_publication` consequences under the active objective rather than separate repeated prompts.
+
+`scripts/run-next` is the default executable path when the next step is represented in lane state or `work-ledger.md`. In lane mode it reads the selected objective authority and can continue through multiple safe/local stages until a structured blocker appears. Legacy `--allow <route>` flags remain compatible; new work should prefer objective grants. Use `--explain`, `--explain-next`, or `--dry-run` when the selected job should be reported without mutating lane state, ledger, run log, target repo, or external services.
+
+Use these blocker states:
+
+- `BLOCKED_CAPABILITY`: missing binary, missing/invalid auth, missing env var, network unavailable, or unavailable external account capability.
+- `BLOCKED_PERMISSION`: next consequence crosses an ungranted objective authority class.
+- `BLOCKED_SAFETY`: tests, validation, secret scan, package inspection, repo drift, or idempotency failed.
+- `BLOCKED_DECISION`: human judgement is genuinely required.
+- `WAITING_CONDITION`: CI, scheduled job, deployment completion, or propagation is pending.
 
 Route metadata is the future source of truth for reusable workflow ownership. Keep `scripts/run-next` working, but prefer adding or updating `routes/skill-routes.json` when a proven ledger state should map to a durable skill. A reusable skill is incomplete until it has route metadata or a deliberate hold reason in `build-queue.md`. Manual helpers are allowed, but they should not remain orphaned once a workflow is proven.
 

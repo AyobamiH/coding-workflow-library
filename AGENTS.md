@@ -18,28 +18,22 @@ It defines hard rules. Use `RUNBOOK.md` for operating guidance after these rules
 - Update `work-ledger.md` when work status changes.
 - Preserve user intent and current repo state.
 
-## Permission Gates
+## Objective Authority
 
-Treat each gate as separate:
+The system requests authority for consequences, not permission for every tool call.
 
-- read-only inspection;
-- local edit;
-- dependency install;
-- lint/test/build;
-- git commit;
-- git push;
-- pull request;
-- production deploy;
-- Supabase migration;
-- database mutation;
-- external API call;
-- secret access;
-- release/tag/version bump;
-- destructive cleanup/delete/reset.
+Normal local execution is autonomous for the selected objective: read-only inspection, local file edits inside the chosen repo, docs, tests, validation, package dry-runs, clean-temp smoke, local branches, exact-file local commits, and secret-free local lane-state updates.
 
-Permission for one gate does not imply permission for another.
+Ask again only when the next action crosses an ungranted authority boundary:
 
-If a needed gate is missing, stop at the last authorized boundary and give John a decision brief.
+- `remote_publication`: git push, PR mutation, merge, tag push, GitHub Release, npm publish, public repository settings.
+- `production_mutation`: deploys, Supabase migrations, SQL writes, scheduler/Vault mutation, app-data writes, Cloudflare production changes, production endpoint success invocation.
+- `secret_mutation`: creating, rotating, replacing, or setting secrets in an external service.
+- `destructive_action`: force push, history rewrite, deleting unmerged work, deleting production data, repository deletion, destructive migration, infrastructure teardown.
+
+Child routes, skills, helpers, retries, and resumes inherit the selected lane objective authority. They must not ask for the same authority again. Missing tools, credentials, binaries, env vars, or network access are `BLOCKED_CAPABILITY`, not permission requests.
+
+Preserve safety gates. Failed tests, failed validation, unsafe package contents, secret-scan findings, repository drift, and idempotency failures are `BLOCKED_SAFETY`. Human judgement belongs in `BLOCKED_DECISION`. Future external events such as running CI or scheduled jobs are `WAITING_CONDITION`.
 
 ## Repo Safety
 
@@ -99,18 +93,14 @@ If a needed gate is missing, stop at the last authorized boundary and give John 
 
 John is required for:
 
+- granting an unapproved authority class for the active objective;
 - product/business decision;
 - security/privacy tradeoff;
-- credentials or external account access;
-- dependency install if not pre-authorized;
-- source edits if not pre-authorized;
-- commit/push/PR;
-- deploy;
-- migrations/database mutation;
-- production endpoint calls;
+- credentials or external account capability when local auth is missing, expired, invalid, or under-scoped;
 - destructive actions;
-- release/version/tag;
-- unclear priority.
+- unclear priority or incompatible architecture choices.
+
+Do not ask John for another approval merely because the next skill is ready or a local tool call is next. Continue authorized local work, checkpoint external blockers, and present consolidated authority boundaries.
 
 ## Output Discipline
 

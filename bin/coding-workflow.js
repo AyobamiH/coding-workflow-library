@@ -52,9 +52,16 @@ Usage:
   coding-workflow run-next --repo /path/to/repo --dry-run --allow <flag>
   coding-workflow lanes --state-file /path/to/lanes.json
   coding-workflow lane show <lane-id> --state-file /path/to/lanes.json
+  coding-workflow objective show --lane <lane-id> --state-file /path/to/lanes.json
+  coding-workflow objective approve --lane <lane-id> --grant remote_publication --state-file /path/to/lanes.json
   coding-workflow run-next --lane <lane-id> --state-file /path/to/lanes.json --explain-next
+  coding-workflow run-next --lane <lane-id> --state-file /path/to/lanes.json --until-blocked
+  coding-workflow resume --lane <lane-id> --state-file /path/to/lanes.json
+  coding-workflow explain-blocker --lane <lane-id> --state-file /path/to/lanes.json
 
-Lane state is local runtime metadata and must not contain secrets. This CLI delegates to local scripts and preserves their permission gates. It does not publish, deploy, push, tag, create releases, read secrets, or call production endpoints on its own.`);
+The system requests authority for consequences, not permission for every tool call.
+
+Lane state is local runtime metadata and must not contain secrets. This CLI delegates to local scripts and preserves objective authority gates. It does not publish, deploy, push, tag, create releases, read secrets, or call production endpoints on its own.`);
 }
 
 function fail(message, code = 2) {
@@ -99,6 +106,28 @@ function main() {
 
   if (commandName === "lane") {
     delegate("lane-state", rest);
+    return;
+  }
+
+  if (commandName === "objective") {
+    const [subcommand, ...objectiveArgs] = rest;
+    const laneIndex = objectiveArgs.indexOf("--lane");
+    const laneId = laneIndex >= 0 ? objectiveArgs[laneIndex + 1] : null;
+    if (!laneId) fail("objective commands require --lane <lane-id>");
+    const forwarded = objectiveArgs.filter((_, index) => index !== laneIndex && index !== laneIndex + 1);
+    if (subcommand === "show") delegate("lane-state", ["objective-show", laneId, ...forwarded]);
+    if (subcommand === "approve") delegate("lane-state", ["objective-approve", laneId, ...forwarded]);
+    fail("objective supports: show, approve");
+    return;
+  }
+
+  if (commandName === "resume") {
+    delegate("run-next", ["--resume", ...rest]);
+    return;
+  }
+
+  if (commandName === "explain-blocker") {
+    delegate("run-next", ["--explain-next", ...rest]);
     return;
   }
 

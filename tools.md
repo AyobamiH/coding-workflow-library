@@ -4,11 +4,23 @@
 
 This is the local tool catalogue for the coding workflow orchestrator and skills.
 
-Use it to decide what tools exist locally, when a tool is appropriate, which permission gate it belongs to, what evidence must be collected, and which actions require explicit John approval.
+Use it to decide what tools exist locally, when a tool is appropriate, which authority class or safety gate it belongs to, what evidence must be collected, and which actions require objective-level approval.
 
 This file does not grant permission. It classifies tools. `AGENTS.md` remains the hard-rule layer, and individual skills provide task-specific procedures.
 
 ## Tool Permission Model
+
+The system requests authority for consequences, not permission for every tool call.
+
+Tool permission levels remain useful for classification, but execution is governed by the selected lane objective:
+
+- safe local reads, edits, validation, package dry-runs, and exact-file local commits normally run under `local_execution`;
+- git push, PR mutation, merge, tag push, GitHub Release, and npm publish require `remote_publication`;
+- deploys, SQL writes, migrations, scheduler/Vault mutation, app-data writes, and production success calls require `production_mutation`;
+- setting or rotating external secrets requires `secret_mutation`;
+- force, history rewrite, deletion, and teardown require `destructive_action`.
+
+Unavailable tools, credentials, binaries, env vars, or network access are `BLOCKED_CAPABILITY`. Failed tests, unsafe files, secret-scan findings, or repo drift are `BLOCKED_SAFETY`.
 
 Permission levels:
 
@@ -30,10 +42,10 @@ Permission levels:
 
 Rules:
 
-- The orchestrator must not cross permission levels without explicit John approval.
+- The orchestrator must not cross objective authority classes without an active grant.
 - Read-only local tools are allowed during repo mapping and source-only audits.
-- Cloud, database, secret, deploy, and destructive actions require explicit approval.
-- If a tool's required permission is higher than the current permission, stop and ask John with a decision brief.
+- Cloud, database, secret, deploy, and destructive consequences require the matching objective authority.
+- If a tool is unavailable or auth is missing, record `BLOCKED_CAPABILITY` and continue independent authorised work.
 - A command appearing in this catalogue or `command-library.md` is not permission to run it.
 
 ## Tool Catalogue

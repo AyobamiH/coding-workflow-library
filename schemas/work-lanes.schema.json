@@ -39,7 +39,51 @@
           "evidence_refs": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
           "hold_reason": { "type": "string" },
           "notes": { "type": "string" },
-          "monitoring_baseline": { "type": "string", "format": "date-time" }
+          "monitoring_baseline": { "type": "string", "format": "date-time" },
+          "objective": {
+            "type": "object",
+            "required": ["id", "description", "status", "created_at", "updated_at", "authority", "checkpoints", "blockers"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.-]*$" },
+              "description": { "type": "string" },
+              "status": { "enum": ["active", "blocked", "waiting", "complete"] },
+              "created_at": { "type": "string", "format": "date-time" },
+              "updated_at": { "type": "string", "format": "date-time" },
+              "authority": {
+                "type": "object",
+                "required": ["local_execution", "remote_publication", "production_mutation", "secret_mutation", "destructive_action"],
+                "properties": {
+                  "local_execution": { "type": "boolean" },
+                  "remote_publication": { "type": "boolean" },
+                  "production_mutation": { "type": "boolean" },
+                  "secret_mutation": { "type": "boolean" },
+                  "destructive_action": { "type": "boolean" }
+                },
+                "additionalProperties": false
+              },
+              "checkpoints": {
+                "type": "object",
+                "additionalProperties": { "type": "string" }
+              },
+              "blockers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["state", "reason"],
+                  "properties": {
+                    "state": {
+                      "enum": ["BLOCKED_CAPABILITY", "BLOCKED_PERMISSION", "BLOCKED_SAFETY", "BLOCKED_DECISION", "WAITING_CONDITION", "COMPLETE"]
+                    },
+                    "reason": { "type": "string" },
+                    "stage": { "type": "string" },
+                    "recorded_at": { "type": "string", "format": "date-time" }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
         },
         "additionalProperties": false
       }

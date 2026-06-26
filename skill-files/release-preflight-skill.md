@@ -18,6 +18,8 @@ Run a local release gate before a package, CLI, app, or skills library is publis
 
 This skill connects `evidence-pack-builder-skill` and `npm-package-readiness-skill` with local build/test evidence, changelog or release-note checks, Git cleanliness, version/tag readiness, and explicit publish boundaries.
 
+Local release preparation runs under `local_execution`. Git push, tag push, GitHub Release creation, and npm publication are `remote_publication` consequences and should be presented as one consolidated objective boundary. Missing npm authentication is `BLOCKED_CAPABILITY`, not `BLOCKED_PERMISSION`; continue version, changelog, release notes, validation, package smoke, and local commit work when those stages do not depend on publication.
+
 The helper supports modes: `local`, `npm`, and `cli`. `local` is the default and must not fail only because a repo is not an npm package. `npm` expects package readiness. `cli` expects package readiness and CLI `bin` readiness.
 
 For this skills library, MIT has been selected and `package.json` may exist as a local package candidate scaffold named `autonomous-coding-workflow-library` with repository identity `AyobamiH/coding-workflow-library`. The local CLI command candidate is `coding-workflow`. Release preflight may classify readiness, but publishing remains blocked until John confirms final npm package name availability and ownership and separately approves the publish/tag/push/release gate.

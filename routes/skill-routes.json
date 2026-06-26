@@ -789,6 +789,30 @@
       ],
       "permission_level": "local-edit, local-validation, exact-file-commit, github-repo-create, git-push-main",
       "explicit_permission_required": true,
+      "requires_authority": [
+        "remote_publication"
+      ],
+      "requires_capabilities": [
+        "git_available",
+        "gh_authenticated"
+      ],
+      "stage_dependencies": [
+        "local_validation",
+        "repository_preflight"
+      ],
+      "safety_gates": [
+        "exact_file_staging",
+        "secret_scan",
+        "remote_empty_or_safe",
+        "no_broad_staging"
+      ],
+      "checkpoint": "github_open_source_handoff",
+      "blocked_checkpoint": "github_open_source_handoff_blocked",
+      "idempotency_evidence": [
+        "existing repository is verified before create",
+        "existing remote HEAD is verified before push"
+      ],
+      "continue_after_blocker": true,
       "forbidden_actions": [
         "git add .",
         "git add -A",
@@ -850,6 +874,32 @@
       ],
       "permission_level": "local-edit, local-validation, exact-file-commit, git-push-main, git-tag, github-actions-read",
       "explicit_permission_required": true,
+      "requires_authority": [
+        "remote_publication"
+      ],
+      "requires_capabilities": [
+        "git_available",
+        "gh_authenticated"
+      ],
+      "stage_dependencies": [
+        "version_update",
+        "local_validation",
+        "release_commit",
+        "release_commit_ci_passed"
+      ],
+      "safety_gates": [
+        "exact_file_staging",
+        "secret_scan",
+        "tag_idempotency",
+        "remote_head_parity"
+      ],
+      "checkpoint": "first_version_tag",
+      "blocked_checkpoint": "first_version_tag_blocked",
+      "idempotency_evidence": [
+        "existing v0.1.0 tag target is verified",
+        "existing GitHub Actions run is checked by commit"
+      ],
+      "continue_after_blocker": true,
       "forbidden_actions": [
         "npm publish",
         "npm version",
@@ -890,6 +940,84 @@
         "commands deliberately not run"
       ],
       "provenance": "John-approved first open-source version tag route for v0.1.0"
+    },
+    {
+      "id": "objective-authority-v0-2-local-prep",
+      "skill_file": "skill-files/release-preflight-skill.md",
+      "ledger_states_handled": [
+        "v0.1.0 tagged and pushed, npm unpublished"
+      ],
+      "permission_flag": "local_execution",
+      "helper_scripts": [
+        "scripts/run-next",
+        "scripts/objective-authority",
+        "scripts/lane-state",
+        "scripts/check-js",
+        "scripts/npm-package-readiness",
+        "scripts/release-preflight",
+        "scripts/route-audit",
+        "scripts/validate-skills",
+        "external:git",
+        "external:npm"
+      ],
+      "permission_level": "local-edit, local-validation, package-dry-run, exact-file-local-commit",
+      "explicit_permission_required": false,
+      "requires_authority": [
+        "local_execution"
+      ],
+      "requires_capabilities": [
+        "node_available",
+        "npm_available",
+        "git_available"
+      ],
+      "stage_dependencies": [
+        "repository_audit",
+        "version_update",
+        "changelog",
+        "release_notes",
+        "local_validation",
+        "package_smoke",
+        "local_release_commit"
+      ],
+      "safety_gates": [
+        "npm_test",
+        "route_audit",
+        "validate_skills",
+        "package_contents_scan",
+        "git_diff_check"
+      ],
+      "checkpoint": "v0_2_local_prep",
+      "blocked_checkpoint": "v0_2_local_prep_blocked",
+      "idempotency_evidence": [
+        "version files already at 0.2.0 are verified",
+        "existing local release commit is verified before creating another",
+        "npm authentication absence is recorded as capability, not permission"
+      ],
+      "continue_after_blocker": true,
+      "forbidden_actions": [
+        "npm publish",
+        "npm version",
+        "git push",
+        "git tag",
+        "GitHub release creation",
+        "deploy",
+        "remote mutation",
+        "secret value printing"
+      ],
+      "success_ledger_state": "v0.2.0 locally prepared and validated; remote publication awaiting one objective-level approval",
+      "blocked_ledger_state": "v0.2.0 local preparation blocked",
+      "next_permission": "grant remote_publication once for push, tag, GitHub Release, and npm publication",
+      "evidence_required": [
+        "objective authority envelope",
+        "version 0.2.0 in package files",
+        "changelog entry",
+        "release notes",
+        "local validation",
+        "package smoke",
+        "npm auth capability classification",
+        "consolidated remote publication plan"
+      ],
+      "provenance": "objective-level autonomy correction workpack"
     },
     {
       "id": "cloudflare-deploy-proof-planning",
