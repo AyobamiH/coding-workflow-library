@@ -24,7 +24,7 @@ Use as the control plane for queue classification, permission gates, local repo 
 ### session-log-extraction-skill
 
 File: `skill-files/session-log-extraction-skill.md`
-Use for mining OpenClaw/Codex JSONL logs into command/tool/prompt inventories. Starts with `find agents/main/sessions ...` and uses Node when `jq` is missing.
+Use for mining OpenClaw/Codex JSONL logs into a deterministic private workflow corpus. It delegates to `scripts/extract-session-workflows.mjs`, writes source manifests and coverage reports outside the repository, separates proposed from executed commands, marks extraction-meta sessions, and supports corpus-driven backlog recovery.
 
 ### skill-cleaner-skill
 
@@ -176,6 +176,13 @@ Use for read-only migration review until repo-specific apply commands are confir
 - `templates/work-lanes.example.json`: neutral lane-state example with no John-specific paths or product evidence.
 - `scripts/lane-state`: dependency-free atomic helper for listing, creating, and updating local lanes.
 - `scripts/pipeline-diagnostics`: dependency-free source tracer for configured inputs, stage boundaries, filters, database tables, inserts, and response counter assignments.
+- `scripts/extract-session-workflows.mjs`: dependency-light private workflow corpus extractor for local OpenClaw/Codex JSONL sessions.
+- `schemas/workflow-corpus.schema.json`: portable event schema for redacted corpus events.
+- `schemas/workflow-source-manifest.schema.json`: portable source manifest schema with terminal parse statuses.
+- `templates/workflow-extraction-config.example.json`: neutral example config for private corpus extraction.
+- `docs/workflow-extraction-methodology.md`: source accounting, contamination, privacy, and evidence-class contract.
+- `docs/workflow-corpus-recovery-report.md`: public-safe aggregate findings from the corrected private corpus.
+- `docs/agent-and-skill-roadmap.md`: evidence-backed dependency graph and build order.
 - `runs/skill-runs.md`: append-only run log for real skill use.
 - `templates/repo-agents-pointer-template.md`: downstream repo pointer file that references the shared hard rules without copying them.
 - `templates/skill-run-template.md`: reusable run log entry.

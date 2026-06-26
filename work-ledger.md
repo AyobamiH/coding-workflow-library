@@ -1274,3 +1274,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: `github-handoff-skill` / `release-preflight-skill`.
 * Exact next action: grant `remote_publication` once for this objective to allow the release commit push, tag push, GitHub Release creation, and npm publication path.
 * Whether John is needed: Yes only for the consolidated `remote_publication` authority; not for another local skill step.
+
+## 2026-06-26 - run-next Autonomous Work Loop
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: workflow-corpus-recovery. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: Corrected workflow corpus and roadmap rebuilt locally.
+* Selected skill: session-log-extraction-skill / coding-workflow-orchestrator-skill.
+* Last commands run: `scripts/run-next --repo <LIBRARY_REPO> --allow workflow-corpus-recovery`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; workflow corpus output: private local state outside the package repository; workflow corpus source roots inspected: 4; existing private corpus validation: PASS; private corpus sources discovered: 32; private corpus events: 30098; private corpus coverage reconciled: true.
+* Blockers: corrected private workflow corpus validated and public-safe roadmap artifacts are ready locally.
+* Next recommended skill: github-handoff-skill / session-log-extraction-skill.
+* Exact next action: grant remote_publication if John wants the local commits pushed.
+* Whether John is needed: Yes for the next permission boundary..

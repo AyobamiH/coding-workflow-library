@@ -31,6 +31,8 @@ skills/coding-workflow-library/
     skill-routes.json
   schemas/
     work-lanes.schema.json
+    workflow-corpus.schema.json
+    workflow-source-manifest.schema.json
   runs/
     skill-runs.md
   bin/
@@ -44,6 +46,7 @@ skills/coding-workflow-library/
     library-packaging-readiness
     npm-package-readiness
     release-preflight
+    extract-session-workflows.mjs
     run-next
     route-audit
     skill-cleaner
@@ -54,8 +57,10 @@ skills/coding-workflow-library/
     new-skill-template.md
     skill-upgrade-template.md
     evidence-report-template.md
+    workflow-extraction-config.example.json
   tests/
     objective-authority.test.js
+    workflow-extraction.test.js
     library-validation-checklist.md
   skill-files/
     coding-workflow-orchestrator-skill.md
@@ -133,6 +138,26 @@ The frontmatter is the routing contract. `name` must match the filename without 
 ```
 
 Lane files must never contain secrets. The tracked schema and example are portable; real repo paths, product evidence, and monitoring baselines remain local. Omitting `--lane` preserves legacy ledger routing.
+
+## Reproducible Workflow Corpus
+
+Use the extractor when backlog, skill-roadmap, or agent-role decisions need historical evidence instead of memory:
+
+```bash
+node scripts/extract-session-workflows.mjs \
+  --source /path/to/local/sessions \
+  --output-dir /private/workflow-corpus
+
+node scripts/extract-session-workflows.mjs \
+  --output-dir /private/workflow-corpus \
+  --validate-only
+
+coding-workflow extract-workflows \
+  --source /path/to/local/sessions \
+  --output-dir /private/workflow-corpus
+```
+
+Generated corpus files, source manifests with local detail, and `pseudonym-map.json` must stay outside the package repository. Public docs may use only aggregate counts and safe classifications. See `docs/workflow-extraction-methodology.md`, `docs/workflow-corpus-recovery-report.md`, and `docs/agent-and-skill-roadmap.md`.
 
 ## Objective-Level Autonomy
 
