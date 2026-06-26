@@ -181,6 +181,7 @@ Use this mapping before acting:
 - Need to review migrations: `migration-review-skill`
 - Need to prepare GitHub handoff or repo sync: `github-handoff-skill`
 - Need to extract more skills from a chat/session log: `session-log-extraction-skill`
+- Need to rebuild backlog or agent-roadmap evidence from local history: `session-log-extraction-skill` with `scripts/extract-session-workflows.mjs`
 - Need to trace OpenClaw subagent routing: `route-trace-skill`
 - Need to compare OpenClaw config backups: `openclaw-config-diff-skill`
 - Need to coordinate local tools, reads, writes, process logs, or gateway calls: `tool-patterns-skill`

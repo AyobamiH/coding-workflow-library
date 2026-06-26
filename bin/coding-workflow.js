@@ -35,6 +35,10 @@ const COMMANDS = {
     script: "scripts/lane-state",
     description: "Inspect or update local project-scoped lane state.",
   },
+  "extract-workflows": {
+    script: "scripts/extract-session-workflows.mjs",
+    description: "Extract private workflow corpus evidence from local session JSONL sources.",
+  },
 };
 
 function printHelp() {
@@ -52,6 +56,7 @@ Usage:
   coding-workflow run-next --repo /path/to/repo --dry-run --allow <flag>
   coding-workflow lanes --state-file /path/to/lanes.json
   coding-workflow lane show <lane-id> --state-file /path/to/lanes.json
+  coding-workflow extract-workflows --source /path/to/sessions --output-dir /private/path
   coding-workflow objective show --lane <lane-id> --state-file /path/to/lanes.json
   coding-workflow objective approve --lane <lane-id> --grant remote_publication --state-file /path/to/lanes.json
   coding-workflow run-next --lane <lane-id> --state-file /path/to/lanes.json --explain-next

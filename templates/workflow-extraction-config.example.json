@@ -1,0 +1,20 @@
+{
+  "description": "Example config for scripts/extract-session-workflows.mjs. Keep real output outside the repository.",
+  "source_roots": [
+    "/example/local/codex/sessions",
+    "/example/local/openclaw/agents/main/sessions"
+  ],
+  "output_dir": "/example/private/workflow-corpus",
+  "meta_session_patterns": [
+    "workflow[- ]?corpus",
+    "workflow extraction methodology",
+    "session[- ]?log extraction",
+    "agent[- ]?roadmap recovery",
+    "backlog recovery"
+  ],
+  "privacy": {
+    "store_pseudonym_map_private": true,
+    "portable_manifest_includes_local_paths": false,
+    "raw_transcript_bodies_in_corpus": false
+  }
+}

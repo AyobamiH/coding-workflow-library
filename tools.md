@@ -48,6 +48,18 @@ Rules:
 - If a tool is unavailable or auth is missing, record `BLOCKED_CAPABILITY` and continue independent authorised work.
 - A command appearing in this catalogue or `command-library.md` is not permission to run it.
 
+## Workflow Corpus Extraction
+
+`scripts/extract-session-workflows.mjs` is `local_execution` only. It may read approved local OpenClaw/Codex JSONL session sources and write private generated outputs outside the repository. It must not publish, push, deploy, tag, call production endpoints, read secret stores, or commit raw session material.
+
+Required boundaries:
+
+- Raw transcripts, raw prompts, raw model responses, and pseudonym maps stay private.
+- Portable manifests do not include local paths.
+- Commands in prose or Markdown fences are proposed, not executed.
+- Executed commands require tool invocation evidence.
+- Extraction-meta sessions remain in coverage but are excluded from rankings by default.
+
 ## Tool Catalogue
 
 ### git
