@@ -1259,3 +1259,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: `runtime-verification-skill` / `error-evidence-skill`.
 * Exact next action: Provide a read-only Supabase function log export containing `IMPORT_REDDIT_TIPS_PIPELINE_TELEMETRY` for the natural scheduled run, or approve an alternate supported read-only telemetry retrieval method.
 * Whether John is needed: Yes for the next evidence source; no production mutation was performed.
+
+## 2026-06-26 - Objective-Level Autonomy Model
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Replace per-step permission babysitting with lane-scoped objective authority and prepare `v0.2.0` locally.
+* Current permission level: `local_execution` granted for the selected objective; `remote_publication`, `production_mutation`, `secret_mutation`, and `destructive_action` not granted.
+* Current status: v0.2.0 locally prepared and validated; remote publication awaiting one objective-level approval.
+* Selected skill: `coding-workflow-orchestrator-skill` / `release-preflight-skill`.
+* Last commands run: `npm test`; `./scripts/route-audit`; `./scripts/validate-skills`; `./scripts/npm-package-readiness --repo . --expect-package --expect-cli --allow-pack-dry-run`; `npm pack --dry-run --json`; clean-temp tarball install smoke; lane-scoped `scripts/run-next` dry-run and real run for the `release-coding-workflow-library-v0.2.0` objective.
+* Files changed: authority helper, lane-state schema/helper, runner, CLI wrapper, route metadata, validation scripts, docs, package metadata, changelog, release notes, tests, work ledger, and run log.
+* Validation evidence: objective-authority tests passed; full `npm test` passed; route audit passed with 25 routes; validate-skills passed; npm package readiness passed; npm pack dry-run passed; clean-temp installed CLI help/routes/validate passed; v0.2 local objective route passed.
+* Blockers: `BLOCKED_CAPABILITY: npm authentication unavailable for eventual npm publication`; `BLOCKED_PERMISSION: remote_publication is not granted` for push, tag, GitHub Release, and npm publication.
+* Next recommended skill: `github-handoff-skill` / `release-preflight-skill`.
+* Exact next action: grant `remote_publication` once for this objective to allow the release commit push, tag push, GitHub Release creation, and npm publication path.
+* Whether John is needed: Yes only for the consolidated `remote_publication` authority; not for another local skill step.

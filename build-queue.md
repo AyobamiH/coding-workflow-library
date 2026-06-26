@@ -1,5 +1,12 @@
 # Immediate
 
+## v0.2.0 remote publication gate
+
+- Why it matters: local `v0.2.0` preparation is complete, but push, tag, GitHub Release, and npm publication are external consequences that should be handled by one `remote_publication` authority grant.
+- Evidence from current files/logs: `package.json` and `package-lock.json` are at `0.2.0`; `CHANGELOG.md` and `docs/releases/v0.2.0.md` are updated; the lane-scoped objective route passed local validation, package readiness, release preflight, npm pack dry-run, and clean-temp install smoke; npm auth is recorded as `BLOCKED_CAPABILITY`.
+- Permission boundary: no `git push`, tag push, GitHub Release creation, or `npm publish` until `remote_publication` is granted for the active objective. Npm auth remains capability provisioning, not a separate permission request.
+- Done definition: exact release commit is pushed, exact-commit CI passes, tag and GitHub Release are created or verified idempotently, npm publication either succeeds or remains checkpointed at capability, and registry/source smoke records the final result.
+
 ## Zero-output observability adapter
 
 - Why it matters: a successful pipeline can still hide whether zero output began at upstream retrieval or a later filter.

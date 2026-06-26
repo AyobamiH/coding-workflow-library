@@ -1,6 +1,6 @@
 {
   "name": "autonomous-coding-workflow-library",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Autonomous coding workflow skills library for local agent orchestration.",
   "license": "MIT",
   "private": false,
@@ -23,7 +23,7 @@
   ],
   "scripts": {
     "check:js": "node scripts/check-js",
-    "test": "npm run check:js && node tests/lane-state.test.js && node tests/pipeline-diagnostics.test.js && node tests/run-next-resume.test.js && node scripts/route-audit && node scripts/validate-skills",
+    "test": "npm run check:js && node tests/lane-state.test.js && node tests/objective-authority.test.js && node tests/pipeline-diagnostics.test.js && node tests/run-next-resume.test.js && node scripts/route-audit && node scripts/validate-skills",
     "validate": "node scripts/validate-skills",
     "cleaner": "node scripts/skill-cleaner",
     "routes": "node scripts/route-audit",

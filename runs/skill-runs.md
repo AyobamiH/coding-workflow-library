@@ -1354,3 +1354,17 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: No Edge Function invocation, production endpoint call, scheduler trigger/mutation, Vault mutation, SQL write, data write, deploy, migration, secret set/rotation, Wagging commit/push, npm publish, tag, or GitHub Release occurred.
 * Follow-up skill needed: runtime-verification-skill / error-evidence-skill.
 * Upgrade idea: Add a future read-only log-import adapter once Supabase function logs are available through an approved source, so telemetry markers can be parsed without raw log exposure.
+
+## 2026-06-26 - Objective-Level Autonomy Model
+
+* Skill used: coding-workflow-orchestrator-skill with release-preflight-skill, skills-library-packaging-skill, and github-handoff-skill boundaries.
+* Goal: Implement objective-level authority, preserve legacy route flags, add checkpoint/blocker semantics, and prepare `v0.2.0` locally without remote publication.
+* Starting state: library lane was `v0.1.0 tagged and pushed, npm unpublished`; private objective `release-coding-workflow-library-v0.2.0` had `local_execution=true` and all external authority classes false.
+* Commands/tools used: syntax checks; `npm test`; route audit; skill validation; package readiness; release preflight; npm pack dry-runs; clean-temp local tarball install smoke; lane-scoped `scripts/run-next` dry-run and real route.
+* Files inspected: `AGENTS.md`, `README.md`, `RUNBOOK.md`, `tools.md`, `docs/architecture.md`, route metadata, lane schema/template, `scripts/run-next`, `scripts/lane-state`, CLI wrapper, release/package helpers, orchestrator and release skills, ledger, run log, build queue, and tests.
+* Files changed: `AGENTS.md`; `README.md`; `RUNBOOK.md`; `tools.md`; `docs/architecture.md`; `docs/releases/v0.2.0.md`; `CHANGELOG.md`; `package.json`; `package-lock.json`; `routes/skill-routes.json`; `schemas/work-lanes.schema.json`; `templates/work-lanes.example.json`; `bin/coding-workflow.js`; `scripts/objective-authority`; `scripts/lane-state`; `scripts/run-next`; `scripts/check-js`; `scripts/route-audit`; `scripts/validate-skills`; `tests/objective-authority.test.js`; relevant skill docs; `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: objective authority tests proved local autonomy, inherited remote publication authority, non-leaking objectives, capability/safety/decision/waiting blockers, checkpoint resume, idempotency, dry-run immutability, lane isolation, destructive boundary, secret-key rejection, and legacy compatibility. Package smoke proved the local tarball installs and the installed CLI runs help/routes/validate.
+* Result: v0.2.0 locally prepared and validated; remote publication awaiting one objective-level approval.
+* Failure/recovery notes: An initial v0.2 route run stopped at `BLOCKED_SAFETY` for release-note wording; the wording was fixed and the rerun passed. `npm whoami` remains `BLOCKED_CAPABILITY` for eventual publish but did not block independent local preparation. No push, tag, GitHub Release, npm publish, deploy, Supabase command, Cloudflare command, production endpoint call, secret output, force push, or history rewrite occurred.
+* Follow-up skill needed: github-handoff-skill / release-preflight-skill.
+* Upgrade idea: Use objective-stage checkpoints for future release workflows so local prep, CI waiting, remote publication, and registry smoke can resume without bespoke recovery prompts.

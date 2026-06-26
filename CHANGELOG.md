@@ -2,9 +2,21 @@
 
 ## Unreleased
 
+- Nothing yet.
+
+## 0.2.0 - 2026-06-26
+
+- Replaced per-step permission prompting with objective-level authority classes: `local_execution`, `remote_publication`, `production_mutation`, `secret_mutation`, and `destructive_action`.
+- Added executable authority/blocker helpers that distinguish `BLOCKED_CAPABILITY`, `BLOCKED_PERMISSION`, `BLOCKED_SAFETY`, `BLOCKED_DECISION`, `WAITING_CONDITION`, and `COMPLETE`.
+- Extended lane state with an optional active objective envelope, authority grants, checkpoints, and blockers while keeping runtime state local and secret-free.
 - Added project-scoped runtime lanes with a portable schema, neutral template, atomic local state helper, lane-aware `run-next` routing, CLI lane commands, and isolation tests.
 - Kept `work-ledger.md` as historical evidence while moving active product state, local paths, monitoring baselines, and private runtime references into untracked local lane files.
 - Added a lane-scoped zero-output investigation route, generic source pipeline tracer, staged attrition classifications, and tests without granting production invocation or mutation.
+- Added CLI objective commands for showing an objective and approving a consequence authority once for the selected lane.
+- Updated `run-next` to inherit authority from the selected lane objective, preserve legacy `--allow` route flags, and support a local/read-only `v0.2.0` preparation route.
+- Added deterministic authority-model tests for safe local autonomy, child authority inheritance, consolidated remote publication, capability blockers, safety blockers, decisions, waiting conditions, checkpoint resume, idempotency, dry-run immutability, lane isolation, destructive boundaries, secret-key rejection, and legacy compatibility.
+- Documented that capability failures, such as unavailable npm authentication, are not permission failures and should not stop independent local release work.
+- This release remains source/package-candidate only: npm publication and GitHub release creation have not occurred.
 
 ## 0.1.0 - 2026-06-19
 
