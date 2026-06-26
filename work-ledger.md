@@ -1229,3 +1229,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: coding-workflow-orchestrator-skill / build-verify-skill.
 * Exact next action: use `run-next --status` and `run-next --resume --dry-run` before manual resume prompts on future interrupted runs.
 * Whether John is needed: Yes for any future route-specific real resume that could replay a mutation.
+
+## 2026-06-26 - External Check Recovery For Observability Workflow
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`; selected product lane: `wagging-web-wins`.
+* Current objective: Add reusable lane-scoped recovery routes for an advisory external preview check blocking a count-only observability PR, then deploy only the merged `import-reddit-tips` function without manual runtime invocation.
+* Current permission level: reusable local library edits, local validation, exact-file library commit/push; product lane GitHub merge/deploy gates were handled through private lane state and are not public active state.
+* Current status: Reusable route uplift ready for exact-file commit.
+* Selected skill: `error-evidence-skill`, `github-handoff-skill`, `runtime-verification-skill`, `supabase-function-deploy-skill`.
+* Last commands run: `node --check scripts/run-next`; `./scripts/route-audit`; `./scripts/validate-skills`; lane-scoped `scripts/run-next` dry-runs and real runs for `observability-pr-recovery` and `observability-deploy`.
+* Files changed: `scripts/run-next`; `routes/skill-routes.json`; `work-ledger.md`; `runs/skill-runs.md`.
+* Validation evidence: route audit passed with 24 routes; skill validation passed with 171 files and 28 skills; Wagging PR #13 was verified as merged with exact expected files; deploy-only route deployed `import-reddit-tips` and stopped at `Observability run pending`.
+* Blockers: Product telemetry interpretation remains pending until the next natural scheduled run after deployment.
+* Next recommended skill: `runtime-verification-skill` / `production-handoff-skill` for read-only telemetry recheck after the scheduled run.
+* Exact next action: Wait for the next natural `0 8 * * *` UTC scheduler run, then run lane-scoped `observability-run-recheck`.
+* Whether John is needed: Yes for the scheduled-run recheck permission after the run occurs; no manual invocation, SQL write, scheduler mutation, or secret change was performed.

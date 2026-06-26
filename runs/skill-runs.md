@@ -16,6 +16,20 @@ This file records every real use of the coding workflow skills library.
 * Follow-up skill needed:
 * Upgrade idea:
 
+## 2026-06-26 - Wagging Observability External Check Recovery
+
+* Skill used: error-evidence-skill; github-handoff-skill; runtime-verification-skill; supabase-function-deploy-skill; coding-workflow-orchestrator-skill.
+* Goal: Add reusable lane-scoped routes for advisory external-check recovery and deploy-only observability continuation, then use them to move the Wagging lane from blocked PR to pending natural scheduled run.
+* Starting state: The private Wagging lane was `Zero-output observability patch blocked`; PR #13 had exact observability files, GitHub quality passed, and Cloudflare Pages failed.
+* Commands/tools used: `gh pr view`; `gh pr checks`; `gh api`; `rg`; local `npm run ci` with inert public Supabase placeholders; `scripts/run-next` dry-runs and real runs for `observability-pr-recovery` and `observability-deploy`; `npx supabase --version`; `npx supabase projects list`; `npx supabase functions deploy import-reddit-tips`.
+* Files inspected: `scripts/run-next`; `routes/skill-routes.json`; runtime, error-evidence, production-handoff, route-trace, and Supabase deploy skills; Wagging PR metadata; Wagging build/package/config files.
+* Files changed: `scripts/run-next`; `routes/skill-routes.json`; `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: PR #13 was already merged at `2026-06-26T04:27:41Z` with merge commit `70d78459150df8a9753503323d28dd3d7b93b3dd`; Cloudflare Pages was classified `IRRELEVANT_EXTERNAL_CHECK` because branch protection was off, quality passed, local CI passed, and PR files were Supabase Edge Function/docs/tests not imported by the frontend build surface; `import-reddit-tips` deployed at `2026-06-26T04:31:58.976Z`; next automatic run was `2026-06-26T08:00:00.000Z`.
+* Result: Wagging lane moved to `Observability run pending`; library and OneClickPostFactory lane states were preserved.
+* Failure/recovery notes: First recovery-route run treated an already merged PR as blocked; runner was patched to handle that idempotently and rerun successfully.
+* Follow-up skill needed: runtime-verification-skill / production-handoff-skill after the next natural scheduled run.
+* Upgrade idea: Add a read-only telemetry retrieval adapter for Supabase Edge Function logs when the platform exposes one safely.
+
 ## 2026-06-07 - Coding Workflow Library Operational Control Layer
 
 * Skill used: skill-creator; repo-map-skill; build-verify-skill

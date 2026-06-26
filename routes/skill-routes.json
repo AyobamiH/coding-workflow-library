@@ -382,6 +382,91 @@
       "provenance": "post-deploy count-only telemetry recheck gate"
     },
     {
+      "id": "observability-pr-recovery",
+      "skill_file": "skill-files/error-evidence-skill.md",
+      "ledger_states_handled": [
+        "Zero-output observability patch blocked"
+      ],
+      "permission_flag": "observability-pr-recovery",
+      "helper_scripts": [
+        "scripts/run-next",
+        "scripts/lane-state",
+        "external:gh",
+        "external:git",
+        "external:npm",
+        "external:rg"
+      ],
+      "permission_level": "github-remote, local-validation, local-state-write",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "blind external-check waiver",
+        "merge while branch protection requires a failing check",
+        "force push",
+        "broad staging",
+        "production deploy",
+        "Supabase command",
+        "SQL execution",
+        "scheduler or Vault mutation",
+        "production endpoint call",
+        "secret output"
+      ],
+      "success_ledger_state": "Zero-output observability patch merged, not deployed",
+      "blocked_ledger_state": "Zero-output observability patch blocked",
+      "next_permission": "deploy only import-reddit-tips",
+      "evidence_required": [
+        "PR file list and commit",
+        "quality check result",
+        "Cloudflare check identity and failure summary",
+        "branch protection or required-check status",
+        "relationship between PR files and frontend/Pages build surface",
+        "local npm run ci result",
+        "merge result"
+      ],
+      "provenance": "Cloudflare external-check recovery for count-only observability PRs"
+    },
+    {
+      "id": "zero-output-observability-deploy",
+      "skill_file": "skill-files/supabase-function-deploy-skill.md",
+      "ledger_states_handled": [
+        "Zero-output observability patch merged, not deployed"
+      ],
+      "permission_flag": "observability-deploy",
+      "helper_scripts": [
+        "scripts/run-next",
+        "scripts/lane-state",
+        "external:git",
+        "external:npx"
+      ],
+      "permission_level": "production-deploy, cloud-read, local-state-write",
+      "explicit_permission_required": true,
+      "forbidden_actions": [
+        "Supabase secret set or rotation",
+        "supabase db push",
+        "migration apply",
+        "SQL execution",
+        "scheduler or Vault mutation",
+        "manual Edge Function invocation",
+        "production endpoint call",
+        "valid scheduler/admin success request",
+        "app table writes",
+        "secret output"
+      ],
+      "success_ledger_state": "Observability run pending | Zero-output observability deployed, awaiting automatic run",
+      "blocked_ledger_state": "Zero-output observability patch merged, not deployed",
+      "next_permission": "wait for next scheduled run and recheck telemetry",
+      "evidence_required": [
+        "local main fast-forward evidence",
+        "merged telemetry file presence",
+        "env presence only",
+        "Supabase project access",
+        "single import-reddit-tips deploy result",
+        "deployment timestamp",
+        "next natural schedule calculation",
+        "commands not run"
+      ],
+      "provenance": "deploy-only observability route that stops before manual runtime invocation"
+    },
+    {
       "id": "github-pr-lifecycle-lane",
       "skill_file": "skill-files/github-handoff-skill.md",
       "ledger_states_handled": [
