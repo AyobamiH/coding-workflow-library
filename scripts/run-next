@@ -6,6 +6,7 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 const laneState = require("./lane-state");
 const objectiveAuthority = require("./objective-authority");
+const autonomousBoundaries = require("./autonomous-boundaries");
 
 const LIBRARY_ROOT = path.resolve(__dirname, "..");
 const DEFAULT_REPO = "/home/johnh/wagging-web-wins";
@@ -124,6 +125,21 @@ function main() {
   try {
     if (args.status) {
       printCheckpointStatus(targetRepo);
+      return;
+    }
+
+    if (args.doctor) {
+      printDoctor();
+      return;
+    }
+
+    if (args.listApprovals) {
+      printApprovalRegistry();
+      return;
+    }
+
+    if (args.explainBoundary) {
+      printBoundaryExplanation(args.explainBoundary);
       return;
     }
 
@@ -288,10 +304,13 @@ function parseArgs(rawArgs) {
   const parsed = {
     allow: new Set(),
     dryRun: false,
+    doctor: false,
     explain: false,
     explainNext: false,
+    explainBoundary: null,
     resume: false,
     status: false,
+    listApprovals: false,
     listRoutes: false,
     listLanes: false,
     untilBlocked: false,
@@ -304,6 +323,10 @@ function parseArgs(rawArgs) {
     const arg = rawArgs[index];
     if (arg === "--dry-run") {
       parsed.dryRun = true;
+      continue;
+    }
+    if (arg === "--doctor") {
+      parsed.doctor = true;
       continue;
     }
     if (arg === "--resume") {
@@ -320,6 +343,16 @@ function parseArgs(rawArgs) {
     }
     if (arg === "--explain-next") {
       parsed.explainNext = true;
+      continue;
+    }
+    if (arg === "--explain-boundary") {
+      parsed.explainBoundary = rawArgs[index + 1];
+      index += 1;
+      if (!parsed.explainBoundary) die("--explain-boundary requires a boundary type");
+      continue;
+    }
+    if (arg === "--list-approvals") {
+      parsed.listApprovals = true;
       continue;
     }
     if (arg === "--list-routes") {
@@ -376,7 +409,10 @@ function printHelp() {
   console.log(`Usage:
   ./scripts/run-next
   ./scripts/run-next --dry-run
+  ./scripts/run-next --doctor
   ./scripts/run-next --explain
+  ./scripts/run-next --explain-boundary PRODUCTION_MUTATION_APPROVAL
+  ./scripts/run-next --list-approvals
   ./scripts/run-next --repo /path/to/repo --status
   ./scripts/run-next --repo /path/to/repo --resume --dry-run
   ./scripts/run-next --repo /path/to/repo --resume --allow <permission>
@@ -495,6 +531,49 @@ Supported --allow values:
 Lane mode reads and updates only the selected local lane. If --lane is omitted, legacy work-ledger.md routing remains available.
 Legacy --allow route flags still work; authority-class flags now mean objective-level authority for that consequence class.
 Dry-run and explain modes do not mutate target repos, lane state, work-ledger.md, or runs/skill-runs.md.`);
+}
+
+function printDoctor() {
+  const registryPath = path.join(LIBRARY_ROOT, "state", "approval-registry.json");
+  let registryStatus = "missing";
+  try {
+    const registry = autonomousBoundaries.loadApprovalRegistry(registryPath);
+    const validation = autonomousBoundaries.validateApprovalRegistry(registry);
+    registryStatus = `valid (${validation.approvals} approvals)`;
+  } catch (error) {
+    registryStatus = `invalid: ${error.message}`;
+  }
+
+  console.log("# run-next autonomy doctor");
+  console.log(`workflow states: ${autonomousBoundaries.WORKFLOW_STATES.join(", ")}`);
+  console.log(`boundary types: ${autonomousBoundaries.BOUNDARY_TYPES.join(", ")}`);
+  console.log(`approval registry: ${registryStatus}`);
+  console.log("automatic verified PR merge policy: enabled for workflow-authored, scoped, passing, unchanged-head PRs under normal repository rules");
+  console.log("completion policy: PR merge is followed by post-merge validation before COMPLETED");
+}
+
+function printApprovalRegistry() {
+  const registryPath = path.join(LIBRARY_ROOT, "state", "approval-registry.json");
+  const registry = autonomousBoundaries.loadApprovalRegistry(registryPath);
+  autonomousBoundaries.validateApprovalRegistry(registry);
+  console.log("# approval registry");
+  console.log(`path: ${path.relative(LIBRARY_ROOT, registryPath)}`);
+  console.log(`version: ${registry.version}`);
+  const approvals = Array.isArray(registry.approvals) ? registry.approvals : [];
+  console.log(`approvals: ${approvals.length}`);
+  for (const approval of approvals) {
+    console.log(`- ${approval.approvalId}: ${approval.status}; scope=${approval.scope.join(", ")}`);
+  }
+  if (!approvals.length) console.log("No committed approvals. Runtime approvals may remain local-only when they contain operational context.");
+}
+
+function printBoundaryExplanation(type) {
+  const result = autonomousBoundaries.classifyBoundary({ boundaryType: type, reason: "Boundary explanation requested." });
+  console.log("# boundary explanation");
+  console.log(`boundary type: ${result.boundaryType}`);
+  console.log(`workflow state: ${result.state}`);
+  console.log(`safe to continue automatically: ${result.safeToContinueAutomatically ? "yes" : "no"}`);
+  console.log(`exact input required from John: ${result.exactInputRequired}`);
 }
 
 function printLaneList() {
@@ -14931,6 +15010,10 @@ function isNonBlockingResult(status) {
   return [
     "PR opened, not merged",
     "PR ready for merge approval",
+    "PR_CHECKS_PENDING",
+    "PR_READY",
+    "MERGING",
+    "POST_MERGE_VERIFY",
     "Merged, not deployed",
     "Deployment plan ready, not deployed",
     "Supabase execution preflight ready, not executed",
@@ -14940,6 +15023,15 @@ function isNonBlockingResult(status) {
     "Scheduler migration draft merged, not applied",
     "DRY RUN PASS",
   ].includes(status);
+}
+
+function shouldCompleteCheckpointRun(result, exitCode) {
+  if (exitCode !== 0) return false;
+  const status = result.ledgerStatus || result.finalStatus || "";
+  if (status === "NEEDS JOHN" || status.startsWith("NEEDS JOHN:")) return false;
+  if (result.lifecycleState) return result.lifecycleState === "COMPLETED";
+  if (isNonBlockingResult(status)) return false;
+  return true;
 }
 
 function checkpointDirectory() {
@@ -15024,7 +15116,7 @@ function stopCheckpointRun(run, reason, metadata = {}) {
 
 function finalizeCheckpointRun(run, result) {
   const exitCode = result.exitCode || 0;
-  if (exitCode === 0 && result.finalStatus !== "NEEDS JOHN") {
+  if (shouldCompleteCheckpointRun(result, exitCode)) {
     for (const name of CHECKPOINT_NAMES) completeCheckpoint(run, name);
     run.status = "completed";
     run.stop_reason = result.summary || result.finalStatus || "completed";
@@ -15138,9 +15230,15 @@ function runResume() {
   }
 
   if (next.name !== "record") {
+    const resumeBoundary = autonomousBoundaries.classifyBoundary({
+      capabilityUnavailable: true,
+      reason: `Checkpoint '${next.name}' may represent a partially executed operation and this generic resume path has no route-specific replay plan.`,
+    });
     return {
-      finalStatus: "RESUME NEEDS ROUTE-SPECIFIC APPROVAL",
-      summary: `Checkpoint '${next.name}' may represent a partially executed operation. Dry-run inspection passed, but this first implementation will not replay that step automatically.`,
+      finalStatus: "RESUME BLOCKED: ROUTE-SPECIFIC REPLAY PLAN REQUIRED",
+      lifecycleState: resumeBoundary.state,
+      boundaryType: resumeBoundary.boundaryType,
+      summary: `${resumeBoundary.reason} Use the route-specific resume path or complete the safe verification/record phase first.`,
       exitCode: 2,
       checkpoint: run,
       validation,
@@ -15190,6 +15288,8 @@ function validateResumeRun(run) {
 function printResumeReport(result) {
   console.log("# run-next resume");
   console.log(`final status: ${result.finalStatus}`);
+  if (result.lifecycleState) console.log(`lifecycle state: ${result.lifecycleState}`);
+  if (result.boundaryType) console.log(`boundary type: ${result.boundaryType}`);
   console.log(`summary: ${result.summary}`);
   if (!result.checkpoint) return;
   const run = result.checkpoint;

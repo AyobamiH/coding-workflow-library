@@ -16,6 +16,20 @@ This file records every real use of the coding workflow skills library.
 * Follow-up skill needed:
 * Upgrade idea:
 
+## 2026-06-28 - Autonomous Decision Boundary Engine
+
+* Skill used: coding-workflow-orchestrator-skill with github-handoff-skill.
+* Goal: Merge already verified workflow-authored PRs, then implement an autonomous decision boundary engine that distinguishes real external boundaries from work the runner should continue automatically.
+* Starting state: OpsTruth PR #9 and workflow-library PR #1 were open, workflow-authored, scoped, passing checks, and approved for normal merge. Workflow-library `main` was aligned after PR #1 merge.
+* Commands/tools used: GitHub PR metadata/check inspection; normal `gh pr merge` for OpsTruth PR #9 and workflow-library PR #1; post-merge pull and validation; `node tests/autonomous-boundaries.test.js`; `node scripts/check-js`; `node scripts/autonomous-boundaries --validate-approvals`; `node scripts/run-next --doctor`; `node scripts/run-next --explain-boundary PRODUCTION_MUTATION_APPROVAL`; `node scripts/run-next --list-approvals`; `npm test`; `./scripts/validate-skills`; `node scripts/route-audit`.
+* Files inspected: `AGENTS.md`; `README.md`; `RUNBOOK.md`; `tools.md`; `scripts/run-next`; `scripts/objective-authority`; `scripts/check-js`; package metadata; orchestrator and GitHub handoff skills; resume/job-selection docs; work ledger and run log.
+* Files changed: `scripts/autonomous-boundaries`; `tests/autonomous-boundaries.test.js`; `state/approval-registry.json`; `runs/decisions/README.md`; `schemas/approval-registry.schema.json`; `schemas/decision-record.schema.json`; `docs/autonomous-decision-boundaries.md`; `scripts/run-next`; `scripts/check-js`; `package.json`; operator docs; orchestrator/GitHub handoff skills; `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: Normal verified PR merges completed for OpsTruth PR #9 and workflow-library PR #1 without admin merge or bypass. The new boundary tests prove approval registry validation, one-time approval refusal, exact boundary typing, no vague human boundary wording, automatic merge eligibility for scoped workflow PRs, pending/failing/check-changed-head blocks, post-merge verification semantics, and secret-free decision records. Full library tests, route audit, and skill validation passed.
+* Result: Autonomous decision boundary engine implemented locally and ready for feature-branch handoff.
+* Failure/recovery notes: No Supabase mutation, deployment, migration, SQL, scheduler mutation, npm publish, release, force push, history rewrite, broad staging, protected evidence staging, or secret output occurred.
+* Follow-up skill needed: github-handoff-skill, then runtime-verification-skill / production-handoff-skill for the active Wagging telemetry lane.
+* Upgrade idea: Add route-specific resume adapters that can verify already-pushed branches, already-open PRs, already-merged PRs, and post-merge checks directly from decision records.
+
 ## 2026-06-26 - Wagging Observability External Check Recovery
 
 * Skill used: error-evidence-skill; github-handoff-skill; runtime-verification-skill; supabase-function-deploy-skill; coding-workflow-orchestrator-skill.

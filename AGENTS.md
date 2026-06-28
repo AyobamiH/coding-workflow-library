@@ -33,6 +33,8 @@ Ask again only when the next action crosses an ungranted authority boundary:
 
 Child routes, skills, helpers, retries, and resumes inherit the selected lane objective authority. They must not ask for the same authority again. Missing tools, credentials, binaries, env vars, or network access are `BLOCKED_CAPABILITY`, not permission requests.
 
+Normal workflow-authored PRs may be merged automatically when `remote_publication` is granted for the active objective and the PR is scoped, reviewed, checks have passed, the head SHA matches the reviewed head, branch protection allows a normal merge, and no independent-review or untrusted-change boundary is present. PR merge is not completion by itself; continue through post-merge exact-commit verification, local validation, remote alignment, ledger update, and run-record update before recording `COMPLETED`.
+
 Preserve safety gates. Failed tests, failed validation, unsafe package contents, secret-scan findings, repository drift, and idempotency failures are `BLOCKED_SAFETY`. Human judgement belongs in `BLOCKED_DECISION`. Future external events such as running CI or scheduled jobs are `WAITING_CONDITION`.
 
 ## Repo Safety
@@ -94,13 +96,14 @@ Preserve safety gates. Failed tests, failed validation, unsafe package contents,
 John is required for:
 
 - granting an unapproved authority class for the active objective;
+- exact production, secret-mutation, or destructive-action approval when the active objective has not already granted it;
 - product/business decision;
 - security/privacy tradeoff;
 - credentials or external account capability when local auth is missing, expired, invalid, or under-scoped;
 - destructive actions;
 - unclear priority or incompatible architecture choices.
 
-Do not ask John for another approval merely because the next skill is ready or a local tool call is next. Continue authorized local work, checkpoint external blockers, and present consolidated authority boundaries.
+Do not ask John for another approval merely because the next skill is ready, a local tool call is next, a PR exists, or a verified workflow-authored PR is ready for normal merge. Continue authorized local work, checkpoint external blockers, and present the exact boundary type plus exact input required when a real boundary remains.
 
 ## Output Discipline
 
