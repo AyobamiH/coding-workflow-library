@@ -1220,6 +1220,66 @@
         "final classification"
       ],
       "provenance": "recovered release preflight lane"
+    },
+    {
+      "id": "workflow-corpus-recovery",
+      "skill_file": "skill-files/session-log-extraction-skill.md",
+      "ledger_states_handled": [
+        "Workflow corpus recovery requested",
+        "Corrected workflow corpus missing",
+        "Corrected workflow corpus ready for roadmap rebuild"
+      ],
+      "permission_flag": "workflow-corpus-recovery",
+      "helper_scripts": [
+        "scripts/extract-session-workflows.mjs",
+        "scripts/run-next",
+        "scripts/validate-skills",
+        "scripts/route-audit"
+      ],
+      "permission_level": "local_execution",
+      "explicit_permission_required": true,
+      "requires_authority": [
+        "local_execution"
+      ],
+      "forbidden_actions": [
+        "raw session transcript commits",
+        "raw prompt commits",
+        "pseudonym map commits",
+        "generated private corpus commits",
+        "secret value printing",
+        "product repo mutation",
+        "remote publication",
+        "npm publish",
+        "git tag",
+        "deploy",
+        "production endpoint calls"
+      ],
+      "success_ledger_state": "Corrected workflow corpus and roadmap rebuilt locally",
+      "blocked_ledger_state": "Workflow corpus recovery blocked",
+      "next_permission": "grant remote_publication if John wants local commits pushed",
+      "evidence_required": [
+        "source roots inspected as safe identifiers",
+        "source manifest coverage",
+        "coverage reconciliation",
+        "validation report",
+        "old extraction comparison",
+        "rebuilt build queue",
+        "agent and skill roadmap",
+        "package contents review"
+      ],
+      "safety_gates": [
+        "private outputs outside repository",
+        "raw transcript exclusion",
+        "pseudonym map exclusion",
+        "dry-run writes no files",
+        "extraction-meta sessions excluded from rankings by default"
+      ],
+      "idempotency_evidence": [
+        "validate existing corpus before regeneration",
+        "regenerate only when source hashes or validation status change",
+        "deterministic source ids and event ids"
+      ],
+      "provenance": "first evidence-backed missing foundation recovered from workflow-extraction.md and backlog audit"
     }
   ]
 }

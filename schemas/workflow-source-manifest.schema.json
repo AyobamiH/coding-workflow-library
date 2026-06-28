@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/coding-workflow/workflow-source-manifest.schema.json",
+  "title": "Workflow Source Manifest",
+  "type": "object",
+  "required": ["schema", "sources"],
+  "properties": {
+    "schema": { "const": "workflow-source-manifest.v1" },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "source_id",
+          "source_format",
+          "sha256",
+          "byte_size",
+          "safe_mtime",
+          "parse_status",
+          "message_count",
+          "event_count",
+          "extraction_meta_session"
+        ],
+        "properties": {
+          "source_id": { "type": "string" },
+          "source_format": { "type": "string" },
+          "sha256": { "type": ["string", "null"] },
+          "byte_size": { "type": "integer", "minimum": 0 },
+          "safe_mtime": { "type": ["string", "null"] },
+          "parse_status": {
+            "type": "string",
+            "enum": [
+              "parsed_successfully",
+              "unsupported_format",
+              "unreadable",
+              "excluded_by_explicit_rule",
+              "duplicate",
+              "corrupted",
+              "empty",
+              "generated_by_extraction_process_itself"
+            ]
+          },
+          "exclusion_reason": { "type": ["string", "null"] },
+          "message_count": { "type": "integer", "minimum": 0 },
+          "event_count": { "type": "integer", "minimum": 0 },
+          "extraction_meta_session": { "type": "boolean" },
+          "duplicate_of": { "type": ["string", "null"] }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

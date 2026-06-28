@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/coding-workflow/workflow-corpus.schema.json",
+  "title": "Workflow Corpus Event",
+  "type": "object",
+  "required": [
+    "event_id",
+    "source_id",
+    "sequence",
+    "timestamp",
+    "primary_class",
+    "evidence_tags",
+    "actor",
+    "command_names",
+    "summary",
+    "agent_role_mentions",
+    "skill_mentions",
+    "helper_mentions",
+    "route_mentions",
+    "confidence",
+    "privacy_redactions"
+  ],
+  "properties": {
+    "event_id": { "type": "string", "pattern": "^evt_[a-f0-9]{16}$" },
+    "source_id": { "type": "string", "pattern": "^src_[a-f0-9]{12}_[0-9]{4}$" },
+    "sequence": { "type": "integer", "minimum": 1 },
+    "timestamp": { "type": ["string", "null"] },
+    "primary_class": {
+      "type": "string",
+      "enum": [
+        "USER_REQUEST",
+        "ASSISTANT_PROPOSAL",
+        "ASSISTANT_DECISION",
+        "TOOL_INVOCATION",
+        "TOOL_RESULT",
+        "SHELL_COMMAND_EXECUTED",
+        "SHELL_COMMAND_PROPOSED",
+        "FILE_CREATED",
+        "FILE_UPDATED",
+        "VALIDATION_RESULT",
+        "FAILURE_OR_BLOCKER",
+        "PERMISSION_OR_AUTHORITY_BOUNDARY",
+        "CAPABILITY_BOUNDARY",
+        "FUTURE_WORK",
+        "BACKLOG_ITEM",
+        "AGENT_ROLE_MENTION",
+        "SKILL_MENTION",
+        "SCRIPT_OR_HELPER_MENTION",
+        "ROUTE_OR_CONTROL_PLANE_MENTION",
+        "PRODUCT_SPECIFIC_MENTION"
+      ]
+    },
+    "evidence_tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "actor": { "type": "string" },
+    "tool_name": { "type": ["string", "null"] },
+    "linked_call_id": { "type": ["string", "null"] },
+    "command_names": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "command_chain_redacted": { "type": "string" },
+    "command_components": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "summary": { "type": "string" },
+    "agent_role_mentions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "skill_mentions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "helper_mentions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "route_mentions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"]
+    },
+    "privacy_redactions": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": true
+}

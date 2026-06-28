@@ -1,147 +1,162 @@
-# Immediate
+# P0 - Foundations
 
-## v0.2.0 remote publication gate
+## Keep corrected workflow corpus current
 
-- Why it matters: local `v0.2.0` preparation is complete, but push, tag, GitHub Release, and npm publication are external consequences that should be handled by one `remote_publication` authority grant.
-- Evidence from current files/logs: `package.json` and `package-lock.json` are at `0.2.0`; `CHANGELOG.md` and `docs/releases/v0.2.0.md` are updated; the lane-scoped objective route passed local validation, package readiness, release preflight, npm pack dry-run, and clean-temp install smoke; npm auth is recorded as `BLOCKED_CAPABILITY`.
-- Permission boundary: no `git push`, tag push, GitHub Release creation, or `npm publish` until `remote_publication` is granted for the active objective. Npm auth remains capability provisioning, not a separate permission request.
-- Done definition: exact release commit is pushed, exact-commit CI passes, tag and GitHub Release are created or verified idempotently, npm publication either succeeds or remains checkpointed at capability, and registry/source smoke records the final result.
+- Evidence source: `scripts/extract-session-workflows.mjs`, `docs/workflow-corpus-recovery-report.md`, private validated corpus coverage.
+- Primary type: `SCRIPT_OR_HELPER`, `VALIDATION`.
+- Dependency: none; this is the foundation for future roadmap decisions.
+- Authority required: `local_execution`.
+- Done definition: extractor tests pass, private corpus validates, source coverage reconciles, extraction-meta sessions are excluded from rankings by default, and public docs use aggregate evidence only.
+- Reason for priority: without reproducible source coverage, newer agent and capability ideas are memory-led rather than evidence-led.
 
-## Zero-output observability adapter
+## Add `scripts/docs-list`
 
-- Why it matters: a successful pipeline can still hide whether zero output began at upstream retrieval or a later filter.
-- Evidence from current files/logs: the generic source tracer and lane route identify first-non-zero/first-zero boundaries, but existing runtime counters may omit raw and per-filter counts.
-- Permission boundary: source/read-only evidence by default; observability edits, product commits, deploys, external fetches, and production invocations remain separate gates.
-- Done definition: target pipelines expose safe count-only stage metadata or retained logs sufficient to distinguish upstream-empty from filter-excluded-all without revealing content or credentials.
+- Evidence source: backlog audit and corrected corpus need for source inventory before additional docs or skill split work.
+- Primary type: `SCRIPT_OR_HELPER`.
+- Dependency: corrected workflow corpus.
+- Authority required: `local_execution`.
+- Done definition: helper inventories docs, skills, routes, schemas, templates, tests, and package files; reports stale/missing docs without reading secrets or touching product repos.
+- Reason for priority: it gives the next roadmap pass a deterministic documentation/source inventory instead of ad hoc `find` output.
 
-## Multi-lane autonomy follow-through
+# P1 - Documented Missing Reusable Components
 
-- Why it matters: the library, Wagging Web Wins, and later product repos now need independent execution state instead of one global latest ledger status.
-- Evidence from current files/logs: `schemas/work-lanes.schema.json`, `templates/work-lanes.example.json`, `scripts/lane-state`, lane-aware `scripts/run-next`, CLI lane commands, and isolation tests are present; public ledgers remain historical evidence.
-- Permission boundary: local lane reads/updates and explicitly selected route permissions only; product evidence, local paths, credentials, database URLs, and secrets remain outside the public package.
-- Done definition: use lane mode for new product work, keep legacy ledger mode for compatibility, and add future lanes without changing unrelated lane states.
+## Repo-map helper automation
 
-## Post-tag publication/release gate selection
+- Evidence source: `repo-map-skill.md`; corrected corpus shows repeated repo inspection commands.
+- Primary type: `SCRIPT_OR_HELPER`.
+- Dependency: `scripts/docs-list` is useful but not mandatory.
+- Authority required: `local_execution`.
+- Done definition: helper emits a redacted repo map with git state, major files, package/config markers, docs, tests, scripts, and known risk surfaces.
+- Reason for priority: repo orientation is a recurring first step and should be reproducible.
 
-- Why it matters: `v0.1.0` is tagged and pushed as a source release, but npm publication and GitHub release creation remain separate gates.
-- Evidence from current files/logs: release commit `73cafb4d0a7b52793e1cd708bff3843ce8925077` pushed to `main`; GitHub Actions run `27821005700` passed for that exact commit; remote annotated tag `v0.1.0` dereferences to the release commit; package candidate `autonomous-coding-workflow-library` remains npm-unpublished.
-- Permission boundary: planning or one selected next gate only. Npm publish, `npm version`, GitHub release creation, tags beyond `v0.1.0`, deploys, Supabase, Cloudflare, production endpoint calls, secret printing, force push, history rewrite, broad staging, and excluded-file staging remain blocked until explicitly approved.
-- Done definition: John chooses one next route: prepare GitHub release, prepare npm publication gate, run scheduled-run recheck, or hold.
+## Project-KB compiler
 
-## GitHub open-source handoff follow-up
+- Evidence source: `project-kb-builder-skill.md`; prior ledgers record repeated durable-memory needs.
+- Primary type: `SCRIPT_OR_HELPER`.
+- Dependency: repo-map helper.
+- Authority required: `local_execution`.
+- Done definition: helper writes or previews safe project memory summaries from validated local evidence and excludes secrets/private transcript bodies.
+- Reason for priority: it turns repeated project context reconstruction into a controlled local artifact.
 
-- Why it matters: the public source handoff is now a proven base state and should be monitored as a prerequisite for tag/release gates rather than rebuilt.
-- Evidence from current files/logs: `work-ledger.md` records `GitHub open-source handoff complete` and `v0.1.0 tagged and pushed, npm unpublished`; `routes/skill-routes.json` owns `github-open-source-handoff` and `first-version-tag`.
-- Permission boundary: verification and repair only if repository evidence drifts; no npm publish, `npm version`, tags, GitHub release, deploy, or remote mutation without a fresh gate.
-- Done definition: keep route metadata and CI evidence current while the active lane moves to the first-version tag gate.
+## Migration-review helper
 
-## CLI entrypoint package smoke
+- Evidence source: `migration-review-skill.md`; Supabase scheduler work proved source-only migration and secret-hardcoding review needs.
+- Primary type: `SCRIPT_OR_HELPER`.
+- Dependency: repo-map helper.
+- Authority required: `local_execution`; SQL execution remains a separate `production_mutation` boundary.
+- Done definition: helper inventories migrations, flags destructive patterns, secret-shaped literals, rollback gaps, ordering risks, and source-only limitations.
+- Reason for priority: migration review is reusable and safety-critical.
 
-- Why it matters: John selected `coding-workflow` as the CLI command, so the package candidate needs to prove the wrapper, package `bin` metadata, clean-temp local install, and installed CLI behavior before any publish path is considered.
-- Evidence from current files/logs: `package.json` declares candidate package `autonomous-coding-workflow-library`; `bin/coding-workflow.js` exists; `scripts/run-next` supports `--allow cli-package-smoke`; `routes/skill-routes.json` contains `cli-entrypoint-package-smoke`; the active ledger state is `Package candidate dry-run complete`.
-- Permission boundary: local skills-library edits, package readiness, release preflight CLI mode, `npm pack --dry-run`, local temp tarball install, and validation only; no product repo edits, publish, version, tag, push, PR, GitHub release, deploy, Supabase, Cloudflare, secret reads, production endpoints, registry mutation, remote dependency install, or remote mutation.
-- Done definition: CLI wrapper syntax, local CLI help/routes/package-readiness/release-preflight, package readiness with `--expect-cli`, release preflight CLI mode, npm pack dry-run, clean-temp local tarball install, installed CLI help/routes/validate, package content inspection, ledger update, and run-log update all pass locally.
+## Pre-commit validation hook
 
-## NPM package name ownership confirmation
+- Evidence source: `github-handoff-skill.md`, `runs/skill-runs.md` Peter-pattern follow-up.
+- Primary type: `HOOK`.
+- Dependency: exact-file committer and validator already exist.
+- Authority required: `local_execution`.
+- Done definition: opt-in hook runs secret-shaped marker scan and exact-file safety checks before manual commits without broad staging or remote mutation.
+- Reason for priority: it prevents regressions around the already-proven exact-file handoff pattern.
 
-- Why it matters: `autonomous-coding-workflow-library` is the local candidate name, but publishing still requires John to verify registry availability and ownership.
-- Evidence from current files/logs: `package.json` now uses `autonomous-coding-workflow-library`; `LICENSE-DECISION.md` records the blocker as final name availability and ownership before publish.
-- Permission boundary: planning and optional read-only registry name check only when approved; no npm auth, publish, version, tag, push, GitHub release, registry mutation, or package distribution without explicit approval.
-- Done definition: John confirms availability/ownership or chooses a different package name/source-only path.
+## Browser live proof skill
 
-## Scheduled-run recheck option
+- Evidence source: `work-ledger.md`, `runs/skill-runs.md`, `tools.md` `browser-live-proof` permission level.
+- Primary type: `SKILL`.
+- Dependency: runtime-verification and Opstruth runtime-truth skills.
+- Authority required: `local_execution` for local browser proof; logged-in or production browser actions require explicit higher authority.
+- Done definition: skill defines screenshots, console/network evidence, mutation boundaries, and final proof language for browser-observed behavior.
+- Reason for priority: browser evidence is a documented gap after source/build/runtime helper checks.
 
-- Why it matters: the previous Supabase production lane stopped with deployment/runtime gates separated from this local packaging lane.
-- Evidence from current files/logs: `work-ledger.md` has Supabase scheduler/function states, runtime verification skills exist, and current local packaging work must not drift back into product repos without a fresh permission gate.
-- Permission boundary: hold unless John explicitly selects the target repo, selected skill, and runtime/database/cloud permission.
-- Done definition: if selected, the runner resumes from the recorded ledger state with the exact allowed flag and does not combine it with packaging/release work.
+## GitHub deep review skill
 
-# Next
+- Evidence source: `runs/skill-runs.md` Peter-pattern follow-up; existing GitHub handoff skill covers PR files/checks but not review-thread triage.
+- Primary type: `SKILL`.
+- Dependency: GitHub auth gate and GitHub handoff skill.
+- Authority required: read-only GitHub inspection by default; replies, resolutions, commits, merges, and pushes require `remote_publication`.
+- Done definition: skill inspects review threads, requested changes, check logs, stale approvals, and exact patch scope without mutating remote state by default.
+- Reason for priority: it completes the PR lifecycle beyond branch/PR creation and merge readiness.
 
-## NPM package publish readiness
+# P2 - Follow-On Autonomy Improvements
 
-- Why it matters: npm package readiness and release preflight exist, and the library now has a named local package candidate and CLI entrypoint, but no publish path is approved.
-- Evidence from current files/logs: `npm-package-readiness-skill.md`, `release-preflight-skill.md`, `scripts/npm-package-readiness`, `scripts/release-preflight`, route metadata, `package.json`, and `bin/coding-workflow.js` cover local package/CLI readiness.
-- Permission boundary: local readiness by default; package manifest edits, dependency installs, registry reads, `npm pack --dry-run`, publish, version changes, tags, pushes, and GitHub releases require separate gates.
-- Done definition: package name ownership is confirmed, package contents are controlled, lockfile/CLI evidence remains current, local preflight evidence passes, and no publish-like side effects occur.
+## Release and package preflight hardening
 
-## Release preflight hardening
-
-- Why it matters: release preflight should remain reliable across local library, open-source source drop, npm package, and CLI package modes.
-- Evidence from current files/logs: `scripts/release-preflight` supports local/npm/CLI modes; clean-temp smoke exercises local mode from a copied library.
-- Permission boundary: local validation unless John authorizes network, registry, pack dry-run, publish, tag, push, release, or deploy gates.
-- Done definition: preflight reports stable local, npm, and CLI classifications and clearly separates blockers from release approval.
+- Evidence source: `release-preflight-skill.md`, `npm-package-readiness-skill.md`, v0.1/v0.2 release docs.
+- Primary type: `RELEASE_WORK`.
+- Dependency: corrected corpus and docs inventory.
+- Authority required: `local_execution`; publish, push, tag, and GitHub Release creation require `remote_publication`.
+- Done definition: preflight consumes corpus-backed evidence where useful and reports local/npm/CLI modes with crisp blockers.
+- Reason for priority: release paths are working, but should benefit from the same reproducible evidence foundation.
 
 ## Opstruth runtime truth self-test
 
-- Why it matters: runtime truth should classify evidence without overclaiming skipped or not-verified checks.
-- Evidence from current files/logs: `opstruth-runtime-truth-skill.md` exists, but a local mixed-evidence self-test is still pending.
-- Permission boundary: local parsing or approved local CLI execution only; network, browser, package publish, deploy, and external mutation require separate gates.
-- Done definition: a self-test classifies a mixed evidence report into `Verified`, `Warning`, `Failure`, `Skipped`, and `Not Verified`, then recommends the next safe step.
+- Evidence source: `opstruth-runtime-truth-skill.md` and prior build queue.
+- Primary type: `VALIDATION`.
+- Dependency: runtime-verification skill.
+- Authority required: `local_execution`.
+- Done definition: self-test classifies mixed evidence into verified, warning, failure, skipped, and not-verified without overclaiming.
+- Reason for priority: it protects final reports from treating skipped checks as proof.
 
-## Cloudflare real deploy proof
+## Capability adapter evaluation
 
-- Why it matters: Cloudflare deployment needs target-specific evidence before any deployed-state claim.
-- Evidence from current files/logs: `cloudflare-deploy-skill.md` is hardened for Pages/Workers planning, but no live Wrangler deploy proof has been run in this library.
-- Permission boundary: source inspection and planning only until John supplies a Cloudflare target and explicit preview or production deploy approval.
-- Done definition: a real Cloudflare run captures discovered commands, env/secret-name handling without values, deploy output, rollback notes, logs, and post-deploy proof.
+- Evidence source: corrected corpus confirms capability boundaries, but not a durable acquisition broker.
+- Primary type: `CAPABILITY_ADAPTER`.
+- Dependency: browser-live proof and secret-access decision.
+- Authority required: depends on adapter; secret managers require explicit decision and non-printing contract.
+- Done definition: evaluate whether a capability broker is still needed after concrete browser and secret-access adapters exist.
+- Reason for priority: capability acquisition is not first; it follows adapter prerequisites.
 
-# Later
+# P3 - Optional Experiments
 
-## Repo-map, route-trace, and KB helpers
+## Agent-role system
 
-- Why it matters: repo orientation, route tracing, and project memory are reusable but still mostly Markdown-driven.
-- Evidence from current files/logs: `repo-map-skill.md`, `route-trace-skill.md`, and `project-kb-builder-skill.md` exist.
-- Permission boundary: local inspection and local docs only unless a target repo edit is explicitly approved.
-- Done definition: small helpers produce repo maps, route traces, and project memory updates with redaction and validation.
+- Evidence source: corrected corpus shows role terms, but no reusable role contracts.
+- Primary type: `AGENT_ROLE`.
+- Dependency: corrected corpus, docs inventory, and at least two independent sessions proving a role contract.
+- Authority required: `local_execution` for design only.
+- Done definition: promote a role only when recurring responsibility, inputs, outputs, handoff contract, and insufficiency of skill/route abstraction are proven.
+- Reason for priority: current evidence supports product-specific roles, not a generic agent-role framework.
 
-## Migration review automation
+## Capability acquisition and prefetch
 
-- Why it matters: source-only migration review is reusable beyond Supabase scheduler work.
-- Evidence from current files/logs: `migration-review-skill.md` exists, and scheduler migration work proved secret-safety and source-versus-deployed-state concerns.
-- Permission boundary: source-only by default; SQL execution, `db push`, migration apply, and deployed-state verification require separate gates.
-- Done definition: a helper inventories migration files, flags destructive changes, secret hardcoding, deploy ambiguity, rollback gaps, and source-only limits.
+- Evidence source: newer discussions only; corrected corpus does not prove this as an older foundation.
+- Primary type: `CONTROL_PLANE`.
+- Dependency: capability adapter evaluation.
+- Authority required: likely multiple classes; must be defined before implementation.
+- Done definition: design only after real adapters define what can be acquired safely.
+- Reason for priority: optional autonomy experiment, not current P0/P1 work.
 
-## Browser live proof
-
-- Why it matters: user-facing behavior sometimes needs browser evidence after build/source checks.
-- Evidence from current files/logs: `runtime-verification-skill.md` and `opstruth-runtime-truth-skill.md` exist, but generic browser-live proof is not yet packaged here.
-- Permission boundary: local browser or read-only public checks first; logged-in or mutating browser actions require separate approval.
-- Done definition: a skill defines browser checks, screenshots, console/network evidence, mutation boundaries, and final proof language.
-
-## Deep GitHub review
-
-- Why it matters: PR lifecycle handles files/checks/mergeability, but not full review-thread triage.
-- Evidence from current files/logs: GitHub handoff is hardened; review comment resolution is still outside the local skill set.
-- Permission boundary: read-only PR/review inspection by default; replies, resolutions, commits, and merges require separate gates.
-- Done definition: a skill inspects review threads, requested changes, check logs, and patch scope without mutating remote state by default.
-
-# Hold
+# Hold - Product-Specific Or Decision-Dependent
 
 ## OneClickPostFactory / Devvit / Reddit lane
 
-- Why it matters: Reddit-related work in this library came from one Supabase content import feature and should not become a Devvit lane by accident.
-- Evidence from current files/logs: the proven Reddit work is centered on `import-reddit-tips`; no OneClickPostFactory or Devvit target repo is currently selected.
-- Permission boundary: hold until John supplies a target repo, platform rules, commands, and a concrete goal.
-- Done definition: resume only with explicit repo, selected platform, safety requirements, and permission gates.
-
-## HyperFrames/video workflow support
-
-- Why it matters: HyperFrames skills exist elsewhere, but this coding workflow library has not imported or wrapped them.
-- Evidence from current files/logs: no local `skill-files/` entry or route metadata owns HyperFrames/video work.
-- Permission boundary: hold unless John asks to integrate HyperFrames workflows here.
-- Done definition: decide whether to reference external HyperFrames skills or create local workflow wrappers.
+- Evidence source: product-lane mentions are not reusable library evidence.
+- Primary type: `PRODUCT_SPECIFIC`.
+- Dependency: explicit product repo selection and platform requirements.
+- Authority required: target-specific.
+- Done definition: resume only with a concrete repo, platform rules, and permission gates.
+- Reason for hold: avoid drifting from library work into product runtime work.
 
 ## One-password secret access
 
-- Why it matters: secret-manager integration is powerful and high-risk.
-- Evidence from current files/logs: secret handling rules exist, but no safe manager integration is proven.
-- Permission boundary: no secret-manager integration until John approves the tool, account scope, and non-printing behavior.
-- Done definition: a credential presence workflow exists that never prints values and only exports values into approved local runtime contexts.
+- Evidence source: `github-auth-gate-skill.md` upgrade idea.
+- Primary type: `CAPABILITY_ADAPTER`.
+- Dependency: John selects secret manager scope and non-printing runtime contract.
+- Authority required: secret-access decision; secret values must never be printed.
+- Done definition: credential presence/use workflow proves non-printing behavior and writes no secrets into repos.
+- Reason for hold: powerful, high-risk, and decision-dependent.
 
-## Live product/deploy work until selected
+## Live product deploy work
 
-- Why it matters: this run is local skills-library work and must not drift back into a product lane.
-- Evidence from current files/logs: recent work spent many runs in `/home/johnh/wagging-web-wins`; current clean-temp smoke is local-only.
-- Permission boundary: hold product repo edits, Supabase, Cloudflare, GitHub mutations, npm publish, production endpoints, and remote service mutation until selected.
-- Done definition: resume only with a new explicit target repo, selected skill, and exact permission gate.
+- Evidence source: prior Wagging/Supabase/Cloudflare lanes.
+- Primary type: `PRODUCT_SPECIFIC`.
+- Dependency: selected product lane and explicit objective authority.
+- Authority required: `production_mutation` and possibly `secret_mutation` or `remote_publication`.
+- Done definition: handled only through selected lane state, not this public build queue.
+- Reason for hold: product state must not overwrite library roadmap state.
+
+# Completed - Short Historical Index Only
+
+- GitHub open-source handoff.
+- CLI entrypoint package smoke.
+- v0.1.0 source tag.
+- v0.2.0 local preparation.
+- Lane-scoped state and objective authority.
+- Reproducible workflow corpus extraction foundation.

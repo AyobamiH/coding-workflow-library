@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 const laneState = require("./lane-state");
@@ -99,6 +100,7 @@ const ALLOWED_FLAGS = new Set([
   "cli-package-smoke",
   "github-open-source-handoff",
   "first-version-tag",
+  "workflow-corpus-recovery",
   "local_execution",
   "remote_publication",
   "production_mutation",
@@ -242,6 +244,8 @@ function main() {
       result = runFirstVersionTag(active);
     } else if (route.kind === "v0-2-local-prep") {
       result = runV020LocalPrep(active);
+    } else if (route.kind === "workflow-corpus-recovery") {
+      result = runWorkflowCorpusRecovery(active);
     } else {
       result = notImplemented(route, active);
     }
@@ -481,6 +485,7 @@ Supported --allow values:
   cli-package-smoke
   github-open-source-handoff
   first-version-tag
+  workflow-corpus-recovery
   local_execution
   remote_publication
   production_mutation
@@ -634,6 +639,16 @@ function routeStatus(status, active = {}) {
       requiresAuthority: ["local_execution"],
       kind: "v0-2-local-prep",
       nextAction: "prepare and verify every local/read-only v0.2.0 stage, then stop before remote publication",
+    };
+  }
+
+  if (args.allow.has("workflow-corpus-recovery") && path.resolve(targetRepo) === LIBRARY_ROOT) {
+    return {
+      skill: "session-log-extraction-skill / coding-workflow-orchestrator-skill",
+      permission: "workflow-corpus-recovery",
+      requiresAuthority: ["local_execution"],
+      kind: "workflow-corpus-recovery",
+      nextAction: "validate or regenerate the private workflow corpus, verify coverage, and stop before remote publication",
     };
   }
 
@@ -3056,6 +3071,110 @@ function runV020LocalPrep() {
     nextPermission: "grant remote_publication once for push, tag, GitHub Release, and npm publication",
     nextSkill: "github-handoff-skill / release-preflight-skill",
     capabilityBlockers: npmAuthAvailable ? [] : ["npm authentication unavailable for eventual npm publication"],
+    exitCode: 0,
+  };
+}
+
+function runWorkflowCorpusRecovery() {
+  const home = process.env.HOME || os.homedir();
+  const outputDir = path.join(home, ".openclaw", "state", "coding-workflow", "workflow-corpus");
+  const sources = [
+    path.join(home, ".codex", "sessions"),
+    path.join(home, ".openclaw", "agents", "main", "sessions"),
+    path.join(home, ".openclaw", "agents", "researcher", "sessions"),
+    path.join(home, ".openclaw", "logs"),
+  ];
+  const extractor = "scripts/extract-session-workflows.mjs";
+
+  evidence.push("workflow corpus output: private local state outside the package repository");
+  evidence.push(`workflow corpus source roots inspected: ${sources.length}`);
+  actions.push("raw sessions, raw prompts, raw responses, generated corpus files, and pseudonym maps remain excluded from commits");
+
+  if (dryRun) {
+    actions.push("would validate existing private corpus first");
+    actions.push("would regenerate private corpus only if validation is missing or failing");
+    actions.push("would use only aggregate corpus findings in public roadmap docs");
+    return {
+      finalStatus: "DRY RUN PASSED",
+      ledgerStatus: "Workflow corpus recovery dry-run complete",
+      summary: "workflow-corpus-recovery would validate or regenerate the private corpus and stop before remote publication",
+      nextPermission: "run without --dry-run under local_execution, or grant remote_publication later to push local commits",
+      nextSkill: "session-log-extraction-skill",
+      exitCode: 0,
+    };
+  }
+
+  let existingValid = false;
+  if (fs.existsSync(path.join(outputDir, "validation-report.json"))) {
+    const validation = run(process.execPath, [extractor, "--output-dir", outputDir, "--validate-only", "--json"], {
+      cwd: LIBRARY_ROOT,
+      allowFailure: true,
+    });
+    existingValid = validation.code === 0 && /"status":\s*"PASS"/.test(validation.stdout);
+    evidence.push(`existing private corpus validation: ${existingValid ? "PASS" : "not valid"}`);
+  } else {
+    evidence.push("existing private corpus validation: not present");
+  }
+
+  if (!existingValid) {
+    const generated = run(process.execPath, [
+      extractor,
+      ...sources.flatMap((source) => ["--source", source]),
+      "--output-dir",
+      outputDir,
+      "--json",
+    ], {
+      cwd: LIBRARY_ROOT,
+      allowFailure: true,
+      timeout: 120000,
+    });
+    if (generated.code !== 0) {
+      return {
+        finalStatus: "BLOCKED_CAPABILITY",
+        ledgerStatus: "Workflow corpus recovery blocked",
+        summary: "private workflow corpus could not be generated or validated",
+        nextPermission: "repair local session source access or extractor validation",
+        nextSkill: "session-log-extraction-skill / error-evidence-skill",
+        exitCode: 1,
+      };
+    }
+  }
+
+  const validation = run(process.execPath, [extractor, "--output-dir", outputDir, "--validate-only", "--json"], {
+    cwd: LIBRARY_ROOT,
+    allowFailure: true,
+  });
+  if (validation.code !== 0) {
+    return {
+      finalStatus: "BLOCKED_SAFETY",
+      ledgerStatus: "Workflow corpus recovery blocked",
+      summary: "private workflow corpus validation failed",
+      nextPermission: "fix extractor privacy or schema validation",
+      nextSkill: "session-log-extraction-skill / error-evidence-skill",
+      exitCode: 1,
+    };
+  }
+
+  const coveragePath = path.join(outputDir, "coverage-report.json");
+  if (fs.existsSync(coveragePath)) {
+    try {
+      const coverage = JSON.parse(fs.readFileSync(coveragePath, "utf8"));
+      const totals = coverage.totals || {};
+      const reconciled = totals.discovered === totals.parsed + totals.unsupported + totals.corrupt + totals.empty + totals.duplicate + totals.excluded;
+      evidence.push(`private corpus sources discovered: ${totals.discovered ?? "unknown"}`);
+      evidence.push(`private corpus events: ${coverage.total_events ?? "unknown"}`);
+      evidence.push(`private corpus coverage reconciled: ${reconciled}`);
+    } catch (error) {
+      evidence.push(`private coverage summary unavailable: ${error.message}`);
+    }
+  }
+
+  return {
+    finalStatus: "READY",
+    ledgerStatus: "Corrected workflow corpus and roadmap rebuilt locally",
+    summary: "corrected private workflow corpus validated and public-safe roadmap artifacts are ready locally",
+    nextPermission: "grant remote_publication if John wants the local commits pushed",
+    nextSkill: "github-handoff-skill / session-log-extraction-skill",
     exitCode: 0,
   };
 }

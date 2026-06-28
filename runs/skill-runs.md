@@ -1368,3 +1368,17 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: An initial v0.2 route run stopped at `BLOCKED_SAFETY` for release-note wording; the wording was fixed and the rerun passed. `npm whoami` remains `BLOCKED_CAPABILITY` for eventual publish but did not block independent local preparation. No push, tag, GitHub Release, npm publish, deploy, Supabase command, Cloudflare command, production endpoint call, secret output, force push, or history rewrite occurred.
 * Follow-up skill needed: github-handoff-skill / release-preflight-skill.
 * Upgrade idea: Use objective-stage checkpoints for future release workflows so local prep, CI waiting, remote publication, and registry smoke can resume without bespoke recovery prompts.
+
+## 2026-06-26 - run-next Autonomous Work Loop
+
+* Skill used: coding-workflow-orchestrator-skill; selected next skill was session-log-extraction-skill / coding-workflow-orchestrator-skill.
+* Goal: Read `work-ledger.md`, classify status `v0.2.0 locally prepared and validated; remote publication awaiting one objective-level approval`, check permission flags, and run only the next safe action.
+* Starting state: Target repo `<LIBRARY_REPO>`; permission flags `workflow-corpus-recovery`; dry-run `no`.
+* Commands/tools used: `scripts/run-next --repo <LIBRARY_REPO> --allow workflow-corpus-recovery`.
+* Files inspected: `AGENTS.md`; `RUNBOOK.md`; `tools.md`; `work-ledger.md`; selected ledger entry for `<LIBRARY_REPO>`.
+* Files changed: `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; workflow corpus output: private local state outside the package repository; workflow corpus source roots inspected: 4; existing private corpus validation: PASS; private corpus sources discovered: 32; private corpus events: 30098; private corpus coverage reconciled: true.
+* Result: READY: corrected private workflow corpus validated and public-safe roadmap artifacts are ready locally.
+* Failure/recovery notes: No forbidden deploy, migration, Supabase mutation, production endpoint call, direct main push, force push, merge, token printing, token file write, unrelated staging, or evidence inclusion occurred..
+* Follow-up skill needed: github-handoff-skill / session-log-extraction-skill.
+* Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.
