@@ -10,6 +10,7 @@ const ROOT = path.resolve(__dirname, "..");
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "run-next-resume-"));
 const runDir = path.join(temporary, "state");
 const targetRepo = path.join(temporary, "target-repo");
+let runCounter = 0;
 
 fs.mkdirSync(targetRepo, { recursive: true });
 fs.writeFileSync(path.join(targetRepo, "README.md"), "# Resume target\n");
@@ -24,12 +25,24 @@ function repoKey(repo) {
 }
 
 function run(args, options = {}) {
-  return spawnSync(process.execPath, [path.join(ROOT, "scripts", "run-next"), ...args], {
-    cwd: ROOT,
-    encoding: "utf8",
-    env: { ...process.env, RUN_NEXT_DIR: runDir },
-    ...options,
-  });
+  const stdoutPath = path.join(temporary, `run-${++runCounter}.stdout`);
+  const stderrPath = path.join(temporary, `run-${runCounter}.stderr`);
+  const stdoutFd = fs.openSync(stdoutPath, "w");
+  const stderrFd = fs.openSync(stderrPath, "w");
+  try {
+    const result = spawnSync(process.execPath, [path.join(ROOT, "scripts", "run-next"), ...args], {
+      cwd: ROOT,
+      env: { ...process.env, RUN_NEXT_DIR: runDir },
+      stdio: ["ignore", stdoutFd, stderrFd],
+      ...options,
+    });
+    result.stdout = fs.readFileSync(stdoutPath, "utf8");
+    result.stderr = fs.readFileSync(stderrPath, "utf8");
+    return result;
+  } finally {
+    fs.closeSync(stdoutFd);
+    fs.closeSync(stderrFd);
+  }
 }
 
 function currentBranch() {
