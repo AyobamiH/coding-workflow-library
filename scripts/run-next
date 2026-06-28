@@ -15187,6 +15187,17 @@ function printCheckpointStatus(repo) {
 }
 
 function runResume() {
+  const newest = latestRun(targetRepo, false);
+  if (newest && newest.status === "completed") {
+    return {
+      finalStatus: "NO INCOMPLETE RUN",
+      lifecycleState: "COMPLETED",
+      summary: `Latest run-next checkpoint for ${path.resolve(targetRepo)} is completed; older incomplete checkpoints are stale and were not resumed.`,
+      exitCode: 0,
+      checkpoint: newest,
+    };
+  }
+
   const run = latestRun(targetRepo, true);
   if (!run) {
     return {
