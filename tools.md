@@ -43,6 +43,7 @@ Permission levels:
 Rules:
 
 - The orchestrator must not cross objective authority classes without an active grant.
+- A normal merge of a workflow-authored PR is permitted under `remote_publication` only after the automatic merge policy verifies scope, checks, reviewed head, mergeability, and repository policy. It is not permitted for changed heads, failing or pending checks, untrusted commits, independent-review requirements, admin merge, branch-protection bypass, production mutation, secret mutation, or destructive action.
 - Read-only local tools are allowed during repo mapping and source-only audits.
 - Cloud, database, secret, deploy, and destructive consequences require the matching objective authority.
 - If a tool is unavailable or auth is missing, record `BLOCKED_CAPABILITY` and continue independent authorised work.

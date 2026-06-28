@@ -19,7 +19,7 @@ Use `scripts/committer` when a local commit is approved and the helper is availa
 
 Use `github-auth-gate-skill` before push or PR work when `gh auth status` fails, the active account is unclear, or credentials may be expired, revoked, wrong-account, or under-scoped.
 
-The reusable lifecycle is: auth gate, exact-file commit, feature-branch creation or recovery, push of that branch only, PR creation or confirmation, PR readiness inspection, merge decision, optional branch deletion as a separate gate, and post-merge handoff. Each step has its own permission boundary.
+The reusable lifecycle is: auth gate, exact-file commit, feature-branch creation or recovery, push of that branch only, PR creation or confirmation, PR readiness inspection, automatic merge policy decision, optional branch deletion as a separate gate, and post-merge verification. Remote publication authority covers push, PR mutation, and normal verified workflow-authored merge for the active objective; production, secret, destructive, legal, billing, product, and security tradeoff boundaries remain separate.
 
 ## When to Use
 
@@ -39,7 +39,7 @@ Use before any commit. Use it again before push, PR, or PR merge if the task lat
 - Known unrelated dirty files, untracked evidence directories, generated artifacts, and validation caveats.
 - Whether push, PR, deploy, migration, or production verification is explicitly approved.
 - GitHub auth gate result before any approved push or PR work.
-- PR number, expected changed files, mergeability/checks evidence, and explicit merge approval before any PR merge.
+- PR number, expected changed files, mergeability/checks evidence, reviewed head SHA, and either inherited `remote_publication` authority or explicit merge approval before any PR merge.
 - Existing branch or PR URL when recovering an interrupted handoff.
 - Whether branch deletion is explicitly approved after merge.
 
@@ -138,12 +138,12 @@ Never use `git add .`.
 22. If a PR already exists, confirm URL, head/base, changed files, commits, and state instead of creating a duplicate.
 23. Do not push `main`; push only the intended feature branch.
 24. Do not force push unless John gives a separate force-push approval and recovery plan.
-25. Do not push, create PRs, merge PRs, tag, release, deploy, run migrations, or verify production unless that separate gate is approved.
-26. For PR readiness, inspect exact files, commits, checks, mergeability, review state, and any workflow/deploy implication without merging.
-27. If PR merge is approved, recheck the PR immediately before merging: expected account, repo access, `OPEN` state, exact changed files, `MERGEABLE`, nonblocking checks, and repo-local workflow deployment evidence.
+25. Do not push, create PRs, merge PRs, tag, release, deploy, run migrations, or verify production unless the active objective grants that consequence class and route-specific safety gates pass.
+26. For PR readiness, inspect exact files, commits, checks, mergeability, review state, reviewed head SHA, and any workflow/deploy implication before any merge.
+27. If PR merge is allowed, recheck the PR immediately before merging: expected account, repo access, `OPEN` state, exact changed files, reviewed head SHA unchanged, `MERGEABLE`, nonblocking checks, and repo-local workflow deployment evidence.
 28. If a repo-local workflow clearly suggests merging `main` may deploy, stop with a deployment-aware owner decision instead of merging.
 29. Do not delete the feature branch during merge unless John explicitly approves branch deletion.
-30. After a merge, record `Merged, not deployed` or the repo-specific post-merge state and stop before deployment planning.
+30. After a merge, verify exact merge commit, local validation, remote alignment, ledger update, and run-record update before recording completion. Stop before deployment planning unless that separate route is approved.
 
 ## Evidence Required
 
@@ -178,7 +178,7 @@ Never use `git add .`.
 - Do not proceed to push or PR work until the auth gate returns `PASS`.
 - Do not ask John to paste GitHub tokens into chat.
 - Do not push or create PRs without explicit request.
-- Do not merge PRs without explicit merge approval and immediate pre-merge safety checks.
+- Do not merge PRs without inherited `remote_publication` authority or explicit merge approval plus immediate pre-merge safety checks.
 - Do not delete the feature branch during merge unless John explicitly approves branch deletion.
 - Do not force push unless John explicitly approves force-push recovery.
 - Do not create duplicate PRs when a suitable existing PR can be confirmed.

@@ -10,6 +10,7 @@ const explicit = [
   "bin/coding-workflow.js",
   "tests/lane-state.test.js",
   "tests/objective-authority.test.js",
+  "tests/autonomous-boundaries.test.js",
   "tests/pipeline-diagnostics.test.js",
   "tests/run-next-resume.test.js",
   "tests/workflow-extraction.test.js",

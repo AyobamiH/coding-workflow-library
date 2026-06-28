@@ -1,0 +1,438 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+
+const LIBRARY_ROOT = path.resolve(__dirname, "..");
+
+const WORKFLOW_STATES = [
+  "READY",
+  "RUNNING",
+  "VERIFYING",
+  "PR_OPEN",
+  "PR_CHECKS_PENDING",
+  "PR_READY",
+  "MERGING",
+  "POST_MERGE_VERIFY",
+  "COMPLETED",
+  "BLOCKED_EXTERNAL",
+  "BLOCKED_APPROVAL",
+  "BLOCKED_POLICY",
+  "FAILED_RETRYABLE",
+  "FAILED_TERMINAL",
+];
+
+const BOUNDARY_TYPES = [
+  "NONE",
+  "CREDENTIAL_REQUIRED",
+  "PRODUCTION_MUTATION_APPROVAL",
+  "SECRET_MUTATION_APPROVAL",
+  "DESTRUCTIVE_ACTION_APPROVAL",
+  "BILLING_OR_ACCOUNT_DECISION",
+  "LEGAL_OR_LICENSE_DECISION",
+  "PRODUCT_OR_BUSINESS_DECISION",
+  "SECURITY_PRIVACY_TRADEOFF",
+  "INDEPENDENT_REVIEW_REQUIRED",
+  "REPOSITORY_POLICY_BLOCK",
+  "UNTRUSTED_CHANGE",
+  "CAPABILITY_UNAVAILABLE",
+  "WAITING_EXTERNAL_EVENT",
+  "SAFETY_GATE_FAILED",
+  "CONFLICTING_OBJECTIVE",
+];
+
+const APPROVAL_STATUSES = [
+  "granted",
+  "consumed",
+  "expired",
+  "denied",
+  "revoked",
+  "not_applicable",
+];
+
+const LIFECYCLE = [
+  "select_safe_work",
+  "inspect",
+  "classify_boundary",
+  "execute",
+  "verify",
+  "record",
+  "merge_if_policy_allows",
+  "post_merge_verify",
+  "resume_or_complete",
+];
+
+const SECRET_VALUE_PATTERNS = [
+  /gh[pousr]_[A-Za-z0-9_]{20,}/,
+  /github_pat_[A-Za-z0-9_]{20,}/,
+  /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/,
+  /sk-[A-Za-z0-9]{12,}/,
+  /BEGIN [A-Z ]*PRIVATE KEY/,
+  /postgres(?:ql)?:\/\/[^@\s]+@/i,
+  /authorization:\s*(bearer|basic)\s+/i,
+];
+
+const PROHIBITED_VALUE_KEYS = new Set([
+  "authorization",
+  "authorizationHeader",
+  "authorization_header",
+  "token",
+  "tokenValue",
+  "secretValue",
+  "rawSecret",
+  "serviceRoleKey",
+  "service_role_key",
+  "databaseUrl",
+  "database_url",
+  "dbUrl",
+  "db_url",
+  "projectRef",
+  "project_ref",
+  "supabaseProjectRef",
+  "supabase_project_ref",
+]);
+
+function boundary(type, reason, options = {}) {
+  assertBoundaryType(type);
+  return {
+    boundaryType: type,
+    state: options.state || stateForBoundary(type),
+    reason: reason || "No reason recorded.",
+    exactInputRequired: options.exactInputRequired || exactInputForBoundary(type),
+    safeToContinueAutomatically: type === "NONE",
+    nextAutomaticStep: options.nextAutomaticStep || "",
+    evidenceRequired: options.evidenceRequired || [],
+  };
+}
+
+function stateForBoundary(type) {
+  if (type === "NONE") return "READY";
+  if ([
+    "CREDENTIAL_REQUIRED",
+    "CAPABILITY_UNAVAILABLE",
+    "WAITING_EXTERNAL_EVENT",
+  ].includes(type)) return "BLOCKED_EXTERNAL";
+  if ([
+    "PRODUCTION_MUTATION_APPROVAL",
+    "SECRET_MUTATION_APPROVAL",
+    "DESTRUCTIVE_ACTION_APPROVAL",
+  ].includes(type)) return "BLOCKED_APPROVAL";
+  if (type === "SAFETY_GATE_FAILED") return "FAILED_RETRYABLE";
+  return "BLOCKED_POLICY";
+}
+
+function exactInputForBoundary(type) {
+  switch (type) {
+    case "CREDENTIAL_REQUIRED":
+      return "Provide or repair the missing local credential outside chat, then rerun.";
+    case "PRODUCTION_MUTATION_APPROVAL":
+      return "Provide the exact production mutation approval line required by the active packet.";
+    case "SECRET_MUTATION_APPROVAL":
+      return "Provide the exact secret mutation approval line required by the active packet.";
+    case "DESTRUCTIVE_ACTION_APPROVAL":
+      return "Provide explicit destructive-action approval naming the resource and action.";
+    case "INDEPENDENT_REVIEW_REQUIRED":
+      return "Wait for the required independent review or repository approval.";
+    case "REPOSITORY_POLICY_BLOCK":
+      return "Resolve repository policy or branch protection without bypassing it.";
+    case "UNTRUSTED_CHANGE":
+      return "Re-review the changed head commit or untrusted contribution scope.";
+    case "BILLING_OR_ACCOUNT_DECISION":
+      return "John must make the billing or external account decision.";
+    case "LEGAL_OR_LICENSE_DECISION":
+      return "John must make the legal, license, or ownership decision.";
+    case "PRODUCT_OR_BUSINESS_DECISION":
+      return "John must make the product or business decision.";
+    case "SECURITY_PRIVACY_TRADEOFF":
+      return "John must choose the security or privacy tradeoff.";
+    case "WAITING_EXTERNAL_EVENT":
+      return "Wait for the named external event, then resume from the recorded checkpoint.";
+    default:
+      return "No John input required.";
+  }
+}
+
+function assertBoundaryType(type) {
+  if (!BOUNDARY_TYPES.includes(type)) throw new Error(`unknown boundary type: ${type}`);
+}
+
+function assertWorkflowState(state) {
+  if (!WORKFLOW_STATES.includes(state)) throw new Error(`unknown workflow state: ${state}`);
+}
+
+function assertNoVagueBoundary(text) {
+  const value = String(text || "");
+  if (/\b(ask john|needs john|human decision|manual review|please confirm|approval needed)\b/i.test(value) &&
+      !BOUNDARY_TYPES.some((type) => value.includes(type))) {
+    throw new Error("vague human boundary is not allowed; classify the exact external boundary");
+  }
+}
+
+function classifyBoundary(input = {}) {
+  if (input.boundaryType) return boundary(input.boundaryType, input.reason, input);
+  if (input.text) assertNoVagueBoundary(input.text);
+  if (input.credentialsMissing || input.authInvalid || input.authUnderScoped) {
+    return boundary("CREDENTIAL_REQUIRED", input.reason || "Required local credential is missing, invalid, expired, or under-scoped.");
+  }
+  if (input.productionMutation && !input.productionApproval) {
+    return boundary("PRODUCTION_MUTATION_APPROVAL", input.reason || "Production mutation has no matching explicit approval.");
+  }
+  if (input.secretMutation && !input.secretApproval) {
+    return boundary("SECRET_MUTATION_APPROVAL", input.reason || "Secret mutation has no matching explicit approval.");
+  }
+  if (input.destructiveAction && !input.destructiveApproval) {
+    return boundary("DESTRUCTIVE_ACTION_APPROVAL", input.reason || "Destructive action has no explicit approval.");
+  }
+  if (input.billing || input.accountPurchase) return boundary("BILLING_OR_ACCOUNT_DECISION", input.reason || "Billing or account ownership decision required.");
+  if (input.legal || input.licenseDecision) return boundary("LEGAL_OR_LICENSE_DECISION", input.reason || "Legal or license decision required.");
+  if (input.productDecision || input.businessDecision) return boundary("PRODUCT_OR_BUSINESS_DECISION", input.reason || "Product or business direction required.");
+  if (input.securityTradeoff || input.privacyTradeoff) return boundary("SECURITY_PRIVACY_TRADEOFF", input.reason || "Security or privacy tradeoff required.");
+  if (input.independentReviewRequired) return boundary("INDEPENDENT_REVIEW_REQUIRED", input.reason || "Repository policy requires review by someone else.");
+  if (input.repositoryPolicyBlock) return boundary("REPOSITORY_POLICY_BLOCK", input.reason || "Repository policy prevents automatic continuation.");
+  if (input.untrustedChange || input.headChanged || input.untrustedCommit) return boundary("UNTRUSTED_CHANGE", input.reason || "Head changed or includes untrusted work requiring re-review.");
+  if (input.capabilityUnavailable) return boundary("CAPABILITY_UNAVAILABLE", input.reason || "Required external capability is unavailable.");
+  if (input.waitingExternalEvent) return boundary("WAITING_EXTERNAL_EVENT", input.reason || "Waiting for an external event.");
+  if (input.safetyFailed) return boundary("SAFETY_GATE_FAILED", input.reason || "A safety, validation, or secret-scan gate failed.");
+  if (input.conflictingObjective) return boundary("CONFLICTING_OBJECTIVE", input.reason || "Objectives conflict and cannot both be pursued safely.");
+  return boundary("NONE", "No external boundary detected.", { state: input.state || "READY" });
+}
+
+function evaluateAutomaticMerge(input = {}) {
+  const facts = {
+    workflowAuthored: Boolean(input.workflowAuthored),
+    scopeBounded: Boolean(input.scopeBounded),
+    acceptanceKnown: Boolean(input.acceptanceKnown),
+    localChecksPassed: input.localChecks === "passed" || input.localChecksPassed === true,
+    prChecksPassed: input.prChecks === "passed" || input.prChecksPassed === true,
+    headMatchesReviewed: input.headMatchesReviewed !== false,
+    finalDiffIntended: input.finalDiffIntended !== false,
+    normalMergeAllowed: input.normalMergeAllowed !== false,
+    postMergeValidationPassed: input.postMergeValidation === "passed" || input.postMergeValidationPassed === true,
+  };
+
+  if (input.productionMutation && !input.productionApproval) {
+    return mergeDecision("BLOCKED_APPROVAL", false, classifyBoundary({ productionMutation: true }));
+  }
+  if (input.independentReviewRequired) {
+    return mergeDecision("BLOCKED_POLICY", false, classifyBoundary({ independentReviewRequired: true }));
+  }
+  if (input.repositoryPolicyBlock || input.normalMergeAllowed === false) {
+    return mergeDecision("BLOCKED_POLICY", false, classifyBoundary({ repositoryPolicyBlock: true }));
+  }
+  if (input.untrustedCommits || input.headChanged || input.headMatchesReviewed === false) {
+    return mergeDecision("BLOCKED_POLICY", false, classifyBoundary({ untrustedChange: true }));
+  }
+  if (input.prChecks === "pending" || input.checksPending) {
+    return mergeDecision("PR_CHECKS_PENDING", false, classifyBoundary({ waitingExternalEvent: true, reason: "PR checks are still pending." }));
+  }
+  if (input.prChecks === "failed" || input.checksFailing || input.localChecks === "failed") {
+    return mergeDecision("FAILED_RETRYABLE", false, classifyBoundary({ safetyFailed: true, reason: "Local or PR checks failed." }));
+  }
+  if (!facts.workflowAuthored || !facts.scopeBounded || !facts.acceptanceKnown || !facts.localChecksPassed || !facts.prChecksPassed || !facts.finalDiffIntended) {
+    return mergeDecision("VERIFYING", false, classifyBoundary({ safetyFailed: true, reason: "Automatic merge facts are incomplete." }));
+  }
+
+  return {
+    state: "PR_READY",
+    canMerge: true,
+    requiresJohn: false,
+    boundary: boundary("NONE", "Verified workflow-authored PR may be merged normally."),
+    reason: "workflow-authored PR is scoped, reviewed, checks passed, and no policy boundary is present",
+    facts,
+  };
+}
+
+function mergeDecision(state, canMerge, boundaryResult) {
+  assertWorkflowState(state);
+  return {
+    state,
+    canMerge,
+    requiresJohn: boundaryResult.boundaryType !== "NONE" && ![
+      "WAITING_EXTERNAL_EVENT",
+      "SAFETY_GATE_FAILED",
+      "CAPABILITY_UNAVAILABLE",
+    ].includes(boundaryResult.boundaryType),
+    boundary: boundaryResult,
+    reason: boundaryResult.reason,
+  };
+}
+
+function completionSatisfied(input = {}) {
+  return Boolean(
+    input.acceptanceCriteriaSatisfied &&
+    input.evidenceRecorded &&
+    input.exactCommitVerified &&
+    input.remoteAlignmentVerified &&
+    input.ledgerUpdated &&
+    input.runRecordUpdated &&
+    (input.prMerged === undefined || input.prMerged === true) &&
+    (input.postMergeValidationPassed === undefined || input.postMergeValidationPassed === true)
+  );
+}
+
+function completionState(input = {}) {
+  if (completionSatisfied(input)) return "COMPLETED";
+  if (input.postMergeValidationPassed === false) return "FAILED_RETRYABLE";
+  if (input.prMerged && !input.postMergeValidationPassed) return "POST_MERGE_VERIFY";
+  return "VERIFYING";
+}
+
+function validateApprovalRegistry(registry) {
+  assertSecretFree(registry, "approval registry");
+  if (!registry || typeof registry !== "object") throw new Error("approval registry must be an object");
+  if (registry.version !== 1) throw new Error("approval registry version must be 1");
+  const approvals = Array.isArray(registry.approvals) ? registry.approvals : [];
+  const seen = new Set();
+  for (const approval of approvals) {
+    validateApproval(approval);
+    if (seen.has(approval.approvalId)) throw new Error(`duplicate approvalId: ${approval.approvalId}`);
+    seen.add(approval.approvalId);
+  }
+  return { ok: true, approvals: approvals.length };
+}
+
+function validateApproval(approval) {
+  if (!approval || typeof approval !== "object") throw new Error("approval entry must be an object");
+  if (!approval.approvalId || typeof approval.approvalId !== "string") throw new Error("approval entry requires approvalId");
+  if (!APPROVAL_STATUSES.includes(approval.status)) throw new Error(`unsupported approval status: ${approval.status}`);
+  if (!Array.isArray(approval.scope) || approval.scope.length === 0) throw new Error(`approval ${approval.approvalId} requires non-empty scope`);
+  if (approval.expiresAt && Number.isNaN(Date.parse(approval.expiresAt))) throw new Error(`approval ${approval.approvalId} has invalid expiresAt`);
+  if (approval.consumedAt && Number.isNaN(Date.parse(approval.consumedAt))) throw new Error(`approval ${approval.approvalId} has invalid consumedAt`);
+}
+
+function approvalUsable(registry, approvalId, requiredScope = []) {
+  validateApprovalRegistry(registry);
+  const approvals = Array.isArray(registry.approvals) ? registry.approvals : [];
+  const approval = approvals.find((item) => item.approvalId === approvalId);
+  if (!approval) return { usable: false, boundary: boundary("PRODUCTION_MUTATION_APPROVAL", `Approval ${approvalId} is not present.`) };
+  if (approval.status !== "granted") return { usable: false, boundary: boundary("PRODUCTION_MUTATION_APPROVAL", `Approval ${approvalId} status is ${approval.status}.`) };
+  if (approval.expiresAt && Date.parse(approval.expiresAt) <= Date.now()) return { usable: false, boundary: boundary("PRODUCTION_MUTATION_APPROVAL", `Approval ${approvalId} is expired.`) };
+  const missingScope = requiredScope.filter((scope) => !approval.scope.includes(scope));
+  if (missingScope.length) return { usable: false, boundary: boundary("PRODUCTION_MUTATION_APPROVAL", `Approval ${approvalId} is missing scope: ${missingScope.join(", ")}.`) };
+  return { usable: true, approval };
+}
+
+function loadApprovalRegistry(filePath = path.join(LIBRARY_ROOT, "state", "approval-registry.json")) {
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+function createDecisionRecord(input = {}) {
+  assertSecretFree(input, "decision record input");
+  const record = {
+    schemaVersion: 1,
+    decisionId: input.decisionId || `decision-${new Date().toISOString()}`,
+    recordedAt: input.recordedAt || new Date().toISOString(),
+    objectiveId: input.objectiveId || "",
+    repository: input.repository || "",
+    branch: input.branch || "",
+    stateBefore: input.stateBefore || "READY",
+    stateAfter: input.stateAfter || "COMPLETED",
+    boundaryType: input.boundaryType || "NONE",
+    action: input.action || "",
+    evidence: input.evidence || [],
+    safetyGates: input.safetyGates || [],
+    approvalId: input.approvalId || null,
+    nextAutomaticStep: input.nextAutomaticStep || "",
+    exactInputRequiredFromJohn: input.exactInputRequiredFromJohn || "none",
+  };
+  assertWorkflowState(record.stateBefore);
+  assertWorkflowState(record.stateAfter);
+  assertBoundaryType(record.boundaryType);
+  assertSecretFree(record, "decision record");
+  return record;
+}
+
+function assertSecretFree(value, label = "object") {
+  walk(value, [], (current, keyPath) => {
+    const key = keyPath[keyPath.length - 1] || "";
+    if (PROHIBITED_VALUE_KEYS.has(key)) throw new Error(`${label} contains prohibited secret-bearing key: ${keyPath.join(".")}`);
+    if (typeof current !== "string") return;
+    for (const pattern of SECRET_VALUE_PATTERNS) {
+      if (pattern.test(current)) throw new Error(`${label} contains secret-shaped value at ${keyPath.join(".") || "(root)"}`);
+    }
+  });
+}
+
+function walk(value, keyPath, visit) {
+  visit(value, keyPath);
+  if (!value || typeof value !== "object") return;
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => walk(item, keyPath.concat(String(index)), visit));
+    return;
+  }
+  for (const [key, child] of Object.entries(value)) {
+    walk(child, keyPath.concat(key), visit);
+  }
+}
+
+function boundaryDescriptions() {
+  return BOUNDARY_TYPES.map((type) => ({
+    type,
+    state: stateForBoundary(type),
+    exactInputRequired: exactInputForBoundary(type),
+  }));
+}
+
+function main(argv = process.argv.slice(2)) {
+  const [command, value] = argv;
+  if (!command || command === "--help" || command === "-h") {
+    console.log(`Usage:
+  node scripts/autonomous-boundaries --list-states
+  node scripts/autonomous-boundaries --list-boundaries
+  node scripts/autonomous-boundaries --validate-approvals [file]
+  node scripts/autonomous-boundaries --explain-boundary <TYPE>`);
+    return 0;
+  }
+  if (command === "--list-states") {
+    for (const state of WORKFLOW_STATES) console.log(state);
+    return 0;
+  }
+  if (command === "--list-boundaries") {
+    for (const item of boundaryDescriptions()) {
+      console.log(`${item.type}\t${item.state}\t${item.exactInputRequired}`);
+    }
+    return 0;
+  }
+  if (command === "--validate-approvals") {
+    const registry = loadApprovalRegistry(value || undefined);
+    const result = validateApprovalRegistry(registry);
+    console.log(`approval_registry_valid=yes approvals=${result.approvals}`);
+    return 0;
+  }
+  if (command === "--explain-boundary") {
+    assertBoundaryType(value);
+    const result = boundary(value, "Boundary explanation requested.");
+    console.log(`boundary=${result.boundaryType}`);
+    console.log(`state=${result.state}`);
+    console.log(`exact_input_required=${result.exactInputRequired}`);
+    return 0;
+  }
+  throw new Error(`unknown command: ${command}`);
+}
+
+if (require.main === module) {
+  try {
+    process.exitCode = main();
+  } catch (error) {
+    console.error(error.message);
+    process.exitCode = 1;
+  }
+}
+
+module.exports = {
+  WORKFLOW_STATES,
+  BOUNDARY_TYPES,
+  APPROVAL_STATUSES,
+  LIFECYCLE,
+  assertNoVagueBoundary,
+  classifyBoundary,
+  evaluateAutomaticMerge,
+  completionSatisfied,
+  completionState,
+  validateApprovalRegistry,
+  approvalUsable,
+  loadApprovalRegistry,
+  createDecisionRecord,
+  assertSecretFree,
+  boundaryDescriptions,
+};

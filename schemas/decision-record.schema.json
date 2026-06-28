@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/coding-workflow/decision-record.schema.json",
+  "title": "Coding Workflow Decision Record",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "decisionId",
+    "recordedAt",
+    "stateBefore",
+    "stateAfter",
+    "boundaryType",
+    "action",
+    "evidence",
+    "exactInputRequiredFromJohn"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "decisionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recordedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "objectiveId": {
+      "type": "string"
+    },
+    "repository": {
+      "type": "string"
+    },
+    "branch": {
+      "type": "string"
+    },
+    "stateBefore": {
+      "type": "string"
+    },
+    "stateAfter": {
+      "type": "string"
+    },
+    "boundaryType": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "safetyGates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "approvalId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "nextAutomaticStep": {
+      "type": "string"
+    },
+    "exactInputRequiredFromJohn": {
+      "type": "string"
+    }
+  }
+}

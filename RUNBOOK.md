@@ -54,9 +54,9 @@ Use these blocker states:
 
 Route metadata is the future source of truth for reusable workflow ownership. Keep `scripts/run-next` working, but prefer adding or updating `routes/skill-routes.json` when a proven ledger state should map to a durable skill. A reusable skill is incomplete until it has route metadata or a deliberate hold reason in `build-queue.md`. Manual helpers are allowed, but they should not remain orphaned once a workflow is proven.
 
-For GitHub PR handoff work, `PR opened, not merged` is not a dead end. `scripts/run-next --allow pr-readiness` may inspect the PR, collect files/checks/mergeability/review evidence, update the ledger, and stop before merge. Merge remains a separate John-required gate.
+For GitHub PR handoff work, `PR opened, not merged` is not a dead end. `scripts/run-next --allow pr-readiness` may inspect the PR, collect files/checks/mergeability/review evidence, update the ledger, and continue to the normal merge path when the active objective already grants `remote_publication`.
 
-When John explicitly approves the merge gate and the ledger status is `PR ready for merge approval`, `scripts/run-next --allow pr-merge` may merge PR #11 only after rechecking auth, repo access, exact changed files, PR state, mergeability, checks, and repo-local workflow deployment evidence. It must stop at `Merged, not deployed`; deployment planning, Supabase secret setup, scheduler changes, runtime endpoint checks, and deployed RLS/grants remain separate gates.
+When the ledger status is `PR ready for merge approval`, `scripts/run-next --allow pr-merge` may merge a verified workflow-authored PR by normal repository rules only after rechecking auth, repo access, exact changed files, PR state, mergeability, checks, reviewed head SHA, and intended scope. This is not an admin merge or branch-protection bypass. It must continue to `POST_MERGE_VERIFY` and only record completion after exact merge commit, local validation, remote alignment, ledger update, and run-record update pass. Deployment planning, Supabase secret setup, scheduler changes, runtime endpoint checks, and deployed RLS/grants remain separate gates.
 
 When John explicitly approves deployment planning and the ledger status is `Merged, not deployed`, `scripts/run-next --allow deployment-plan` may inspect local/source evidence and produce a deployment plan. It must not deploy, set secrets, run migrations, mutate Supabase, update schedulers, call production endpoints, push, create PRs, or merge anything. It must stop at `Deployment plan ready, not deployed`.
 
@@ -124,7 +124,7 @@ Tool selection must respect `tools.md`. If a tool's permission level is higher t
 
 1. Follow the selected skill's Procedure.
 2. Use exact commands from the skill file or `command-library.md` only when they match the current repo, `tools.md`, and safety rules.
-3. Treat local edits, dependency installs, test/lint/build, commit, push, PR creation, merge/close, deploy, migration, database mutation, external API call, and release/tag as separate permission gates.
+3. Treat local edits, dependency installs, test/lint/build, commit, push, PR creation, merge/close, deploy, migration, database mutation, external API call, and release/tag as consequence classes. Do not request the same authority class twice for one objective, and do not treat a normal verified workflow-authored PR merge as a separate John boundary when `remote_publication` is already granted.
 4. When a command fails:
    - capture the exact command;
    - capture the exact error;
@@ -143,7 +143,7 @@ Tool selection must respect `tools.md`. If a tool's permission level is higher t
 3. Run `./scripts/skill-cleaner` before creating a new skill if overlap is possible.
 4. Run `./scripts/skill-cleaner` after adding several skills.
 5. Use cleaner recommendations as input, not automatic truth.
-6. John must approve merge, deprecate, delete, or rename actions.
+6. John must approve deprecate, delete, rename, destructive, production, secret, legal, billing, product, or security-tradeoff actions when not already covered by the objective. Normal verified workflow-authored PR merges follow the automatic merge policy in `docs/autonomous-decision-boundaries.md`.
 7. Prefer validator output over manual grep checks for library health.
 8. Use `evidence-checklist.md` for final verification.
 9. Update `work-ledger.md` with status, evidence, blockers, next skill, exact next action, and whether John is needed.

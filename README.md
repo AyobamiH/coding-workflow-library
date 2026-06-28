@@ -31,14 +31,20 @@ skills/coding-workflow-library/
     skill-routes.json
   schemas/
     work-lanes.schema.json
+    approval-registry.schema.json
+    decision-record.schema.json
     workflow-corpus.schema.json
     workflow-source-manifest.schema.json
   runs/
+    decisions/
     skill-runs.md
+  state/
+    approval-registry.json
   bin/
     coding-workflow.js
   scripts/
     committer
+    autonomous-boundaries
     objective-authority
     lane-state
     evidence-pack
@@ -172,6 +178,8 @@ Each lane may carry an active objective with an authority envelope. `local_execu
 
 Child skills inherit the parent objective authority. Capability failures are recorded separately from permission: unavailable npm auth, missing `gh`, missing DB URL, or absent binaries are `BLOCKED_CAPABILITY`, while failed tests or unsafe package contents are `BLOCKED_SAFETY`.
 
+Normal verified workflow-authored PR merge is part of `remote_publication`, not a separate John boundary. The runner may merge by normal repository rules only when checks pass, the reviewed head has not changed, the diff scope is intended, and repository policy does not require a different human reviewer. A merge moves the workflow into `POST_MERGE_VERIFY`; completion is recorded only after exact-commit and remote-alignment evidence are captured.
+
 ```bash
 coding-workflow objective show --lane example-project --state-file /path/to/lanes.json
 coding-workflow objective approve --lane example-project --grant remote_publication --state-file /path/to/lanes.json
@@ -210,7 +218,7 @@ If the missing boundary requires instrumentation, use a separate count-only obse
 ./scripts/run-next --lane <lane-id> --state-file /path/to/lanes.json --repo /path/to/repo --allow zero-output-observability-patch
 ```
 
-That route validates local aggregate telemetry only. Commit, PR, merge, deploy, and automatic-run recheck remain separate gates, and the recheck uses `--allow observability-run-recheck`.
+That route validates local aggregate telemetry only. Commit, PR, deploy, and automatic-run recheck remain separate consequence classes, and the recheck uses `--allow observability-run-recheck`. Normal verified workflow-authored PR merge follows the automatic merge policy when `remote_publication` is granted.
 
 ## Route Metadata
 
@@ -331,9 +339,9 @@ Use `--list-routes` to inspect local route metadata without reading credentials,
 
 Current automation supports the `Auth pass for GitHub handoff` path for `/home/johnh/wagging-web-wins`: it isolates `GH_TOKEN`, verifies `AyobamiH/wagging-web-wins` access, checks local repo safety, creates/switches the feature branch, pushes that branch only, and creates or confirms the PR.
 
-It also supports `PR opened, not merged` as a read-only PR readiness inspection path. With `--allow pr-readiness` or `--allow github-handoff`, the runner inspects PR metadata, changed files, commits, checks, mergeability, review decision, and local repo state, then records one of: `PR ready for merge approval`, `PR blocked by checks`, `PR blocked by unexpected files`, `PR blocked by mergeability`, or `PR readiness unknown`. It never merges.
+It also supports `PR opened, not merged` as a PR readiness inspection path. With `--allow pr-readiness` or inherited `remote_publication`, the runner inspects PR metadata, changed files, commits, checks, mergeability, review decision, reviewed head SHA, and local repo state, then records one of: `PR_CHECKS_PENDING`, `PR_READY`, `PR blocked by checks`, `PR blocked by unexpected files`, `PR blocked by mergeability`, or `PR readiness unknown`. It may proceed to normal merge only when the automatic merge policy in `docs/autonomous-decision-boundaries.md` passes.
 
-When the ledger status is `PR ready for merge approval`, `scripts/run-next --allow pr-merge` can perform the separate merge gate for PR #11 only. It rechecks GitHub auth, repo access, exact PR file scope, PR state, mergeability, PR checks, and repo-local GitHub workflow deployment evidence before running `gh pr merge --merge`. It does not delete the feature branch, deploy, run migrations, mutate Supabase, or call production endpoints. After a successful merge it records `Merged, not deployed` and stops.
+When the ledger status is `PR ready for merge approval`, `scripts/run-next --allow pr-merge` can perform a normal merge for a verified workflow-authored PR only. It rechecks GitHub auth, repo access, exact PR file scope, PR state, mergeability, PR checks, reviewed head SHA, and repo-local evidence before running `gh pr merge --merge`. It does not admin-merge, force-push, bypass branch protection, delete protected evidence, deploy, run migrations, mutate Supabase, or call production endpoints. After a successful merge it enters `POST_MERGE_VERIFY`; it records completion only after exact merge commit, local validation, remote alignment, ledger update, and run-record update pass.
 
 When the ledger status is `Merged, not deployed`, `scripts/run-next --allow deployment-plan` can inspect local/source evidence and produce a Supabase deployment plan. It reads repo state, Supabase config, the `import-reddit-tips` Edge Function, relevant docs/migrations, package scripts, and local CLI availability. It does not set secrets, deploy functions, run migrations, mutate Supabase, update schedulers, call production endpoints, push, create PRs, or merge anything. After a successful planning run it records `Deployment plan ready, not deployed`.
 
@@ -425,7 +433,7 @@ It is not npm publication, `npm version`, GitHub release creation, deployment, p
 - Vendor skill intake is not active-skill installation for a target repo. Keep vendor files isolated under `vendor-intake/`, read them as advisory evidence, and adapt only the local library rules that improve safety.
 - `AGENTS.md` permission gates override any convenience implied by a skill file.
 - Read-only mapping and evidence gathering should happen before edits.
-- Permission gates are separate: local edits, installs, builds, commits, pushes, PRs, deploys, migrations, database mutations, external API calls, releases, and merges each need their own authorization.
+- Consequence classes are separate, but one objective-level grant covers the matching class for that objective. Local edits, installs, builds, commits, pushes, PRs, normal verified workflow-authored merges, deploys, migrations, database mutations, external API calls, and releases must be classified before execution; do not ask twice for the same granted class, and do not cross production, secret, destructive, legal, billing, product, or security boundaries without exact approval.
 - Do not print secrets, `.env` contents, bearer tokens, or credential file contents.
 - Do not overwrite configs, run deploys, apply migrations, or broaden OpenClaw permissions without explicit approval.
 - Do not say a task is complete without evidence.

@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "description": "Secret-free approval registry shape for autonomous workflow runs. Real approvals may be local-only or committed only when they contain no credentials, project identifiers, or private runtime data.",
+  "approvalStatuses": [
+    "granted",
+    "consumed",
+    "expired",
+    "denied",
+    "revoked",
+    "not_applicable"
+  ],
+  "approvals": []
+}

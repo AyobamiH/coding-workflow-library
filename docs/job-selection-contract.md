@@ -37,7 +37,7 @@ The route's `requires_permission` value must match one supplied `--allow` flag b
 - Never mutate production without explicit permission.
 - Never deploy without explicit permission.
 - Never run database writes without explicit permission.
-- Never merge PRs without explicit permission.
+- Never merge PRs without inherited `remote_publication` authority or explicit merge approval, unchanged reviewed head, passing checks, intended scope, and normal repository mergeability.
 - Never publish npm or create releases without explicit permission.
 - Never borrow another repo's ledger state.
 - Never let dry-run or explain modes mutate files or lane state.
@@ -50,7 +50,7 @@ Resume dry-run must inspect the latest incomplete checkpoint for the target repo
 
 ## Evidence Rules
 
-The output must include detected repo, current ledger state, selected skill/job, required permission, whether it can run now, why it stopped, and the next command if approval is required.
+The output must include detected repo, current ledger state, selected skill/job, required authority, workflow state, exact boundary type when stopped, whether it can run now, why it stopped, and the next command or exact input if approval is required.
 
 ## Stop Rules
 

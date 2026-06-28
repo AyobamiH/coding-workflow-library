@@ -43,7 +43,7 @@ Dry-run resume locates the latest incomplete run, inspects current Git state, ch
 ./scripts/run-next --repo /path/to/repo --resume --allow <permission>
 ```
 
-The first implementation only completes checkpoints that can be completed without replaying a potentially mutating execution step. If the first incomplete checkpoint might represent an in-flight operation, `run-next` stops and asks for route-specific approval instead of guessing.
+The generic resume implementation only completes checkpoints that can be completed without replaying a potentially mutating execution step. If the first incomplete checkpoint might represent an in-flight operation, `run-next` stops with a named route-specific replay boundary instead of guessing or asking for vague approval. A route-specific adapter may continue automatically when it can prove the prior push, PR, merge, or validation already happened and can safely resume at verification or record.
 
 ## Safety Checks
 
@@ -86,4 +86,4 @@ Tests scan simulated checkpoint state for common token-shaped strings.
 
 ## Failure And Stop Conditions
 
-The correct resume behavior is sometimes to stop. A safe stop includes the run id, phase, next incomplete checkpoint, missing permission or changed-state reason, and the next command John can approve.
+The correct resume behavior is sometimes to stop. A safe stop includes the run id, phase, next incomplete checkpoint, exact boundary type, missing capability or changed-state reason, and the next command or exact input John can provide. Pending checks, already-open PRs, and already-merged workflow-authored PRs should be reused or verified instead of recreated.

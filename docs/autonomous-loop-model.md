@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The autonomous loop turns the workflow library into a bounded operator: read one selected project lane (or the legacy ledger), choose the next safe job, check permission flags, run only the covered step, record evidence, and stop at a real John-required boundary.
+The autonomous loop turns the workflow library into a bounded operator: read one selected project lane (or the legacy ledger), choose the next safe job, check objective authority or legacy permission flags, run only the covered step, record evidence, and stop only at a named external boundary.
 
 ## Why Skills Exist
 
@@ -54,7 +54,7 @@ Each real run must record detected repo, current ledger state, selected skill/jo
 
 ## Stop Conditions
 
-The loop stops when no ledger item exists for the repo, the status is unknown, the route is not implemented, the required permission was not granted, credentials are missing or under-scoped, a safety scan finds a real secret value, or the next step would cross a deploy/database/production/release boundary without explicit permission.
+The loop stops when no ledger item exists for the repo, the status is unknown, the route is not implemented, the required authority was not granted, credentials are missing or under-scoped, a safety scan finds a real secret value, repository policy blocks the action, the reviewed head changed, checks are failing or pending, or the next step would cross production, secret, destructive, legal, billing, product, or security boundaries without exact approval. It should not stop merely because a verified workflow-authored PR exists or is ready for normal merge.
 
 Resume mode also stops when the branch changed, tracked files changed unexpectedly, checkpoint state is invalid, or continuing would replay a potentially completed mutation.
 

@@ -4,6 +4,21 @@ This is the persistent control-plane ledger for `coding-workflow-orchestrator-sk
 
 Each entry records the active repo, objective, permission boundary, selected skill, evidence, blockers, and exact next action. The ledger is operational state, not a polished report.
 
+## 2026-06-28 - Autonomous Decision Boundary Engine
+
+* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Current objective: Add a first-class autonomous decision boundary engine so verified workflow-authored PRs can be merged under normal rules without repeated babysitting, while true external boundaries remain explicit.
+* Current permission level: local workflow-library edits, validation, exact-file commit/PR handoff, and approved normal merge verification for workflow-authored PRs; no production mutation, secret mutation, destructive action, npm publish, release creation, force push, or history rewrite.
+* Current status: Autonomous decision engine implemented and validated locally; branch handoff pending.
+* Selected skill: `coding-workflow-orchestrator-skill` with `github-handoff-skill` policy updates.
+* Last commands run: `gh pr view`/`gh pr checks` verification for OpsTruth PR #9 and workflow-library PR #1; normal `gh pr merge` for both verified PRs; post-merge pull/validation; `node tests/autonomous-boundaries.test.js`; `node scripts/check-js`; `node scripts/autonomous-boundaries --validate-approvals`; `node scripts/run-next --doctor`; `node scripts/run-next --explain-boundary PRODUCTION_MUTATION_APPROVAL`; `node scripts/run-next --list-approvals`; `npm test`; `./scripts/validate-skills`; `node scripts/route-audit`.
+* Files changed: `scripts/autonomous-boundaries`; `tests/autonomous-boundaries.test.js`; `state/approval-registry.json`; `runs/decisions/README.md`; approval/decision schemas; autonomous boundary docs; `scripts/run-next`; package/test wiring; operator docs and GitHub/orchestrator skill docs.
+* Validation evidence: OpsTruth PR #9 checks were passing before normal merge and post-merge completion gate passed. Workflow-library PR #1 checks were passing before normal merge and post-merge `validate-skills`, `npm run check`, and exact-commit CI passed. New autonomous boundary tests passed. Full `npm test`, route audit, and skill validation passed.
+* Blockers: None for local implementation. Remote branch/PR handoff remains the next normal publication step for this new workflow-policy change.
+* Next recommended skill: `github-handoff-skill`.
+* Exact next action: Commit the autonomous decision boundary engine, push a feature branch, open a review PR, then resume the active Wagging telemetry lane with the improved boundary classifier.
+* Whether John is needed: No for normal feature-branch push/PR under the active approved workflow-publication objective. Yes only for production mutation, secret mutation, destructive action, npm publish, release creation, force push, or repository-policy blocks.
+
 ## 2026-06-11 - Coding Workflow Orchestrator Layer
 
 * Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library` (library path; Git reports this path and `/home/johnh/.openclaw` are not Git repositories).
