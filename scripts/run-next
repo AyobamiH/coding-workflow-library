@@ -570,10 +570,15 @@ function printApprovalRegistry() {
 function printBoundaryExplanation(type) {
   const result = autonomousBoundaries.classifyBoundary({ boundaryType: type, reason: "Boundary explanation requested." });
   console.log("# boundary explanation");
-  console.log(`boundary type: ${result.boundaryType}`);
+  console.log(`boundary_type: ${result.boundary_type}`);
   console.log(`workflow state: ${result.state}`);
+  console.log(`boundary_reason: ${result.boundary_reason}`);
+  console.log(`evidence: ${result.evidence.join(", ") || "none"}`);
+  console.log(`why_autonomous_resolution_is_unsafe_or_impossible: ${result.why_autonomous_resolution_is_unsafe_or_impossible}`);
   console.log(`safe to continue automatically: ${result.safeToContinueAutomatically ? "yes" : "no"}`);
-  console.log(`exact input required from John: ${result.exactInputRequired}`);
+  console.log(`exact_human_input_required: ${result.exact_human_input_required}`);
+  console.log(`resume_condition: ${result.resume_condition}`);
+  console.log(`resume_command: ${result.resume_command}`);
 }
 
 function printLaneList() {

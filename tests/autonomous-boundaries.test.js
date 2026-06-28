@@ -26,6 +26,7 @@ assert(boundaries.WORKFLOW_STATES.includes("COMPLETED"));
 assert(boundaries.BOUNDARY_TYPES.includes("PRODUCTION_MUTATION_APPROVAL"));
 assert(boundaries.BOUNDARY_TYPES.includes("INDEPENDENT_REVIEW_REQUIRED"));
 assert(boundaries.BOUNDARY_TYPES.includes("UNTRUSTED_CHANGE"));
+assert(boundaries.APPROVAL_STATUSES.includes("required"));
 
 assert.equal(boundaries.validateApprovalRegistry(registry()).ok, true);
 assert.equal(
@@ -72,6 +73,7 @@ assert.equal(merge.canMerge, true);
 assert.equal(merge.requiresJohn, false);
 assert.equal(merge.state, "PR_READY");
 assert.equal(merge.boundary.boundaryType, "NONE");
+assert.equal(merge.boundary.boundary_type, "NONE");
 
 const pending = boundaries.evaluateAutomaticMerge({
   workflowAuthored: true,
@@ -82,7 +84,8 @@ const pending = boundaries.evaluateAutomaticMerge({
 });
 assert.equal(pending.canMerge, false);
 assert.equal(pending.state, "PR_CHECKS_PENDING");
-assert.equal(pending.boundary.boundaryType, "WAITING_EXTERNAL_EVENT");
+assert.equal(pending.boundary.boundaryType, "EXTERNAL_SERVICE_UNAVAILABLE");
+assert.match(pending.boundary.resume_command, /run-next --status/);
 
 const failing = boundaries.evaluateAutomaticMerge({
   workflowAuthored: true,
@@ -119,7 +122,10 @@ assert.equal(reviewRequired.boundary.boundaryType, "INDEPENDENT_REVIEW_REQUIRED"
 
 const production = boundaries.classifyBoundary({ productionMutation: true });
 assert.equal(production.boundaryType, "PRODUCTION_MUTATION_APPROVAL");
+assert.equal(production.boundary_type, "PRODUCTION_MUTATION_APPROVAL");
 assert.match(production.exactInputRequired, /exact production mutation approval/i);
+assert.match(production.exact_human_input_required, /exact production mutation approval/i);
+assert.match(production.resume_condition, /exact required input/i);
 
 assert.equal(boundaries.classifyBoundary({ productionMutation: true, productionApproval: true }).boundaryType, "NONE");
 
@@ -157,14 +163,27 @@ assert.equal(
 
 const record = boundaries.createDecisionRecord({
   decisionId: "normal-merge-001",
+  runId: "run-001",
   objectiveId: "test-objective",
   stateBefore: "PR_READY",
   stateAfter: "POST_MERGE_VERIFY",
   boundaryType: "NONE",
   action: "normal merge of verified workflow-authored PR",
+  question: "merge versus stop",
+  availableOptions: ["merge normally", "stop"],
+  selectedOption: "merge normally",
+  rejectedOptions: ["stop"],
+  constraints: ["normal merge only"],
+  confidence: "high",
+  reversible: false,
+  approvalRequired: false,
   evidence: ["checks passed", "head matched reviewed SHA"],
 });
 assert.equal(record.exactInputRequiredFromJohn, "none");
+assert.equal(record.runId, "run-001");
+assert.equal(record.question, "merge versus stop");
+assert.equal(record.selectedOption, "merge normally");
+assert.equal(record.result, "POST_MERGE_VERIFY");
 
 assert.throws(
   () => boundaries.createDecisionRecord({

@@ -28,20 +28,20 @@ const BOUNDARY_TYPES = [
   "PRODUCTION_MUTATION_APPROVAL",
   "SECRET_MUTATION_APPROVAL",
   "DESTRUCTIVE_ACTION_APPROVAL",
-  "BILLING_OR_ACCOUNT_DECISION",
-  "LEGAL_OR_LICENSE_DECISION",
-  "PRODUCT_OR_BUSINESS_DECISION",
+  "BILLING_DECISION",
+  "LEGAL_OR_POLICY_DECISION",
+  "BUSINESS_PREFERENCE_REQUIRED",
   "SECURITY_PRIVACY_TRADEOFF",
   "INDEPENDENT_REVIEW_REQUIRED",
   "REPOSITORY_POLICY_BLOCK",
   "UNTRUSTED_CHANGE",
-  "CAPABILITY_UNAVAILABLE",
-  "WAITING_EXTERNAL_EVENT",
+  "EXTERNAL_SERVICE_UNAVAILABLE",
   "SAFETY_GATE_FAILED",
-  "CONFLICTING_OBJECTIVE",
+  "CONFLICTING_REQUIREMENTS",
 ];
 
 const APPROVAL_STATUSES = [
+  "required",
   "granted",
   "consumed",
   "expired",
@@ -94,11 +94,21 @@ const PROHIBITED_VALUE_KEYS = new Set([
 
 function boundary(type, reason, options = {}) {
   assertBoundaryType(type);
+  const state = options.state || stateForBoundary(type);
+  const exactInput = options.exactInputRequired || exactInputForBoundary(type);
+  const resumeCondition = options.resumeCondition || resumeConditionForBoundary(type);
   return {
     boundaryType: type,
-    state: options.state || stateForBoundary(type),
+    boundary_type: type,
+    state,
     reason: reason || "No reason recorded.",
-    exactInputRequired: options.exactInputRequired || exactInputForBoundary(type),
+    boundary_reason: reason || "No reason recorded.",
+    evidence: options.evidence || [],
+    why_autonomous_resolution_is_unsafe_or_impossible: options.whyUnsafe || whyUnsafeForBoundary(type),
+    exactInputRequired: exactInput,
+    exact_human_input_required: exactInput,
+    resume_condition: resumeCondition,
+    resume_command: options.resumeCommand || resumeCommandForBoundary(type),
     safeToContinueAutomatically: type === "NONE",
     nextAutomaticStep: options.nextAutomaticStep || "",
     evidenceRequired: options.evidenceRequired || [],
@@ -109,8 +119,7 @@ function stateForBoundary(type) {
   if (type === "NONE") return "READY";
   if ([
     "CREDENTIAL_REQUIRED",
-    "CAPABILITY_UNAVAILABLE",
-    "WAITING_EXTERNAL_EVENT",
+    "EXTERNAL_SERVICE_UNAVAILABLE",
   ].includes(type)) return "BLOCKED_EXTERNAL";
   if ([
     "PRODUCTION_MUTATION_APPROVAL",
@@ -137,19 +146,58 @@ function exactInputForBoundary(type) {
       return "Resolve repository policy or branch protection without bypassing it.";
     case "UNTRUSTED_CHANGE":
       return "Re-review the changed head commit or untrusted contribution scope.";
-    case "BILLING_OR_ACCOUNT_DECISION":
+    case "BILLING_DECISION":
       return "John must make the billing or external account decision.";
-    case "LEGAL_OR_LICENSE_DECISION":
+    case "LEGAL_OR_POLICY_DECISION":
       return "John must make the legal, license, or ownership decision.";
-    case "PRODUCT_OR_BUSINESS_DECISION":
+    case "BUSINESS_PREFERENCE_REQUIRED":
       return "John must make the product or business decision.";
     case "SECURITY_PRIVACY_TRADEOFF":
       return "John must choose the security or privacy tradeoff.";
-    case "WAITING_EXTERNAL_EVENT":
-      return "Wait for the named external event, then resume from the recorded checkpoint.";
+    case "EXTERNAL_SERVICE_UNAVAILABLE":
+      return "Restore the unavailable external service or provide a supported alternate capability.";
+    case "CONFLICTING_REQUIREMENTS":
+      return "Resolve the conflicting requirements that cannot be safely inferred from project state.";
     default:
       return "No John input required.";
   }
+}
+
+function whyUnsafeForBoundary(type) {
+  switch (type) {
+    case "NONE":
+      return "Autonomous continuation is safe under the current objective and evidence.";
+    case "CREDENTIAL_REQUIRED":
+      return "The workflow cannot create or repair private credentials without external account action.";
+    case "PRODUCTION_MUTATION_APPROVAL":
+    case "SECRET_MUTATION_APPROVAL":
+    case "DESTRUCTIVE_ACTION_APPROVAL":
+      return "The next action changes protected external state and requires exact scoped approval.";
+    case "INDEPENDENT_REVIEW_REQUIRED":
+    case "REPOSITORY_POLICY_BLOCK":
+      return "Repository policy requires a condition the workflow cannot bypass.";
+    case "UNTRUSTED_CHANGE":
+      return "The reviewed evidence no longer matches the proposed change.";
+    case "EXTERNAL_SERVICE_UNAVAILABLE":
+      return "The required provider capability is unavailable or cannot be safely reached.";
+    case "SAFETY_GATE_FAILED":
+      return "A validation or safety gate failed and continuing could hide a real defect.";
+    default:
+      return "The answer depends on an external policy, account, business, legal, or security choice.";
+  }
+}
+
+function resumeConditionForBoundary(type) {
+  if (type === "NONE") return "Continue immediately.";
+  if (type === "SAFETY_GATE_FAILED") return "Fix the failing gate and rerun validation.";
+  if (type === "EXTERNAL_SERVICE_UNAVAILABLE") return "Provider capability is available or an approved safe substitute exists.";
+  if (type === "UNTRUSTED_CHANGE") return "The changed head or external contribution has been re-reviewed.";
+  return "The exact required input has been supplied and recorded.";
+}
+
+function resumeCommandForBoundary(type) {
+  if (type === "NONE") return "./scripts/run-next --resume";
+  return "./scripts/run-next --status && ./scripts/run-next --resume --dry-run";
 }
 
 function assertBoundaryType(type) {
@@ -183,17 +231,16 @@ function classifyBoundary(input = {}) {
   if (input.destructiveAction && !input.destructiveApproval) {
     return boundary("DESTRUCTIVE_ACTION_APPROVAL", input.reason || "Destructive action has no explicit approval.");
   }
-  if (input.billing || input.accountPurchase) return boundary("BILLING_OR_ACCOUNT_DECISION", input.reason || "Billing or account ownership decision required.");
-  if (input.legal || input.licenseDecision) return boundary("LEGAL_OR_LICENSE_DECISION", input.reason || "Legal or license decision required.");
-  if (input.productDecision || input.businessDecision) return boundary("PRODUCT_OR_BUSINESS_DECISION", input.reason || "Product or business direction required.");
+  if (input.billing || input.accountPurchase) return boundary("BILLING_DECISION", input.reason || "Billing or account ownership decision required.");
+  if (input.legal || input.licenseDecision) return boundary("LEGAL_OR_POLICY_DECISION", input.reason || "Legal or policy decision required.");
+  if (input.productDecision || input.businessDecision) return boundary("BUSINESS_PREFERENCE_REQUIRED", input.reason || "Business preference required.");
   if (input.securityTradeoff || input.privacyTradeoff) return boundary("SECURITY_PRIVACY_TRADEOFF", input.reason || "Security or privacy tradeoff required.");
   if (input.independentReviewRequired) return boundary("INDEPENDENT_REVIEW_REQUIRED", input.reason || "Repository policy requires review by someone else.");
   if (input.repositoryPolicyBlock) return boundary("REPOSITORY_POLICY_BLOCK", input.reason || "Repository policy prevents automatic continuation.");
   if (input.untrustedChange || input.headChanged || input.untrustedCommit) return boundary("UNTRUSTED_CHANGE", input.reason || "Head changed or includes untrusted work requiring re-review.");
-  if (input.capabilityUnavailable) return boundary("CAPABILITY_UNAVAILABLE", input.reason || "Required external capability is unavailable.");
-  if (input.waitingExternalEvent) return boundary("WAITING_EXTERNAL_EVENT", input.reason || "Waiting for an external event.");
+  if (input.capabilityUnavailable || input.waitingExternalEvent) return boundary("EXTERNAL_SERVICE_UNAVAILABLE", input.reason || "Required external service or capability is unavailable.");
   if (input.safetyFailed) return boundary("SAFETY_GATE_FAILED", input.reason || "A safety, validation, or secret-scan gate failed.");
-  if (input.conflictingObjective) return boundary("CONFLICTING_OBJECTIVE", input.reason || "Objectives conflict and cannot both be pursued safely.");
+  if (input.conflictingObjective || input.conflictingRequirements) return boundary("CONFLICTING_REQUIREMENTS", input.reason || "Requirements conflict and cannot both be pursued safely.");
   return boundary("NONE", "No external boundary detected.", { state: input.state || "READY" });
 }
 
@@ -248,9 +295,8 @@ function mergeDecision(state, canMerge, boundaryResult) {
     state,
     canMerge,
     requiresJohn: boundaryResult.boundaryType !== "NONE" && ![
-      "WAITING_EXTERNAL_EVENT",
+      "EXTERNAL_SERVICE_UNAVAILABLE",
       "SAFETY_GATE_FAILED",
-      "CAPABILITY_UNAVAILABLE",
     ].includes(boundaryResult.boundaryType),
     boundary: boundaryResult,
     reason: boundaryResult.reason,
@@ -321,10 +367,20 @@ function createDecisionRecord(input = {}) {
   const record = {
     schemaVersion: 1,
     decisionId: input.decisionId || `decision-${new Date().toISOString()}`,
+    runId: input.runId || "",
     recordedAt: input.recordedAt || new Date().toISOString(),
     objectiveId: input.objectiveId || "",
     repository: input.repository || "",
     branch: input.branch || "",
+    question: input.question || input.action || "",
+    availableOptions: input.availableOptions || input.options || [],
+    selectedOption: input.selectedOption || input.selected || input.action || "",
+    rejectedOptions: input.rejectedOptions || input.rejected || [],
+    constraints: input.constraints || [],
+    confidence: input.confidence || "medium",
+    reversible: input.reversible !== undefined ? Boolean(input.reversible) : true,
+    approvalRequired: Boolean(input.approvalRequired),
+    approvalReference: input.approvalReference || input.approvalId || null,
     stateBefore: input.stateBefore || "READY",
     stateAfter: input.stateAfter || "COMPLETED",
     boundaryType: input.boundaryType || "NONE",
@@ -334,6 +390,7 @@ function createDecisionRecord(input = {}) {
     approvalId: input.approvalId || null,
     nextAutomaticStep: input.nextAutomaticStep || "",
     exactInputRequiredFromJohn: input.exactInputRequiredFromJohn || "none",
+    result: input.result || input.stateAfter || "recorded",
   };
   assertWorkflowState(record.stateBefore);
   assertWorkflowState(record.stateAfter);
@@ -402,9 +459,12 @@ function main(argv = process.argv.slice(2)) {
   if (command === "--explain-boundary") {
     assertBoundaryType(value);
     const result = boundary(value, "Boundary explanation requested.");
-    console.log(`boundary=${result.boundaryType}`);
+    console.log(`boundary_type=${result.boundary_type}`);
     console.log(`state=${result.state}`);
-    console.log(`exact_input_required=${result.exactInputRequired}`);
+    console.log(`boundary_reason=${result.boundary_reason}`);
+    console.log(`exact_human_input_required=${result.exact_human_input_required}`);
+    console.log(`resume_condition=${result.resume_condition}`);
+    console.log(`resume_command=${result.resume_command}`);
     return 0;
   }
   throw new Error(`unknown command: ${command}`);

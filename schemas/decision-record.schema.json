@@ -6,7 +6,17 @@
   "required": [
     "schemaVersion",
     "decisionId",
+    "runId",
     "recordedAt",
+    "question",
+    "availableOptions",
+    "selectedOption",
+    "constraints",
+    "rejectedOptions",
+    "confidence",
+    "reversible",
+    "approvalRequired",
+    "approvalReference",
     "stateBefore",
     "stateAfter",
     "boundaryType",
@@ -23,6 +33,9 @@
       "type": "string",
       "minLength": 1
     },
+    "runId": {
+      "type": "string"
+    },
     "recordedAt": {
       "type": "string",
       "format": "date-time"
@@ -35,6 +48,45 @@
     },
     "branch": {
       "type": "string"
+    },
+    "question": {
+      "type": "string"
+    },
+    "availableOptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "selectedOption": {
+      "type": "string"
+    },
+    "rejectedOptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confidence": {
+      "type": "string"
+    },
+    "reversible": {
+      "type": "boolean"
+    },
+    "approvalRequired": {
+      "type": "boolean"
+    },
+    "approvalReference": {
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "stateBefore": {
       "type": "string"
@@ -70,6 +122,9 @@
       "type": "string"
     },
     "exactInputRequiredFromJohn": {
+      "type": "string"
+    },
+    "result": {
       "type": "string"
     }
   }
