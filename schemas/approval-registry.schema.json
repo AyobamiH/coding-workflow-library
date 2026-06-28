@@ -37,6 +37,7 @@
           },
           "status": {
             "enum": [
+              "required",
               "granted",
               "consumed",
               "expired",
