@@ -1396,3 +1396,17 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: No forbidden deploy, migration, Supabase mutation, production endpoint call, direct main push, force push, merge, token printing, token file write, unrelated staging, or evidence inclusion occurred..
 * Follow-up skill needed: github-handoff-skill / session-log-extraction-skill.
 * Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.
+
+## 2026-07-03 - run-next Autonomous Work Loop
+
+* Skill used: coding-workflow-orchestrator-skill; selected next skill was coding-workflow-orchestrator-skill / session-log-extraction-skill.
+* Goal: Read `work-ledger.md`, classify status `v0.2.0 locally prepared and validated; remote publication awaiting one objective-level approval`, check permission flags, and run only the next safe action.
+* Starting state: Target repo `<LIBRARY_REPO>`; permission flags `docs-list-foundation`; dry-run `no`.
+* Commands/tools used: `scripts/run-next --repo <LIBRARY_REPO> --allow docs-list-foundation`.
+* Files inspected: `AGENTS.md`; `RUNBOOK.md`; `tools.md`; `work-ledger.md`; selected ledger entry for `<LIBRARY_REPO>`.
+* Files changed: `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; docs-list source: tracked Markdown inventory; strict failures: duplicate current titles and orphaned current docs; docs-list syntax exit: 0; docs-list human inventory exit: 0; docs-list json inventory exit: 0; docs-list orphan inventory exit: 0; docs-list strict validation exit: 0.
+* Result: READY: deterministic documentation inventory validates; next active dependency is repo-map helper automation.
+* Failure/recovery notes: No forbidden deploy, migration, Supabase mutation, production endpoint call, direct main push, force push, merge, token printing, token file write, unrelated staging, or evidence inclusion occurred..
+* Follow-up skill needed: repo-map-skill / coding-workflow-orchestrator-skill.
+* Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.

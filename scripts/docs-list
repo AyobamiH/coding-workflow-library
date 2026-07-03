@@ -1,0 +1,333 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+const { spawnSync } = require("child_process");
+
+const DEFAULT_INDEX_FILES = [
+  "README.md",
+  "RUNBOOK.md",
+  "skills-index.md",
+  "docs/agent-and-skill-roadmap.md",
+  "build-queue.md",
+];
+
+const CONTROL_FILES = new Set([
+  "AGENTS.md",
+  "README.md",
+  "RUNBOOK.md",
+  "CONTRIBUTING.md",
+  "SECURITY.md",
+  "LICENSE-DECISION.md",
+  "CHANGELOG.md",
+  "skills-index.md",
+  "build-queue.md",
+  "command-library.md",
+  "tool-patterns.md",
+  "tools.md",
+  "evidence-checklist.md",
+  "work-ledger.md",
+]);
+
+const EXCLUDED_PARTS = new Set([
+  ".git",
+  ".run-next",
+  ".npm",
+  ".tmp",
+  "tmp",
+  "node_modules",
+  "coverage",
+  "dist",
+  "build",
+]);
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/docs-list [--repo <path>] [--json] [--validate] [--orphans]
+
+Inventory tracked Markdown documentation without reading secrets or generated private state.
+
+Modes:
+  default       Print grouped documentation inventory and warnings.
+  --json       Print deterministic machine-readable JSON.
+  --orphans    Print only orphan/reference findings in human mode.
+  --validate   Exit non-zero only for strict failures: orphaned current docs or duplicate titles.
+
+The helper uses git-tracked files when available. Historical release notes, run logs, and evidence notes are inventoried but not treated as current-doc orphan failures.`);
+}
+
+function parseArgs(argv) {
+  const args = {
+    repo: process.cwd(),
+    json: false,
+    validate: false,
+    orphans: false,
+    help: false,
+  };
+
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--repo") {
+      const value = argv[++i];
+      if (!value) throw new Error("--repo requires a path");
+      args.repo = value;
+    } else if (arg === "--json") {
+      args.json = true;
+    } else if (arg === "--validate") {
+      args.validate = true;
+    } else if (arg === "--orphans") {
+      args.orphans = true;
+    } else if (arg === "--help" || arg === "-h") {
+      args.help = true;
+    } else {
+      throw new Error(`unknown argument: ${arg}`);
+    }
+  }
+
+  return args;
+}
+
+function toRelative(repo, file) {
+  return path.relative(repo, file).replaceAll(path.sep, "/");
+}
+
+function safeRelative(value) {
+  return value.replaceAll(path.sep, "/").replace(/^\/+/, "");
+}
+
+function shouldExclude(relativePath) {
+  const parts = relativePath.split("/");
+  if (parts.some((part) => EXCLUDED_PARTS.has(part))) return true;
+  if (relativePath.endsWith(".tgz")) return true;
+  if (relativePath.endsWith(".env") || relativePath.includes(".env.")) return true;
+  if (relativePath.includes("workflow-corpus/")) return true;
+  if (relativePath.endsWith("pseudonym-map.json")) return true;
+  return false;
+}
+
+function walk(dir, repo, files = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    const relative = toRelative(repo, full);
+    if (shouldExclude(relative)) continue;
+    if (entry.isDirectory()) {
+      walk(full, repo, files);
+    } else {
+      files.push(relative);
+    }
+  }
+  return files;
+}
+
+function gitTrackedFiles(repo) {
+  const result = spawnSync("git", ["-C", repo, "ls-files"], {
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024 * 8,
+  });
+  if (result.status !== 0) return null;
+  return result.stdout.split(/\r?\n/).filter(Boolean).map(safeRelative);
+}
+
+function discoverFiles(repo, overrideFiles = null) {
+  const files = overrideFiles ? overrideFiles.map(safeRelative) : (gitTrackedFiles(repo) || walk(repo, repo));
+  return files
+    .filter((file) => file.toLowerCase().endsWith(".md"))
+    .filter((file) => !shouldExclude(file))
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function readFile(repo, relativePath) {
+  return fs.readFileSync(path.join(repo, relativePath), "utf8");
+}
+
+function extractTitle(text) {
+  const match = text.match(/^#\s+(.+?)\s*#*\s*$/m);
+  return match ? match[1].trim() : null;
+}
+
+function classify(relativePath) {
+  if (relativePath.startsWith("skill-files/")) return "skill";
+  if (relativePath.startsWith("templates/")) return "template";
+  if (relativePath.startsWith("docs/releases/") || relativePath === "CHANGELOG.md") return "release";
+  if (relativePath.startsWith("runs/") || relativePath.startsWith("evidence/")) return "historical";
+  if (relativePath.startsWith("tests/") || relativePath === "tests/library-validation-checklist.md") return "validation";
+  if (relativePath === "build-queue.md" || relativePath === "docs/agent-and-skill-roadmap.md") return "roadmap";
+  if (/methodology|corpus-recovery-report/.test(relativePath)) return "methodology";
+  if (relativePath.startsWith("docs/")) return "architecture";
+  if (CONTROL_FILES.has(relativePath)) return "control";
+  return "other";
+}
+
+function requiresIndexReference(doc) {
+  if (DEFAULT_INDEX_FILES.includes(doc.path)) return false;
+  if (["control", "release", "historical"].includes(doc.category)) return false;
+  return ["architecture", "methodology", "roadmap", "skill", "template", "validation", "other"].includes(doc.category);
+}
+
+function collectIndexText(repo, files, indexFiles = DEFAULT_INDEX_FILES) {
+  const chunks = [];
+  for (const file of indexFiles) {
+    if (files.includes(file) && fs.existsSync(path.join(repo, file))) {
+      chunks.push(readFile(repo, file));
+    }
+  }
+  return chunks.join("\n");
+}
+
+function isReferenced(doc, indexText) {
+  if (!requiresIndexReference(doc)) return true;
+  const filename = path.basename(doc.path);
+  return indexText.includes(doc.path) || indexText.includes(filename);
+}
+
+function buildInventory(options = {}) {
+  const repo = path.resolve(options.repo || process.cwd());
+  const files = discoverFiles(repo, options.trackedFiles || null);
+  const indexText = collectIndexText(repo, files, options.indexFiles || DEFAULT_INDEX_FILES);
+  const documents = files.map((relativePath) => {
+    const text = readFile(repo, relativePath);
+    const title = extractTitle(text);
+    const category = classify(relativePath);
+    return {
+      path: relativePath,
+      category,
+      title,
+      has_h1: Boolean(title),
+      current: !["release", "historical"].includes(category),
+      indexed: null,
+    };
+  });
+
+  for (const doc of documents) {
+    doc.indexed = isReferenced(doc, indexText);
+  }
+
+  const missingH1 = documents.filter((doc) => !doc.has_h1).map((doc) => doc.path);
+  const byTitle = new Map();
+  for (const doc of documents) {
+    if (!doc.title) continue;
+    const normalized = doc.title.toLowerCase();
+    if (!byTitle.has(normalized)) byTitle.set(normalized, []);
+    byTitle.get(normalized).push(doc.path);
+  }
+  const duplicateTitles = [...byTitle.entries()]
+    .filter(([, paths]) => paths.length > 1)
+    .map(([title, paths]) => ({ title, paths: paths.sort((a, b) => a.localeCompare(b)) }))
+    .sort((a, b) => a.title.localeCompare(b.title));
+  const orphans = documents
+    .filter((doc) => requiresIndexReference(doc) && !doc.indexed)
+    .map((doc) => doc.path);
+  const categories = {};
+  for (const doc of documents) categories[doc.category] = (categories[doc.category] || 0) + 1;
+
+  const strictFailures = [];
+  if (orphans.length) strictFailures.push(...orphans.map((file) => `orphan current document: ${file}`));
+  for (const duplicate of duplicateTitles) {
+    strictFailures.push(`duplicate title "${duplicate.title}": ${duplicate.paths.join(", ")}`);
+  }
+
+  return {
+    repo: ".",
+    source: options.trackedFiles ? "provided-files" : (gitTrackedFiles(repo) ? "git-tracked-files" : "filesystem-walk"),
+    totals: {
+      documents: documents.length,
+      missing_h1: missingH1.length,
+      duplicate_titles: duplicateTitles.length,
+      orphans: orphans.length,
+    },
+    categories,
+    documents,
+    warnings: {
+      missing_h1: missingH1,
+      duplicate_titles: duplicateTitles,
+      orphans,
+    },
+    strict_failures: strictFailures,
+  };
+}
+
+function printHuman(report, options = {}) {
+  console.log("# Documentation Inventory\n");
+  console.log(`Source: ${report.source}`);
+  console.log(`Documents: ${report.totals.documents}`);
+  console.log(`Missing H1: ${report.totals.missing_h1}`);
+  console.log(`Duplicate titles: ${report.totals.duplicate_titles}`);
+  console.log(`Current-document orphans: ${report.totals.orphans}`);
+
+  if (!options.orphans) {
+    console.log("\n## Categories");
+    for (const category of Object.keys(report.categories).sort()) {
+      console.log(`- ${category}: ${report.categories[category]}`);
+    }
+
+    console.log("\n## Documents");
+    for (const doc of report.documents) {
+      const title = doc.title || "(missing H1)";
+      const orphan = requiresIndexReference(doc) && !doc.indexed ? " orphan" : "";
+      console.log(`- [${doc.category}] ${doc.path} - ${title}${orphan}`);
+    }
+  }
+
+  console.log("\n## Orphans");
+  if (report.warnings.orphans.length) {
+    for (const file of report.warnings.orphans) console.log(`- ${file}`);
+  } else {
+    console.log("- None");
+  }
+
+  console.log("\n## Duplicate Titles");
+  if (report.warnings.duplicate_titles.length) {
+    for (const duplicate of report.warnings.duplicate_titles) {
+      console.log(`- ${duplicate.title}: ${duplicate.paths.join(", ")}`);
+    }
+  } else {
+    console.log("- None");
+  }
+
+  console.log("\n## Missing H1");
+  if (report.warnings.missing_h1.length) {
+    for (const file of report.warnings.missing_h1) console.log(`- ${file}`);
+  } else {
+    console.log("- None");
+  }
+
+  if (report.strict_failures.length) {
+    console.log("\n## Strict Failures");
+    for (const failure of report.strict_failures) console.log(`- ${failure}`);
+  }
+}
+
+function main() {
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    process.exit(2);
+  }
+
+  if (args.help) {
+    usage();
+    return;
+  }
+
+  const report = buildInventory({ repo: args.repo });
+  if (args.json) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    printHuman(report, { orphans: args.orphans });
+  }
+
+  if (args.validate && report.strict_failures.length) {
+    process.exit(1);
+  }
+}
+
+if (require.main === module) main();
+
+module.exports = {
+  buildInventory,
+  classify,
+  extractTitle,
+  requiresIndexReference,
+};

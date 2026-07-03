@@ -110,6 +110,7 @@ Do not ask John for another approval merely because the next skill is ready, a l
 - Give the next exact action.
 - Do not ask vague "what next?" questions.
 - Prefer `scripts/run-next --explain` when the next safe job should be selected without mutating any files, repos, or external services.
+- Run `scripts/docs-list` before broad documentation reorganization so existing guidance is discovered before new files are created.
 - For interrupted work, prefer `scripts/run-next --repo <repo> --status` and `scripts/run-next --repo <repo> --resume --dry-run` before asking John to reconstruct state manually.
 - When John is needed, provide a decision brief with options and recommendation.
 - Keep reports evidence-backed.

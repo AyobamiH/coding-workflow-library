@@ -61,6 +61,17 @@ Required boundaries:
 - Executed commands require tool invocation evidence.
 - Extraction-meta sessions remain in coverage but are excluded from rankings by default.
 
+## Documentation Inventory
+
+`scripts/docs-list` is `local_execution` only. It reads tracked Markdown files, extracts deterministic metadata, reports duplicate titles and current-document orphan references, and supports JSON and strict validation modes.
+
+Required boundaries:
+
+- Use Git-tracked files as the source of truth when available.
+- Do not include `.git`, `node_modules`, tarballs, package output, private corpus output, `.run-next`, lane state, caches, temp directories, or raw sessions.
+- Do not call an LLM, rewrite documents, publish, deploy, push, tag, read secrets, or mutate external services.
+- Treat release notes, run logs, and evidence notes as historical inventory, not current-doc orphan failures.
+
 ## Tool Catalogue
 
 ### git

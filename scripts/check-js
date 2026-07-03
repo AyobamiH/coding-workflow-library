@@ -14,6 +14,7 @@ const explicit = [
   "tests/pipeline-diagnostics.test.js",
   "tests/run-next-resume.test.js",
   "tests/workflow-extraction.test.js",
+  "tests/docs-list.test.js",
 ];
 
 function isNodeScript(relativePath) {

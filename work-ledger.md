@@ -6,7 +6,7 @@ Each entry records the active repo, objective, permission boundary, selected ski
 
 ## 2026-06-28 - Autonomous Decision Boundary Engine
 
-* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Active repo: `<LIBRARY_REPO>`.
 * Current objective: Add a first-class autonomous decision boundary engine so verified workflow-authored PRs can be merged under normal rules without repeated babysitting, while true external boundaries remain explicit.
 * Current permission level: local workflow-library edits, validation, exact-file commit/PR handoff, and approved normal merge verification for workflow-authored PRs; no production mutation, secret mutation, destructive action, npm publish, release creation, force push, or history rewrite.
 * Current status: Autonomous decision engine implemented and validated locally; branch handoff pending.
@@ -36,7 +36,7 @@ Each entry records the active repo, objective, permission boundary, selected ski
 
 ## 2026-06-11 - AGENTS Hard-Rules Uplift
 
-* Active repo: `/home/johnh/.openclaw/skills/coding-workflow-library`.
+* Active repo: `<LIBRARY_REPO>`.
 * Current objective: Apply the first Peter-pattern uplift by creating a root `AGENTS.md` hard-rules file, a downstream repo pointer template, and doc wiring.
 * Current permission level: local edits inside `/home/johnh/.openclaw/skills/coding-workflow-library`; no target repo edits; no deploys; no Supabase migrations; no external service mutation; no commit or push.
 * Current status: Completed with validation self-reference caveats.
@@ -1303,4 +1303,19 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Blockers: corrected private workflow corpus validated and public-safe roadmap artifacts are ready locally.
 * Next recommended skill: github-handoff-skill / session-log-extraction-skill.
 * Exact next action: grant remote_publication if John wants the local commits pushed.
+* Whether John is needed: Yes for the next permission boundary..
+
+## 2026-07-03 - run-next Autonomous Work Loop
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: docs-list-foundation. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: docs-list foundation complete.
+* Selected skill: coding-workflow-orchestrator-skill / session-log-extraction-skill.
+* Last commands run: `scripts/run-next --repo <LIBRARY_REPO> --allow docs-list-foundation`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; docs-list source: tracked Markdown inventory; strict failures: duplicate current titles and orphaned current docs; docs-list syntax exit: 0; docs-list human inventory exit: 0; docs-list json inventory exit: 0; docs-list orphan inventory exit: 0; docs-list strict validation exit: 0.
+* Blockers: deterministic documentation inventory validates; next active dependency is repo-map helper automation.
+* Next recommended skill: repo-map-skill / coding-workflow-orchestrator-skill.
+* Exact next action: build repo-map helper automation.
 * Whether John is needed: Yes for the next permission boundary..

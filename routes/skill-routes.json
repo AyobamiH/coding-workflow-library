@@ -1222,6 +1222,66 @@
       "provenance": "recovered release preflight lane"
     },
     {
+      "id": "docs-list-foundation",
+      "skill_file": "skill-files/coding-workflow-orchestrator-skill.md",
+      "ledger_states_handled": [
+        "Corrected workflow corpus and roadmap rebuilt locally",
+        "workflow corpus baseline published",
+        "docs-list foundation requested"
+      ],
+      "permission_flag": "docs-list-foundation",
+      "helper_scripts": [
+        "scripts/docs-list",
+        "scripts/run-next",
+        "scripts/route-audit",
+        "scripts/validate-skills"
+      ],
+      "permission_level": "local_execution, remote_publication",
+      "explicit_permission_required": true,
+      "requires_authority": [
+        "local_execution",
+        "remote_publication"
+      ],
+      "forbidden_actions": [
+        "npm publish",
+        "npm version",
+        "git tag",
+        "GitHub release creation",
+        "force push",
+        "product repo mutation",
+        "deploy",
+        "production endpoint calls",
+        "secret value printing"
+      ],
+      "success_ledger_state": "docs-list foundation complete",
+      "blocked_ledger_state": "docs-list foundation blocked",
+      "next_permission": "build repo-map helper automation",
+      "evidence_required": [
+        "corpus baseline ancestry or CI evidence",
+        "docs-list contract",
+        "documentation inventory counts",
+        "orphan and duplicate-title result",
+        "JSON output result",
+        "strict validation result",
+        "package contents review",
+        "exact commit and exact-commit CI"
+      ],
+      "safety_gates": [
+        "tracked Markdown files only",
+        "private corpus exclusion",
+        "no generated package output",
+        "no npm publish",
+        "no version bump",
+        "no tag or release"
+      ],
+      "idempotency_evidence": [
+        "rerun validates existing helper",
+        "stable sorted inventory",
+        "strict validation has zero failures"
+      ],
+      "provenance": "P0 helper identified by corrected workflow corpus roadmap"
+    },
+    {
       "id": "workflow-corpus-recovery",
       "skill_file": "skill-files/session-log-extraction-skill.md",
       "ledger_states_handled": [

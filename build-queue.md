@@ -9,20 +9,11 @@
 - Done definition: extractor tests pass, private corpus validates, source coverage reconciles, extraction-meta sessions are excluded from rankings by default, and public docs use aggregate evidence only.
 - Reason for priority: without reproducible source coverage, newer agent and capability ideas are memory-led rather than evidence-led.
 
-## Add `scripts/docs-list`
-
-- Evidence source: backlog audit and corrected corpus need for source inventory before additional docs or skill split work.
-- Primary type: `SCRIPT_OR_HELPER`.
-- Dependency: corrected workflow corpus.
-- Authority required: `local_execution`.
-- Done definition: helper inventories docs, skills, routes, schemas, templates, tests, and package files; reports stale/missing docs without reading secrets or touching product repos.
-- Reason for priority: it gives the next roadmap pass a deterministic documentation/source inventory instead of ad hoc `find` output.
-
 # P1 - Documented Missing Reusable Components
 
 ## Repo-map helper automation
 
-- Evidence source: `repo-map-skill.md`; corrected corpus shows repeated repo inspection commands.
+- Evidence source: `repo-map-skill.md`; corrected corpus shows repeated repo inspection commands; `scripts/docs-list` now provides the documentation/source inventory dependency.
 - Primary type: `SCRIPT_OR_HELPER`.
 - Dependency: `scripts/docs-list` is useful but not mandatory.
 - Authority required: `local_execution`.
@@ -160,3 +151,4 @@
 - v0.2.0 local preparation.
 - Lane-scoped state and objective authority.
 - Reproducible workflow corpus extraction foundation.
+- Deterministic documentation inventory foundation (`scripts/docs-list`).

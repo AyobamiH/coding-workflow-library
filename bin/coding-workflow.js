@@ -39,6 +39,10 @@ const COMMANDS = {
     script: "scripts/extract-session-workflows.mjs",
     description: "Extract private workflow corpus evidence from local session JSONL sources.",
   },
+  "docs-list": {
+    script: "scripts/docs-list",
+    description: "Inventory tracked documentation files, titles, duplicate titles, and orphan references.",
+  },
 };
 
 function printHelp() {
@@ -57,6 +61,7 @@ Usage:
   coding-workflow lanes --state-file /path/to/lanes.json
   coding-workflow lane show <lane-id> --state-file /path/to/lanes.json
   coding-workflow extract-workflows --source /path/to/sessions --output-dir /private/path
+  coding-workflow docs-list [--json] [--validate] [--orphans]
   coding-workflow objective show --lane <lane-id> --state-file /path/to/lanes.json
   coding-workflow objective approve --lane <lane-id> --grant remote_publication --state-file /path/to/lanes.json
   coding-workflow run-next --lane <lane-id> --state-file /path/to/lanes.json --explain-next

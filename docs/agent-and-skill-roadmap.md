@@ -11,8 +11,9 @@ It separates reusable skills and helpers from product-specific roles and newer u
 
 ```text
 corrected workflow corpus
-  -> docs/source inventory helper
+  -> docs/source inventory helper (implemented)
   -> backlog confidence
+  -> repo-map helper automation
   -> reusable helper hardening
   -> browser/live proof and GitHub deep review
   -> secret-access adapter, if approved
@@ -57,6 +58,7 @@ Documented missing skills:
 Implemented:
 
 - `scripts/extract-session-workflows.mjs`
+- `scripts/docs-list`
 - `scripts/run-next`
 - `scripts/lane-state`
 - `scripts/objective-authority`
@@ -72,7 +74,6 @@ Implemented:
 
 Missing helpers:
 
-- `scripts/docs-list`
 - repo-map report helper
 - project-KB compiler
 - migration-review automation helper
@@ -93,6 +94,7 @@ Implemented:
 New route added:
 
 - `workflow-corpus-recovery`
+- `docs-list-foundation`
 
 ## Capability Adapters
 
@@ -117,7 +119,7 @@ Capability acquisition remains `NEWLY_PROPOSED` until browser proof and secret-a
 ### P0
 
 1. Keep corrected workflow corpus current.
-2. Add `scripts/docs-list` for source inventory and docs coverage.
+2. Keep `scripts/docs-list` current as the deterministic documentation inventory and docs coverage helper.
 
 ### P1
 

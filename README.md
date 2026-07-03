@@ -53,6 +53,7 @@ skills/coding-workflow-library/
     npm-package-readiness
     release-preflight
     extract-session-workflows.mjs
+    docs-list
     run-next
     route-audit
     skill-cleaner
@@ -67,6 +68,7 @@ skills/coding-workflow-library/
   tests/
     objective-authority.test.js
     workflow-extraction.test.js
+    docs-list.test.js
     library-validation-checklist.md
   skill-files/
     coding-workflow-orchestrator-skill.md
@@ -164,6 +166,21 @@ coding-workflow extract-workflows \
 ```
 
 Generated corpus files, source manifests with local detail, and `pseudonym-map.json` must stay outside the package repository. Public docs may use only aggregate counts and safe classifications. See `docs/workflow-extraction-methodology.md`, `docs/workflow-corpus-recovery-report.md`, and `docs/agent-and-skill-roadmap.md`.
+
+## Documentation Inventory
+
+Use `scripts/docs-list` before broad documentation work so existing guidance is discovered before new docs are created:
+
+```bash
+./scripts/docs-list
+./scripts/docs-list --json
+./scripts/docs-list --orphans
+./scripts/docs-list --validate
+
+coding-workflow docs-list --validate
+```
+
+The helper inventories tracked Markdown documentation, classifies each file by repository area, extracts the first H1, reports duplicate titles, and checks whether current docs are referenced by the expected index/control documents. Historical release notes, run logs, and evidence notes are listed but are not treated as current-document orphan failures. It does not call an LLM, rewrite docs, inspect private corpus outputs, read secrets, publish, deploy, push, tag, or mutate external services.
 
 ## Objective-Level Autonomy
 
