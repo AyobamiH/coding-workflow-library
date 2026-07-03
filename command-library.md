@@ -5,15 +5,22 @@ This file lists extracted commands and command templates by use. Commands are no
 ## Repo Mapping
 
 ```bash
-pwd
-rg --files
-find . -maxdepth 3 -type f
-ls
-ls -la
-ls /home/johnh/.openclaw
-cd /home/johnh/.openclaw/workspace && ls
-git status --short
-git status -sb
+./scripts/repo-map --repo "$TARGET_REPO"
+./scripts/repo-map --repo "$TARGET_REPO" --json
+./scripts/repo-map --repo "$TARGET_REPO" --validate
+./scripts/repo-map --repo "$TARGET_REPO" --max-files 500
+coding-workflow repo-map --repo "$TARGET_REPO" --validate
+```
+
+`scripts/repo-map` is source-only orientation. It must not install dependencies, run target build/test commands, mutate git, read `.env` values, call external services, publish, deploy, push, tag, or prove runtime behaviour.
+
+Manual follow-up after reading the map:
+
+```bash
+git -C "$TARGET_REPO" status --short
+git -C "$TARGET_REPO" status -sb
+rg --files "$TARGET_REPO"
+find "$TARGET_REPO" -maxdepth 3 -type f
 ```
 
 ## Orchestrator Local Repo Gate

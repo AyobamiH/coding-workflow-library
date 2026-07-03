@@ -34,7 +34,7 @@ Use for advisory skill-library hygiene: duplicate skills, bloat, stale skills, w
 ### repo-map-skill
 
 File: `skill-files/repo-map-skill.md`
-Use at the start of unfamiliar workspace tasks. Maps cwd, files, git state, and missing paths with `pwd`, `rg --files`, `find`, `ls`, and `git status`.
+Use at the start of unfamiliar workspace tasks. Run `scripts/repo-map --repo <path>` first to produce a deterministic source-only map of git state, top-level files, package/config markers, language counts, docs summary, env-file presence without values, and next safe reading targets.
 
 ### error-evidence-skill
 
@@ -178,6 +178,8 @@ Use for read-only migration review until repo-specific apply commands are confir
 - `scripts/pipeline-diagnostics`: dependency-free source tracer for configured inputs, stage boundaries, filters, database tables, inserts, and response counter assignments.
 - `scripts/extract-session-workflows.mjs`: dependency-light private workflow corpus extractor for local OpenClaw/Codex JSONL sessions.
 - `scripts/docs-list`: dependency-free documentation inventory helper for tracked Markdown files, H1 titles, duplicate titles, orphan checks, JSON output, and strict validation.
+- `scripts/repo-map`: dependency-free source-only repository map helper for Git and non-Git directories, with JSON and validation modes.
+- `schemas/repo-map.schema.json`: portable schema for `scripts/repo-map --json` output.
 - `schemas/workflow-corpus.schema.json`: portable event schema for redacted corpus events.
 - `schemas/workflow-source-manifest.schema.json`: portable source manifest schema with terminal parse statuses.
 - `templates/workflow-extraction-config.example.json`: neutral example config for private corpus extraction.

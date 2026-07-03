@@ -13,7 +13,7 @@ It separates reusable skills and helpers from product-specific roles and newer u
 corrected workflow corpus
   -> docs/source inventory helper (implemented)
   -> backlog confidence
-  -> repo-map helper automation
+  -> repo-map helper automation (implemented)
   -> reusable helper hardening
   -> browser/live proof and GitHub deep review
   -> secret-access adapter, if approved
@@ -59,6 +59,7 @@ Implemented:
 
 - `scripts/extract-session-workflows.mjs`
 - `scripts/docs-list`
+- `scripts/repo-map`
 - `scripts/run-next`
 - `scripts/lane-state`
 - `scripts/objective-authority`
@@ -74,7 +75,6 @@ Implemented:
 
 Missing helpers:
 
-- repo-map report helper
 - project-KB compiler
 - migration-review automation helper
 - reusable pre-commit validation hook
@@ -95,6 +95,7 @@ New route added:
 
 - `workflow-corpus-recovery`
 - `docs-list-foundation`
+- `repo-map-helper-automation`
 
 ## Capability Adapters
 
@@ -123,7 +124,7 @@ Capability acquisition remains `NEWLY_PROPOSED` until browser proof and secret-a
 
 ### P1
 
-3. Add repo-map helper automation.
+3. Keep `scripts/repo-map` current as the deterministic source-only workspace orientation helper.
 4. Add project-KB compiler.
 5. Add migration-review helper.
 6. Add pre-commit validation hook.

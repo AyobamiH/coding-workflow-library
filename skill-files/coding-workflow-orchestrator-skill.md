@@ -356,7 +356,7 @@ If the target is not a Git repo, record the Git failure, continue only with file
 
 Select from existing skills:
 
-- repo orientation -> `repo-map-skill`;
+- repo orientation -> `repo-map-skill` with `scripts/repo-map --repo <path>` first;
 - env/secrets/public-private config -> `env-audit-skill`;
 - Supabase RLS/public anon safety -> `supabase-rls-audit-skill`;
 - security finding/patch plan -> `security-hardening-review-skill`;

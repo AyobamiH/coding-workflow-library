@@ -72,6 +72,18 @@ Required boundaries:
 - Do not call an LLM, rewrite documents, publish, deploy, push, tag, read secrets, or mutate external services.
 - Treat release notes, run logs, and evidence notes as historical inventory, not current-doc orphan failures.
 
+## Repository Map
+
+`scripts/repo-map` is `local_execution` only. It produces a deterministic, privacy-safe, source-only orientation report for a target directory before an agent edits or routes work.
+
+Required boundaries:
+
+- Report git status, top-level source shape, package/config markers, language counts, command candidates, docs summary, env-file presence, and secret-surface categories only.
+- Work for Git repositories and non-Git directories.
+- Use relative paths in portable JSON; do not emit private local absolute paths.
+- Do not read `.env` contents, print token values, print DB URLs, install dependencies, run target build/test commands, mutate git, create files in the target repo, call external services, publish, deploy, push, tag, or prove runtime behaviour.
+- Treat framework/config detection as orientation evidence, not proof of runtime behaviour.
+
 ## Tool Catalogue
 
 ### git

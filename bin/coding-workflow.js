@@ -43,6 +43,10 @@ const COMMANDS = {
     script: "scripts/docs-list",
     description: "Inventory tracked documentation files, titles, duplicate titles, and orphan references.",
   },
+  "repo-map": {
+    script: "scripts/repo-map",
+    description: "Produce a privacy-safe source-only repository orientation report.",
+  },
 };
 
 function printHelp() {
@@ -62,6 +66,7 @@ Usage:
   coding-workflow lane show <lane-id> --state-file /path/to/lanes.json
   coding-workflow extract-workflows --source /path/to/sessions --output-dir /private/path
   coding-workflow docs-list [--json] [--validate] [--orphans]
+  coding-workflow repo-map --repo /path/to/repo [--json] [--validate]
   coding-workflow objective show --lane <lane-id> --state-file /path/to/lanes.json
   coding-workflow objective approve --lane <lane-id> --grant remote_publication --state-file /path/to/lanes.json
   coding-workflow run-next --lane <lane-id> --state-file /path/to/lanes.json --explain-next

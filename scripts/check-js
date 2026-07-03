@@ -15,6 +15,7 @@ const explicit = [
   "tests/run-next-resume.test.js",
   "tests/workflow-extraction.test.js",
   "tests/docs-list.test.js",
+  "tests/repo-map.test.js",
 ];
 
 function isNodeScript(relativePath) {

@@ -23,10 +23,13 @@ Use this before final response or before saying a workflow is complete.
 
 ## Repo Mapping
 
-- `pwd` captured.
-- `rg --files` or `find` captured.
-- `git status` captured or "not a git repo" reported.
+- `scripts/repo-map --repo <path>` ran or a clear reason it was unavailable was recorded.
+- Repo-map validation ran when the helper is available.
+- Git status classification captured or `not_a_git_repo` reported.
+- Top-level files/directories, language/config markers, and docs summary captured when available.
+- Env-file presence reported without values.
 - Important contract/config files identified.
+- Source-only limits recorded: no dependency install, target build/test execution, git mutation, external call, production proof, or secret read.
 
 ## Orchestration
 

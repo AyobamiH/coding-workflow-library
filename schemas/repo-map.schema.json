@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AyobamiH/coding-workflow-library/schemas/repo-map.schema.json",
+  "title": "Repository Map",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "repo",
+    "git",
+    "top_level",
+    "languages",
+    "package_manager",
+    "frameworks_and_configs",
+    "package_scripts",
+    "command_candidates",
+    "docs",
+    "source_directories",
+    "database_directories",
+    "env_files",
+    "secret_surface_warnings",
+    "excluded_generated_directories",
+    "recommended_first_skill"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "repo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "root",
+        "source",
+        "max_files",
+        "file_count_considered",
+        "file_count_total",
+        "limit_reached"
+      ],
+      "properties": {
+        "root": {
+          "const": "."
+        },
+        "source": {
+          "enum": [
+            "git",
+            "filesystem"
+          ]
+        },
+        "max_files": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "file_count_considered": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "file_count_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limit_reached": {
+          "type": "boolean"
+        }
+      }
+    },
+    "git": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "repo_root_found",
+        "current_branch",
+        "clean",
+        "changed_files",
+        "tracked_files",
+        "untracked_files"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "clean",
+            "dirty",
+            "not_a_git_repo"
+          ]
+        },
+        "repo_root_found": {
+          "type": "boolean"
+        },
+        "current_branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "clean": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "changed_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tracked_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "untracked_files": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "top_level": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "files",
+        "directories"
+      ],
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "directories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "language",
+          "files"
+        ],
+        "properties": {
+          "language": {
+            "type": "string"
+          },
+          "files": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "package_manager": {
+      "type": "string"
+    },
+    "frameworks_and_configs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "package_scripts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "command_candidates": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "docs": {
+      "type": "object"
+    },
+    "source_directories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "database_directories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "env_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "status"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "status": {
+            "const": "present"
+          }
+        }
+      }
+    },
+    "secret_surface_warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "excluded_generated_directories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recommended_first_skill": {
+      "type": "string"
+    }
+  }
+}

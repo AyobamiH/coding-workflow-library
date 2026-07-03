@@ -1319,3 +1319,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: repo-map-skill / coding-workflow-orchestrator-skill.
 * Exact next action: build repo-map helper automation.
 * Whether John is needed: Yes for the next permission boundary..
+
+## 2026-07-03 - run-next Autonomous Work Loop
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: repo-map-helper-automation. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: repo-map helper automation complete.
+* Selected skill: repo-map-skill / coding-workflow-orchestrator-skill.
+* Last commands run: `scripts/run-next --repo <LIBRARY_REPO> --allow repo-map-helper-automation`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; repo-map purpose: deterministic privacy-safe source-only repository orientation; repo-map strict boundaries: no dependency install, build/test execution in target repos, git mutation, external calls, production calls, or secret reads; repo-map syntax exit: 0; repo-map tests exit: 0; repo-map human report exit: 0; repo-map json report exit: 0; repo-map strict validation exit: 0; repo-map CLI validation exit: 0.
+* Blockers: deterministic source-only repository map helper validates; next active dependency is project-KB compiler or migration-review helper.
+* Next recommended skill: project-kb-builder-skill / migration-review-skill.
+* Exact next action: build project-KB compiler or migration-review helper.
+* Whether John is needed: Yes for the next permission boundary..

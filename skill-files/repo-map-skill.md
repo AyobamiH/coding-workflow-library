@@ -13,7 +13,7 @@ status: active
 
 ## Purpose
 
-Map an unfamiliar workspace safely before editing, running tests, or answering code questions. The skill identifies files, contracts, session logs, git state, and missing source files with minimal risk.
+Map an unfamiliar workspace safely before editing, running tests, or answering code questions. The skill now delegates first to `scripts/repo-map`, which produces a deterministic, privacy-safe, source-only repository map.
 
 ## When to Use
 
@@ -28,48 +28,51 @@ Use at the start of a coding task, workflow extraction, missing-file investigati
 ## Commands
 
 ```bash
-pwd
-rg --files
-find . -maxdepth 3 -type f
-ls
-ls -la
-ls /home/johnh/.openclaw
-cd /home/johnh/.openclaw/workspace && ls
-git status --short
-git status -sb
+./scripts/repo-map --repo /path/to/repo
+./scripts/repo-map --repo /path/to/repo --json
+./scripts/repo-map --repo /path/to/repo --validate
+
+coding-workflow repo-map --repo /path/to/repo --validate
 ```
 
-Missing-file templates:
+Follow-up manual inspection, only after reading the map:
 
 ```bash
-ls MEMORY.md
+git status --short
+rg --files
+find . -maxdepth 3 -type f
 find . -maxdepth 3 -iname 'runbook*' -ls
-find . -maxdepth 4 -type f -iname 'watchlist*' -ls
-grep -RIl "watchlist" -n . || true
 ```
 
 ## Procedure
 
-1. Confirm current directory with `pwd`.
-2. List tracked-looking source files with `rg --files`; fall back to `find`.
-3. Check git state if the directory is a git repo.
-4. Search for user-named files case-insensitively before saying they are missing.
-5. Read only relevant project files, not broad credential directories.
-6. Record gaps explicitly: missing file, wrong path, wrong case, no git repo.
+1. Run `scripts/repo-map --repo <path>` before editing or selecting deeper skills.
+2. Read the human report or JSON output.
+3. Confirm whether the target is a Git repo or a non-Git directory.
+4. Use the top-level files, package/config markers, source directories, docs summary, and command candidates to choose the next safe skill.
+5. Search for user-named files case-insensitively before saying they are missing.
+6. Read only relevant project files, not broad credential directories.
+7. Record gaps explicitly: missing file, wrong path, wrong case, no git repo, or insufficient source evidence.
 
 ## Evidence Required
 
-- Current directory.
-- File inventory or targeted search result.
-- Git status or a clear "not a git repository" result.
-- Successful read path or exact missing-file error.
+- `scripts/repo-map` command and exit status.
+- Git status classification or `not_a_git_repo`.
+- Top-level file and directory summary.
+- Detected language/config/package markers.
+- Docs summary when available.
+- Env-file presence only, never values.
+- Successful read path or exact missing-file error if targeted follow-up search is needed.
 
 ## Safety Rules
 
 - Do not print credential contents.
+- Do not read `.env` contents for repo orientation.
 - Do not assume a file exists because the user named it.
 - Do not edit during mapping.
 - Do not use destructive git commands.
+- Do not treat framework detection as runtime proof.
+- Do not install dependencies, run builds/tests, call external services, deploy, publish, push, tag, or mutate target repos from this skill.
 
 ## Common Failures
 
@@ -82,12 +85,14 @@ grep -RIl "watchlist" -n . || true
 
 Report:
 
-- Workspace root.
-- Key files/folders found.
-- Missing expected files.
+- Repo-map status and whether validation passed.
 - Git state.
-- Next safe action.
+- Key files/folders found.
+- Detected package/config/language/docs markers.
+- Env-file presence without values.
+- Missing expected files or exact source gaps.
+- Next safe skill/action.
 
 ## Upgrade Ideas
 
-Create `scripts/map_repo.sh` that prints cwd, git root/status, top-level files, key config files, and missing expected files.
+Use repo-map evidence as the input for the future project-KB compiler and migration-review helper. Do not expand it into a full static-analysis platform without new evidence.

@@ -1,0 +1,546 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+const { spawnSync } = require("child_process");
+
+const GENERATED_PARTS = new Set([
+  ".git",
+  ".run-next",
+  ".npm",
+  ".tmp",
+  "tmp",
+  "node_modules",
+  "coverage",
+  "dist",
+  "build",
+  ".next",
+  ".turbo",
+  ".cache",
+]);
+
+const LANGUAGE_BY_EXTENSION = new Map([
+  [".cjs", "javascript"],
+  [".css", "css"],
+  [".go", "go"],
+  [".html", "html"],
+  [".js", "javascript"],
+  [".json", "json"],
+  [".jsx", "javascript"],
+  [".md", "markdown"],
+  [".mjs", "javascript"],
+  [".py", "python"],
+  [".rs", "rust"],
+  [".sh", "shell"],
+  [".sql", "sql"],
+  [".ts", "typescript"],
+  [".tsx", "typescript"],
+  [".toml", "toml"],
+  [".yaml", "yaml"],
+  [".yml", "yaml"],
+]);
+
+const CONFIG_MARKERS = [
+  "AGENTS.md",
+  "RUNBOOK.md",
+  "README.md",
+  "package.json",
+  "package-lock.json",
+  "pnpm-lock.yaml",
+  "yarn.lock",
+  "bun.lockb",
+  "tsconfig.json",
+  "vite.config.ts",
+  "vite.config.js",
+  "next.config.js",
+  "next.config.mjs",
+  "vitest.config.ts",
+  "jest.config.js",
+  "eslint.config.js",
+  ".eslintrc",
+  "tailwind.config.ts",
+  "tailwind.config.js",
+  "supabase/config.toml",
+  "wrangler.toml",
+  "routes/skill-routes.json",
+];
+
+const SOURCE_DIR_MARKERS = [
+  "src",
+  "app",
+  "pages",
+  "components",
+  "lib",
+  "server",
+  "api",
+  "routes",
+  "functions",
+  "supabase/functions",
+  "worker",
+  "workers",
+  "scripts",
+  "bin",
+  "skill-files",
+];
+
+const DATABASE_DIR_MARKERS = [
+  "migrations",
+  "db",
+  "database",
+  "supabase",
+  "supabase/migrations",
+  "prisma",
+  "drizzle",
+];
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/repo-map --repo <path> [--json] [--validate] [--max-files 500]
+
+Produce a deterministic, privacy-safe, source-only repository map.
+
+Modes:
+  default       Print a human orientation report.
+  --json       Print deterministic machine-readable JSON.
+  --validate   Exit non-zero if the generated map violates the helper contract.
+
+The helper never installs dependencies, runs build/test commands, reads .env values,
+calls external services, mutates git, or writes files in the target repo.`);
+}
+
+function parseArgs(argv) {
+  const args = {
+    repo: null,
+    json: false,
+    validate: false,
+    maxFiles: 500,
+    help: false,
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--repo") {
+      args.repo = argv[++index];
+      if (!args.repo) throw new Error("--repo requires a path");
+    } else if (arg === "--json") {
+      args.json = true;
+    } else if (arg === "--validate") {
+      args.validate = true;
+    } else if (arg === "--max-files") {
+      const value = argv[++index];
+      if (!value || !/^\d+$/.test(value)) throw new Error("--max-files requires a positive integer");
+      args.maxFiles = Number(value);
+      if (args.maxFiles < 1) throw new Error("--max-files must be at least 1");
+    } else if (arg === "--help" || arg === "-h") {
+      args.help = true;
+    } else {
+      throw new Error(`unknown argument: ${arg}`);
+    }
+  }
+
+  if (!args.repo && !args.help) throw new Error("--repo is required");
+  return args;
+}
+
+function run(command, args, options = {}) {
+  return spawnSync(command, args, {
+    cwd: options.cwd,
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024 * 8,
+  });
+}
+
+function normalizeRelative(value) {
+  return String(value || "").replaceAll(path.sep, "/").replace(/^\/+/, "");
+}
+
+function toRelative(root, absolutePath) {
+  return normalizeRelative(path.relative(root, absolutePath));
+}
+
+function shouldExclude(relativePath) {
+  const normalized = normalizeRelative(relativePath);
+  if (!normalized || normalized === ".") return false;
+  const parts = normalized.split("/");
+  if (parts.some((part) => GENERATED_PARTS.has(part))) return true;
+  if (normalized.endsWith(".tgz")) return true;
+  if (normalized.includes("workflow-corpus/")) return true;
+  if (normalized.endsWith("pseudonym-map.json")) return true;
+  return false;
+}
+
+function walkFiles(dir, root, files = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    const relative = toRelative(root, full);
+    if (shouldExclude(relative)) continue;
+    if (entry.isDirectory()) {
+      walkFiles(full, root, files);
+    } else if (entry.isFile()) {
+      files.push(relative);
+    }
+  }
+  return files;
+}
+
+function gitRoot(repo) {
+  const result = run("git", ["-C", repo, "rev-parse", "--show-toplevel"]);
+  if (result.status !== 0) return null;
+  return result.stdout.trim() || null;
+}
+
+function gitFiles(repo) {
+  const tracked = run("git", ["-C", repo, "ls-files"]);
+  if (tracked.status !== 0) return null;
+  const others = run("git", ["-C", repo, "ls-files", "--others", "--exclude-standard"]);
+  const files = [
+    ...tracked.stdout.split(/\r?\n/),
+    ...(others.status === 0 ? others.stdout.split(/\r?\n/) : []),
+  ]
+    .filter(Boolean)
+    .map(normalizeRelative)
+    .filter((file) => !shouldExclude(file));
+  return [...new Set(files)].sort((a, b) => a.localeCompare(b));
+}
+
+function discoverFiles(repo) {
+  const fromGit = gitFiles(repo);
+  if (fromGit) return { source: "git", files: fromGit };
+  return {
+    source: "filesystem",
+    files: walkFiles(repo, repo).filter((file) => !shouldExclude(file)).sort((a, b) => a.localeCompare(b)),
+  };
+}
+
+function gitSummary(repo) {
+  const root = gitRoot(repo);
+  if (!root) {
+    return {
+      status: "not_a_git_repo",
+      repo_root_found: false,
+      current_branch: null,
+      clean: null,
+      changed_files: 0,
+      tracked_files: 0,
+      untracked_files: 0,
+    };
+  }
+
+  const branch = run("git", ["-C", repo, "branch", "--show-current"]);
+  const status = run("git", ["-C", repo, "status", "--porcelain=v1"]);
+  const tracked = run("git", ["-C", repo, "ls-files"]);
+  const untracked = run("git", ["-C", repo, "ls-files", "--others", "--exclude-standard"]);
+  const statusLines = status.status === 0 ? status.stdout.split(/\r?\n/).filter(Boolean) : [];
+  const untrackedLines = untracked.status === 0 ? untracked.stdout.split(/\r?\n/).filter(Boolean) : [];
+  const trackedLines = tracked.status === 0 ? tracked.stdout.split(/\r?\n/).filter(Boolean) : [];
+
+  return {
+    status: statusLines.length ? "dirty" : "clean",
+    repo_root_found: true,
+    current_branch: (branch.stdout || "").trim() || null,
+    clean: statusLines.length === 0,
+    changed_files: statusLines.length,
+    tracked_files: trackedLines.length,
+    untracked_files: untrackedLines.length,
+  };
+}
+
+function topLevel(files) {
+  const topFiles = new Set();
+  const topDirs = new Set();
+  for (const file of files) {
+    const parts = file.split("/");
+    if (parts.length === 1) topFiles.add(file);
+    else topDirs.add(parts[0]);
+  }
+  return {
+    files: [...topFiles].sort((a, b) => a.localeCompare(b)),
+    directories: [...topDirs].sort((a, b) => a.localeCompare(b)),
+  };
+}
+
+function detectLanguages(files) {
+  const counts = {};
+  for (const file of files) {
+    const ext = path.extname(file).toLowerCase();
+    const language = LANGUAGE_BY_EXTENSION.get(ext);
+    if (!language) continue;
+    counts[language] = (counts[language] || 0) + 1;
+  }
+  return Object.keys(counts)
+    .sort((a, b) => a.localeCompare(b))
+    .map((language) => ({ language, files: counts[language] }));
+}
+
+function fileSet(files) {
+  return new Set(files);
+}
+
+function detectPackageManager(files) {
+  const set = fileSet(files);
+  if (set.has("package-lock.json")) return "npm";
+  if (set.has("pnpm-lock.yaml")) return "pnpm";
+  if (set.has("yarn.lock")) return "yarn";
+  if (set.has("bun.lockb")) return "bun";
+  if (set.has("package.json")) return "npm_or_compatible";
+  return "not_detected";
+}
+
+function presentMarkers(files, markers) {
+  const set = fileSet(files);
+  return markers.filter((marker) => set.has(marker) || files.some((file) => file.startsWith(`${marker}/`)));
+}
+
+function safeScriptCommand(command) {
+  return String(command || "")
+    .replace(/([A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|PRIVATE_KEY|DATABASE_URL|DB_URL|COOKIE)[A-Z0-9_]*=)([^\s]+)/gi, "$1<redacted>")
+    .replace(/(Bearer\s+)([A-Za-z0-9._-]+)/gi, "$1<redacted>")
+    .replace(/(postgres(?:ql)?:\/\/)([^\s]+)/gi, "$1<redacted>")
+    .replace(/(gh[pousr]_[A-Za-z0-9_]+)/g, "<redacted-token>")
+    .replace(/(sk-[A-Za-z0-9_-]{12,})/g, "<redacted-token>")
+    .replace(/\/home\/johnh\/[^\s"'`]+/g, "<local-path>");
+}
+
+function packageScripts(repo, files) {
+  if (!fileSet(files).has("package.json")) return { scripts: {}, candidates: {} };
+  try {
+    const parsed = JSON.parse(fs.readFileSync(path.join(repo, "package.json"), "utf8"));
+    const scripts = parsed && typeof parsed.scripts === "object" && parsed.scripts ? parsed.scripts : {};
+    const safeScripts = {};
+    for (const name of Object.keys(scripts).sort((a, b) => a.localeCompare(b))) {
+      safeScripts[name] = safeScriptCommand(scripts[name]);
+    }
+    const candidates = {};
+    for (const name of Object.keys(safeScripts)) {
+      if (/test/i.test(name)) candidates.test = candidates.test || `npm run ${name}`;
+      if (/build/i.test(name)) candidates.build = candidates.build || `npm run ${name}`;
+      if (/lint/i.test(name)) candidates.lint = candidates.lint || `npm run ${name}`;
+      if (/type(check)?/i.test(name)) candidates.typecheck = candidates.typecheck || `npm run ${name}`;
+      if (/validate|check/i.test(name)) candidates.validate = candidates.validate || `npm run ${name}`;
+    }
+    return { scripts: safeScripts, candidates };
+  } catch (error) {
+    return { scripts: {}, candidates: {}, error: "package_json_unreadable" };
+  }
+}
+
+function envPresence(files) {
+  return files
+    .filter((file) => {
+      const base = path.basename(file);
+      return base === ".env" || base === ".env.example" || base.startsWith(".env.");
+    })
+    .sort((a, b) => a.localeCompare(b))
+    .map((file) => ({ path: file, status: "present" }));
+}
+
+function secretSurfaces(files) {
+  const warnings = [];
+  if (envPresence(files).length) warnings.push("environment_files_present");
+  if (files.some((file) => /\.(pem|key|p12|pfx)$/i.test(file))) warnings.push("credential_named_files_present");
+  if (files.some((file) => /service[-_]?account|credentials?|secrets?/i.test(path.basename(file)))) {
+    warnings.push("credential_named_paths_present");
+  }
+  return [...new Set(warnings)].sort((a, b) => a.localeCompare(b));
+}
+
+function docsSummary(repo, files) {
+  const docsListPath = path.join(__dirname, "docs-list");
+  if (!fs.existsSync(docsListPath)) return { available: false };
+  try {
+    const docsList = require(docsListPath);
+    if (typeof docsList.buildInventory !== "function") return { available: false };
+    const report = docsList.buildInventory({ repo, trackedFiles: files });
+    return {
+      available: true,
+      documents: report.totals.documents,
+      missing_h1: report.totals.missing_h1,
+      duplicate_titles: report.totals.duplicate_titles,
+      orphans: report.totals.orphans,
+      categories: report.categories,
+    };
+  } catch (error) {
+    return { available: false, error: "docs_list_failed" };
+  }
+}
+
+function safeRecommendedSkill(map) {
+  if (map.git.status === "not_a_git_repo") return "repo-map-skill";
+  if (map.docs.available && map.docs.documents > 0) return "repo-map-skill then read README/RUNBOOK/AGENTS if present";
+  return "repo-map-skill then inspect top-level config";
+}
+
+function buildRepoMap(options) {
+  const repo = path.resolve(options.repo);
+  if (!fs.existsSync(repo) || !fs.statSync(repo).isDirectory()) {
+    throw new Error(`repo path is not a directory: ${options.repo}`);
+  }
+
+  const maxFiles = Number(options.maxFiles || 500);
+  const discovered = discoverFiles(repo);
+  const allFiles = discovered.files;
+  const files = allFiles.slice(0, maxFiles);
+  const top = topLevel(files);
+  const scripts = packageScripts(repo, files);
+  const map = {
+    schema_version: 1,
+    repo: {
+      root: ".",
+      source: discovered.source,
+      max_files: maxFiles,
+      file_count_considered: files.length,
+      file_count_total: allFiles.length,
+      limit_reached: allFiles.length > files.length,
+    },
+    git: gitSummary(repo),
+    top_level: top,
+    languages: detectLanguages(files),
+    package_manager: detectPackageManager(files),
+    frameworks_and_configs: presentMarkers(files, CONFIG_MARKERS),
+    package_scripts: scripts.scripts,
+    command_candidates: scripts.candidates || {},
+    docs: docsSummary(repo, files),
+    source_directories: presentMarkers(files, SOURCE_DIR_MARKERS),
+    database_directories: presentMarkers(files, DATABASE_DIR_MARKERS),
+    env_files: envPresence(files),
+    secret_surface_warnings: secretSurfaces(files),
+    excluded_generated_directories: [...GENERATED_PARTS].sort((a, b) => a.localeCompare(b)),
+    recommended_first_skill: null,
+  };
+  map.recommended_first_skill = safeRecommendedSkill(map);
+  return map;
+}
+
+function validateRepoMap(map) {
+  const failures = [];
+  const has = (key, type) => {
+    if (!(key in map)) failures.push(`missing field: ${key}`);
+    else if (type && typeof map[key] !== type) failures.push(`invalid field type: ${key}`);
+  };
+
+  has("schema_version", "number");
+  has("repo", "object");
+  has("git", "object");
+  has("top_level", "object");
+  if (!Array.isArray(map.languages)) failures.push("languages must be an array");
+  if (!Array.isArray(map.frameworks_and_configs)) failures.push("frameworks_and_configs must be an array");
+  if (!Array.isArray(map.env_files)) failures.push("env_files must be an array");
+  if (!Array.isArray(map.secret_surface_warnings)) failures.push("secret_surface_warnings must be an array");
+
+  const json = JSON.stringify(map);
+  const secretPatterns = [
+    /gh[pousr]_[A-Za-z0-9_]+/,
+    /sk-[A-Za-z0-9_-]{12,}/,
+    /Bearer\s+[A-Za-z0-9._-]+/,
+    /postgres(?:ql)?:\/\/[^\s"]+/,
+    /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/,
+  ];
+  if (secretPatterns.some((pattern) => pattern.test(json))) failures.push("secret-shaped value found in map output");
+  if (/\/home\/johnh/.test(json)) failures.push("private absolute path found in map output");
+  if (Array.isArray(map.env_files) && map.env_files.some((entry) => "value" in entry)) {
+    failures.push("env file value field is forbidden");
+  }
+  return failures;
+}
+
+function printHuman(map) {
+  console.log("# Repository Map\n");
+  console.log(`Source: ${map.repo.source}`);
+  console.log(`Git status: ${map.git.status}`);
+  console.log(`Branch: ${map.git.current_branch || "n/a"}`);
+  console.log(`Files considered: ${map.repo.file_count_considered}/${map.repo.file_count_total}`);
+  console.log(`Limit reached: ${map.repo.limit_reached ? "yes" : "no"}`);
+
+  console.log("\n## Top Level Files");
+  if (map.top_level.files.length) for (const file of map.top_level.files) console.log(`- ${file}`);
+  else console.log("- None");
+
+  console.log("\n## Top Level Directories");
+  if (map.top_level.directories.length) for (const dir of map.top_level.directories) console.log(`- ${dir}/`);
+  else console.log("- None");
+
+  console.log("\n## Languages");
+  if (map.languages.length) for (const item of map.languages) console.log(`- ${item.language}: ${item.files}`);
+  else console.log("- None detected");
+
+  console.log("\n## Package And Commands");
+  console.log(`Package manager: ${map.package_manager}`);
+  const scriptNames = Object.keys(map.package_scripts);
+  console.log(`Package scripts: ${scriptNames.length ? scriptNames.join(", ") : "none"}`);
+  const candidateNames = Object.keys(map.command_candidates).sort((a, b) => a.localeCompare(b));
+  if (candidateNames.length) {
+    for (const name of candidateNames) console.log(`- ${name}: ${map.command_candidates[name]}`);
+  }
+
+  console.log("\n## Docs");
+  if (map.docs.available) {
+    console.log(`Documents: ${map.docs.documents}`);
+    console.log(`Missing H1: ${map.docs.missing_h1}`);
+    console.log(`Duplicate titles: ${map.docs.duplicate_titles}`);
+    console.log(`Orphans: ${map.docs.orphans}`);
+  } else {
+    console.log("Documentation inventory: not available");
+  }
+
+  console.log("\n## Config And Source Areas");
+  console.log(`Important config files: ${map.frameworks_and_configs.length ? map.frameworks_and_configs.join(", ") : "none"}`);
+  console.log(`Source directories: ${map.source_directories.length ? map.source_directories.join(", ") : "none"}`);
+  console.log(`Database/migration directories: ${map.database_directories.length ? map.database_directories.join(", ") : "none"}`);
+
+  console.log("\n## Environment And Secret Surface");
+  if (map.env_files.length) for (const env of map.env_files) console.log(`- ${env.path}: ${env.status}`);
+  else console.log("- No env files detected");
+  if (map.secret_surface_warnings.length) {
+    console.log("Warnings:");
+    for (const warning of map.secret_surface_warnings) console.log(`- ${warning}`);
+  } else {
+    console.log("Warnings: none");
+  }
+
+  console.log("\n## Next Safe Skill");
+  console.log(map.recommended_first_skill);
+}
+
+function main() {
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    process.exit(2);
+  }
+
+  if (args.help) {
+    usage();
+    return;
+  }
+
+  let map;
+  try {
+    map = buildRepoMap({ repo: args.repo, maxFiles: args.maxFiles });
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
+
+  const failures = validateRepoMap(map);
+  if (args.json) console.log(JSON.stringify(map, null, 2));
+  else printHuman(map);
+
+  if (args.validate && failures.length) {
+    console.error("\nValidation failures:");
+    for (const failure of failures) console.error(`- ${failure}`);
+    process.exit(1);
+  }
+}
+
+if (require.main === module) main();
+
+module.exports = {
+  buildRepoMap,
+  detectLanguages,
+  detectPackageManager,
+  safeScriptCommand,
+  shouldExclude,
+  validateRepoMap,
+};

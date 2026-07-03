@@ -103,6 +103,7 @@ const ALLOWED_FLAGS = new Set([
   "first-version-tag",
   "workflow-corpus-recovery",
   "docs-list-foundation",
+  "repo-map-helper-automation",
   "local_execution",
   "remote_publication",
   "production_mutation",
@@ -265,6 +266,8 @@ function main() {
       result = runWorkflowCorpusRecovery(active);
     } else if (route.kind === "docs-list-foundation") {
       result = runDocsListFoundation(active);
+    } else if (route.kind === "repo-map-helper-automation") {
+      result = runRepoMapHelperAutomation(active);
     } else {
       result = notImplemented(route, active);
     }
@@ -526,6 +529,7 @@ Supported --allow values:
   first-version-tag
   workflow-corpus-recovery
   docs-list-foundation
+  repo-map-helper-automation
   local_execution
   remote_publication
   production_mutation
@@ -747,6 +751,16 @@ function routeStatus(status, active = {}) {
       requiresAuthority: ["local_execution", "remote_publication"],
       kind: "docs-list-foundation",
       nextAction: "verify deterministic docs inventory, strict docs validation, and stop before package publication or release work",
+    };
+  }
+
+  if (args.allow.has("repo-map-helper-automation") && path.resolve(targetRepo) === LIBRARY_ROOT) {
+    return {
+      skill: "repo-map-skill / coding-workflow-orchestrator-skill",
+      permission: "repo-map-helper-automation",
+      requiresAuthority: ["local_execution", "remote_publication"],
+      kind: "repo-map-helper-automation",
+      nextAction: "verify deterministic source-only repo map helper, schema, CLI delegation, tests, package contents, and stop before the next dependency",
     };
   }
 
@@ -3331,6 +3345,67 @@ function runDocsListFoundation() {
     summary: "deterministic documentation inventory validates; next active dependency is repo-map helper automation",
     nextPermission: "build repo-map helper automation",
     nextSkill: "repo-map-skill / coding-workflow-orchestrator-skill",
+    exitCode: 0,
+  };
+}
+
+function runRepoMapHelperAutomation() {
+  const repoMap = "scripts/repo-map";
+  evidence.push("repo-map purpose: deterministic privacy-safe source-only repository orientation");
+  evidence.push("repo-map strict boundaries: no dependency install, build/test execution in target repos, git mutation, external calls, production calls, or secret reads");
+  actions.push("private paths, env values, tokens, DB URLs, generated outputs, caches, and target-repo mutations remain excluded");
+
+  if (dryRun) {
+    actions.push("would verify scripts/repo-map syntax");
+    actions.push("would run repo-map human, JSON, and strict validation modes against the library");
+    actions.push("would run repo-map tests and CLI delegation checks");
+    actions.push("would stop before planner/worker/reviewer agents, package publication, release work, tags, deploys, or product repos");
+    return {
+      finalStatus: "DRY RUN PASSED",
+      ledgerStatus: "repo-map helper automation dry-run complete",
+      summary: "repo-map-helper-automation would verify deterministic source-only repository mapping and stop before project-KB compiler work",
+      nextPermission: "build project-KB compiler or migration-review helper",
+      nextSkill: "project-kb-builder-skill / migration-review-skill",
+      exitCode: 0,
+    };
+  }
+
+  const blockers = [];
+  if (!fs.existsSync(path.join(LIBRARY_ROOT, repoMap))) blockers.push("scripts/repo-map missing");
+  if (!fs.existsSync(path.join(LIBRARY_ROOT, "schemas", "repo-map.schema.json"))) blockers.push("repo-map schema missing");
+
+  const commands = [
+    ["repo-map syntax", process.execPath, ["--check", repoMap]],
+    ["repo-map tests", process.execPath, ["tests/repo-map.test.js"]],
+    ["repo-map human report", `./${repoMap}`, ["--repo", "."]],
+    ["repo-map json report", `./${repoMap}`, ["--repo", ".", "--json"]],
+    ["repo-map strict validation", `./${repoMap}`, ["--repo", ".", "--validate"]],
+    ["repo-map CLI validation", "./bin/coding-workflow.js", ["repo-map", "--repo", ".", "--validate"]],
+  ];
+
+  for (const [label, command, commandArgs] of commands) {
+    const result = run(command, commandArgs, { cwd: LIBRARY_ROOT, allowFailure: true });
+    evidence.push(`${label} exit: ${result.code}`);
+    if (result.code !== 0) blockers.push(`${label} failed`);
+  }
+
+  if (blockers.length) {
+    return {
+      finalStatus: "BLOCKED_SAFETY",
+      ledgerStatus: "repo-map helper automation blocked",
+      summary: blockers.join("; "),
+      nextPermission: "fix repo-map helper or validation failures",
+      nextSkill: "repo-map-skill / error-evidence-skill",
+      exitCode: 1,
+    };
+  }
+
+  return {
+    finalStatus: "READY",
+    ledgerStatus: "repo-map helper automation complete",
+    summary: "deterministic source-only repository map helper validates; next active dependency is project-KB compiler or migration-review helper",
+    nextPermission: "build project-KB compiler or migration-review helper",
+    nextSkill: "project-kb-builder-skill / migration-review-skill",
     exitCode: 0,
   };
 }
@@ -13250,15 +13325,17 @@ function nonFatalBlockers(result, checkpoint) {
 }
 
 function appendLedger({ status, result, route }) {
+  const repoLabel = displayRepo(targetRepo);
+  const commandLabel = `scripts/run-next ${process.argv.slice(2).map(displayRepo).join(" ")}`;
   const entry = `
 ## ${today()} - run-next Autonomous Work Loop
 
-* Active repo: \`${targetRepo}\`.
+* Active repo: \`${repoLabel}\`.
 * Current objective: Run \`scripts/run-next\` from the coding workflow library and continue only until the next real permission boundary.
 * Current permission level: ${Array.from(args.allow).join(", ") || "no explicit allow flags"}${dryRun ? "; dry-run" : ""}. ${permissionBoundarySummary()}.
 * Current status: ${status}.
 * Selected skill: ${route.skill}.
-* Last commands run: \`scripts/run-next ${process.argv.slice(2).join(" ")}\`.
+* Last commands run: \`${commandLabel}\`.
 * Files changed: ${filesChanged.length ? filesChanged.map((file) => `\`${file}\``).join("; ") : "local library records only; no target repo files edited"}.
 * Validation evidence: ${evidence.join("; ") || "runner stopped before external evidence was needed"}.
 * Blockers: ${blockerSummary(result)}.
@@ -13271,14 +13348,16 @@ function appendLedger({ status, result, route }) {
 }
 
 function appendRunLog({ dryRun: isDryRun, status, result, route }) {
+  const repoLabel = displayRepo(targetRepo);
+  const commandLabel = `scripts/run-next ${process.argv.slice(2).map(displayRepo).join(" ")}`;
   const entry = `
 ## ${today()} - run-next Autonomous Work Loop${isDryRun ? " Dry Run" : ""}
 
 * Skill used: coding-workflow-orchestrator-skill; selected next skill was ${route.skill || "unknown"}.
 * Goal: Read \`work-ledger.md\`, classify status \`${status}\`, check permission flags, and run only the next safe action.
-* Starting state: Target repo \`${targetRepo}\`; permission flags \`${Array.from(args.allow).join(", ") || "none"}\`; dry-run \`${isDryRun ? "yes" : "no"}\`.
-* Commands/tools used: \`scripts/run-next ${process.argv.slice(2).join(" ")}\`.
-* Files inspected: \`AGENTS.md\`; \`RUNBOOK.md\`; \`tools.md\`; \`work-ledger.md\`; selected ledger entry for \`${targetRepo}\`.
+* Starting state: Target repo \`${repoLabel}\`; permission flags \`${Array.from(args.allow).join(", ") || "none"}\`; dry-run \`${isDryRun ? "yes" : "no"}\`.
+* Commands/tools used: \`${commandLabel}\`.
+* Files inspected: \`AGENTS.md\`; \`RUNBOOK.md\`; \`tools.md\`; \`work-ledger.md\`; selected ledger entry for \`${repoLabel}\`.
 * Files changed: ${formatRunLogFilesChanged(isDryRun)}.
 * Evidence collected: ${evidence.join("; ") || "no additional evidence required before boundary"}.
 * Result: ${result.finalStatus}: ${result.summary}.
@@ -13287,6 +13366,12 @@ function appendRunLog({ dryRun: isDryRun, status, result, route }) {
 * Upgrade idea: Add more executable paths to \`scripts/run-next\` for auth-check, exact-file commit, and local-validation states.
 `;
   fs.appendFileSync(path.join(LIBRARY_ROOT, "runs/skill-runs.md"), entry);
+}
+
+function displayRepo(value) {
+  const text = String(value || "");
+  if (path.resolve(text) === LIBRARY_ROOT) return "<LIBRARY_REPO>";
+  return text;
 }
 
 function printReport(result, active, route) {

@@ -11,15 +11,6 @@
 
 # P1 - Documented Missing Reusable Components
 
-## Repo-map helper automation
-
-- Evidence source: `repo-map-skill.md`; corrected corpus shows repeated repo inspection commands; `scripts/docs-list` now provides the documentation/source inventory dependency.
-- Primary type: `SCRIPT_OR_HELPER`.
-- Dependency: `scripts/docs-list` is useful but not mandatory.
-- Authority required: `local_execution`.
-- Done definition: helper emits a redacted repo map with git state, major files, package/config markers, docs, tests, scripts, and known risk surfaces.
-- Reason for priority: repo orientation is a recurring first step and should be reproducible.
-
 ## Project-KB compiler
 
 - Evidence source: `project-kb-builder-skill.md`; prior ledgers record repeated durable-memory needs.
@@ -152,3 +143,4 @@
 - Lane-scoped state and objective authority.
 - Reproducible workflow corpus extraction foundation.
 - Deterministic documentation inventory foundation (`scripts/docs-list`).
+- Deterministic source-only repository map helper (`scripts/repo-map`).

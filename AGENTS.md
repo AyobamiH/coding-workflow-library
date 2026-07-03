@@ -78,7 +78,7 @@ Preserve safety gates. Failed tests, failed validation, unsafe package contents,
 ## Skill Routing
 
 - deciding next work -> `coding-workflow-orchestrator-skill`
-- repo orientation -> `repo-map-skill`
+- repo orientation -> `repo-map-skill` with `scripts/repo-map --repo <path>` first
 - env/secrets -> `env-audit-skill`
 - Supabase RLS/public anon safety -> `supabase-rls-audit-skill`
 - security finding or patch plan -> `security-hardening-review-skill`

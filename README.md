@@ -35,6 +35,7 @@ skills/coding-workflow-library/
     decision-record.schema.json
     workflow-corpus.schema.json
     workflow-source-manifest.schema.json
+    repo-map.schema.json
   runs/
     decisions/
     skill-runs.md
@@ -54,6 +55,7 @@ skills/coding-workflow-library/
     release-preflight
     extract-session-workflows.mjs
     docs-list
+    repo-map
     run-next
     route-audit
     skill-cleaner
@@ -69,6 +71,7 @@ skills/coding-workflow-library/
     objective-authority.test.js
     workflow-extraction.test.js
     docs-list.test.js
+    repo-map.test.js
     library-validation-checklist.md
   skill-files/
     coding-workflow-orchestrator-skill.md
@@ -181,6 +184,20 @@ coding-workflow docs-list --validate
 ```
 
 The helper inventories tracked Markdown documentation, classifies each file by repository area, extracts the first H1, reports duplicate titles, and checks whether current docs are referenced by the expected index/control documents. Historical release notes, run logs, and evidence notes are listed but are not treated as current-document orphan failures. It does not call an LLM, rewrite docs, inspect private corpus outputs, read secrets, publish, deploy, push, tag, or mutate external services.
+
+## Repository Map
+
+Use `scripts/repo-map` before editing an unfamiliar workspace so the agent has deterministic source-only orientation evidence:
+
+```bash
+./scripts/repo-map --repo /path/to/repo
+./scripts/repo-map --repo /path/to/repo --json
+./scripts/repo-map --repo /path/to/repo --validate
+
+coding-workflow repo-map --repo /path/to/repo --validate
+```
+
+The helper reports git state, top-level files and directories, detected languages, package/config markers, safe package scripts, command candidates, documentation summary from `scripts/docs-list`, source/database directories, environment-file presence without values, and secret-surface warning categories. It works for Git and non-Git directories. It does not install dependencies, run build/test commands in the target repo, mutate git, read `.env` values, call external services, inspect private corpus output, publish, deploy, push, tag, or prove runtime behaviour.
 
 ## Objective-Level Autonomy
 

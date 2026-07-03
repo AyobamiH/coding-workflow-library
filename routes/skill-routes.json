@@ -1282,6 +1282,69 @@
       "provenance": "P0 helper identified by corrected workflow corpus roadmap"
     },
     {
+      "id": "repo-map-helper-automation",
+      "skill_file": "skill-files/repo-map-skill.md",
+      "ledger_states_handled": [
+        "docs-list foundation complete",
+        "repo-map helper automation requested"
+      ],
+      "permission_flag": "repo-map-helper-automation",
+      "helper_scripts": [
+        "scripts/repo-map",
+        "scripts/docs-list",
+        "scripts/run-next",
+        "scripts/route-audit",
+        "scripts/validate-skills"
+      ],
+      "permission_level": "local_execution, remote_publication",
+      "explicit_permission_required": true,
+      "requires_authority": [
+        "local_execution",
+        "remote_publication"
+      ],
+      "forbidden_actions": [
+        "npm publish",
+        "npm version",
+        "git tag",
+        "GitHub release creation",
+        "force push",
+        "product repo mutation",
+        "deploy",
+        "production endpoint calls",
+        "secret value printing",
+        "dependency installation in target repos",
+        "target repo file creation"
+      ],
+      "success_ledger_state": "repo-map helper automation complete",
+      "blocked_ledger_state": "repo-map helper automation blocked",
+      "next_permission": "build project-KB compiler or migration-review helper",
+      "evidence_required": [
+        "repo-map helper contract",
+        "source-only privacy model",
+        "JSON schema",
+        "synthetic git and non-git fixture tests",
+        "CLI delegation",
+        "package contents review",
+        "exact commit and exact-commit CI"
+      ],
+      "safety_gates": [
+        "no .env value reads",
+        "no raw local absolute paths in portable JSON",
+        "generated and cache directories excluded",
+        "no build/test execution in mapped target repos",
+        "no external service calls",
+        "no npm publish",
+        "no version bump",
+        "no tag or release"
+      ],
+      "idempotency_evidence": [
+        "rerun validates existing helper",
+        "stable sorted file inventory",
+        "synthetic repeated-run test proves equivalent output"
+      ],
+      "provenance": "P1 helper identified by repo-map skill upgrade idea and corrected workflow corpus roadmap"
+    },
+    {
       "id": "workflow-corpus-recovery",
       "skill_file": "skill-files/session-log-extraction-skill.md",
       "ledger_states_handled": [

@@ -161,7 +161,7 @@ Tool selection must respect `tools.md`. If a tool's permission level is higher t
 Use this mapping before acting:
 
 - Need to classify work, choose the next safe skill, enforce permissions, run one bounded loop, or update the ledger: `coding-workflow-orchestrator-skill`
-- Need to understand a repo before editing: `repo-map-skill`
+- Need to understand a repo before editing: `repo-map-skill` with `scripts/repo-map --repo <path>` first
 - Need to investigate an error: `error-evidence-skill`
 - Need to verify build/test/lint status: `build-verify-skill`
 - Need to create a local redacted evidence pack: `evidence-pack-builder-skill`
@@ -183,6 +183,7 @@ Use this mapping before acting:
 - Need to extract more skills from a chat/session log: `session-log-extraction-skill`
 - Need to rebuild backlog or agent-roadmap evidence from local history: `session-log-extraction-skill` with `scripts/extract-session-workflows.mjs`
 - Need to inventory docs, H1s, duplicate titles, or orphan references before broad documentation work: `scripts/docs-list`
+- Need deterministic source-only workspace orientation, package/config markers, docs summary, and env-file presence without values: `scripts/repo-map`
 - Need to trace OpenClaw subagent routing: `route-trace-skill`
 - Need to compare OpenClaw config backups: `openclaw-config-diff-skill`
 - Need to coordinate local tools, reads, writes, process logs, or gateway calls: `tool-patterns-skill`
