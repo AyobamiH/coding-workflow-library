@@ -1,0 +1,210 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+const { spawnSync } = require("child_process");
+
+const ROOT = path.resolve(__dirname, "..");
+const MARKER = "coding-workflow-library-managed-pre-commit v1";
+const TEMPLATE = path.join(ROOT, "templates", "hooks", "pre-commit");
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/install-git-hooks [--dry-run] [--force] [--json]
+
+Install the coding-workflow pre-commit hook into the current Git repository.
+
+Safety:
+  - Refuses to overwrite unmanaged existing hooks by default.
+  - --force replaces an unmanaged hook only when explicitly requested.
+  - --dry-run reports the planned action without writing files.
+  - The installed hook delegates to scripts/pre-commit-check --staged.
+  - No remote services, package installs, publishing, deployment, or product repos are touched.`);
+}
+
+function parseArgs(argv) {
+  const args = {
+    dryRun: false,
+    force: false,
+    json: false,
+    help: false,
+  };
+
+  for (const arg of argv) {
+    if (arg === "--dry-run") args.dryRun = true;
+    else if (arg === "--force") args.force = true;
+    else if (arg === "--json") args.json = true;
+    else if (arg === "--help" || arg === "-h") args.help = true;
+    else throw new Error(`unknown argument: ${arg}`);
+  }
+
+  return args;
+}
+
+function run(command, args, options = {}) {
+  return spawnSync(command, args, {
+    cwd: options.cwd,
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024,
+  });
+}
+
+function gitRoot(cwd) {
+  const result = run("git", ["rev-parse", "--show-toplevel"], { cwd });
+  if (result.status !== 0) return null;
+  return result.stdout.trim() || null;
+}
+
+function gitPath(repo, gitRelativePath) {
+  const result = run("git", ["rev-parse", "--git-path", gitRelativePath], { cwd: repo });
+  if (result.status !== 0) return null;
+  const output = result.stdout.trim();
+  if (!output) return null;
+  return path.isAbsolute(output) ? output : path.resolve(repo, output);
+}
+
+function safeReport(report) {
+  return {
+    status: report.status,
+    action: report.action,
+    installed: report.installed,
+    dry_run: report.dry_run,
+    force: report.force,
+    repo: ".",
+    hook: ".git/hooks/pre-commit",
+    reason: report.reason || "",
+  };
+}
+
+function planInstall(options = {}) {
+  const cwd = options.cwd || process.cwd();
+  const repo = gitRoot(cwd);
+  if (!repo) {
+    return {
+      status: "fail",
+      action: "none",
+      installed: false,
+      dry_run: Boolean(options.dryRun),
+      force: Boolean(options.force),
+      reason: "not inside a Git repository",
+      exitCode: 1,
+    };
+  }
+  if (!fs.existsSync(TEMPLATE)) {
+    return {
+      status: "fail",
+      action: "none",
+      installed: false,
+      dry_run: Boolean(options.dryRun),
+      force: Boolean(options.force),
+      reason: "template hook missing",
+      exitCode: 1,
+    };
+  }
+
+  const hookPath = gitPath(repo, "hooks/pre-commit");
+  if (!hookPath || !path.resolve(hookPath).includes(path.resolve(repo))) {
+    return {
+      status: "fail",
+      action: "none",
+      installed: false,
+      dry_run: Boolean(options.dryRun),
+      force: Boolean(options.force),
+      reason: "hook path could not be resolved inside selected repo",
+      exitCode: 1,
+    };
+  }
+
+  let action = "install";
+  if (fs.existsSync(hookPath)) {
+    const existing = fs.readFileSync(hookPath, "utf8");
+    if (existing.includes(MARKER)) {
+      action = "update";
+    } else if (options.force) {
+      action = "replace";
+    } else {
+      return {
+        status: "refused",
+        action: "preserve-unmanaged",
+        installed: false,
+        dry_run: Boolean(options.dryRun),
+        force: false,
+        reason: "existing unmanaged pre-commit hook preserved",
+        exitCode: 1,
+      };
+    }
+  }
+
+  return {
+    status: "ok",
+    action,
+    installed: false,
+    dry_run: Boolean(options.dryRun),
+    force: Boolean(options.force),
+    repo,
+    hookPath,
+    reason: "",
+    exitCode: 0,
+  };
+}
+
+function install(options = {}) {
+  const report = planInstall(options);
+  if (report.status !== "ok") return report;
+  if (options.dryRun) return report;
+
+  fs.mkdirSync(path.dirname(report.hookPath), { recursive: true });
+  fs.copyFileSync(TEMPLATE, report.hookPath);
+  fs.chmodSync(report.hookPath, 0o755);
+  return {
+    ...report,
+    installed: true,
+  };
+}
+
+function printHuman(report) {
+  if (report.status === "refused") {
+    console.log(`HOOK_NOT_INSTALLED: ${report.reason}`);
+    return;
+  }
+  if (report.status !== "ok") {
+    console.log(`HOOK_NOT_INSTALLED: ${report.reason}`);
+    return;
+  }
+  if (report.dry_run) {
+    console.log(`DRY_RUN: would ${report.action} .git/hooks/pre-commit`);
+    return;
+  }
+  console.log(`HOOK_INSTALLED: ${report.action} .git/hooks/pre-commit`);
+}
+
+function main() {
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    usage();
+    process.exit(2);
+  }
+
+  if (args.help) {
+    usage();
+    return;
+  }
+
+  const report = install(args);
+  if (args.json) console.log(JSON.stringify(safeReport(report), null, 2));
+  else printHuman(report);
+  process.exit(report.exitCode || 0);
+}
+
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  MARKER,
+  install,
+  planInstall,
+};

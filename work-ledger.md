@@ -1349,3 +1349,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: migration-review-skill / coding-workflow-orchestrator-skill.
 * Exact next action: build migration-review helper or pre-commit validation hook.
 * Whether John is needed: Yes for the next permission boundary..
+
+## 2026-07-06 - run-next Autonomous Work Loop
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: pre-commit-validation-hook. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: pre-commit validation hook complete.
+* Selected skill: build-verify-skill / github-handoff-skill / coding-workflow-orchestrator-skill.
+* Last commands run: `scripts/run-next --repo <LIBRARY_REPO> --allow pre-commit-validation-hook`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; pre-commit purpose: deterministic local commit gate for this library before manual commits; pre-commit boundaries: no staging, commits, pushes, package installs, publication, deployment, production calls, or product repo work; pre-commit syntax exit: 0; hook installer syntax exit: 0; pre-commit tests exit: 0; pre-commit fast gate exit: 0; pre-commit json gate exit: 0; pre-commit staged gate exit: 0; hook installer dry-run exit: 0; pre-commit CLI json exit: 0; install-hooks CLI dry-run exit: 0.
+* Blockers: deterministic local pre-commit gate validates; next active dependency is migration-review helper.
+* Next recommended skill: migration-review-skill / coding-workflow-orchestrator-skill.
+* Exact next action: build migration-review helper.
+* Whether John is needed: Yes for the next permission boundary..

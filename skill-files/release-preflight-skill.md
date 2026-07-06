@@ -18,6 +18,8 @@ Run a local release gate before a package, CLI, app, or skills library is publis
 
 This skill connects `evidence-pack-builder-skill` and `npm-package-readiness-skill` with local build/test evidence, changelog or release-note checks, Git cleanliness, version/tag readiness, and explicit publish boundaries.
 
+For this skills library, `scripts/pre-commit-check --full` is useful local evidence before release-style commits because it combines the fast commit gate with `npm test` and advisory `skill-cleaner`. Passing it is not publish, tag, push, deploy, or GitHub Release permission.
+
 Local release preparation runs under `local_execution`. Git push, tag push, GitHub Release creation, and npm publication are `remote_publication` consequences and should be presented as one consolidated objective boundary. Missing npm authentication is `BLOCKED_CAPABILITY`, not `BLOCKED_PERMISSION`; continue version, changelog, release notes, validation, package smoke, and local commit work when those stages do not depend on publication.
 
 The helper supports modes: `local`, `npm`, and `cli`. `local` is the default and must not fail only because a repo is not an npm package. `npm` expects package readiness. `cli` expects package readiness and CLI `bin` readiness.
@@ -64,6 +66,7 @@ Component helpers:
 ./scripts/npm-package-readiness --repo "$TARGET_REPO" --expect-cli
 ./scripts/npm-package-readiness --repo "$TARGET_REPO" --allow-pack-dry-run
 ./scripts/evidence-pack --repo "$TARGET_REPO" --title "Release preflight" --dry-run
+./scripts/pre-commit-check --full
 ```
 
 Basic local git checks:
@@ -83,16 +86,17 @@ git -C "$TARGET_REPO" tag --points-at HEAD
 4. Check whether the working tree is clean or document uncommitted changes.
 5. Check whether HEAD already has a tag without creating one.
 6. Run or read local validation evidence already approved for this task.
-7. Select release mode:
+7. For this skills library, include `scripts/pre-commit-check --full` when a release-style commit is being prepared.
+8. Select release mode:
    - `local`: local handoff/release evidence; package checks may be `NOT_APPLICABLE`.
    - `npm`: npm package release readiness; `package.json` is required.
    - `cli`: npm CLI release readiness; `package.json` and `bin` are required.
-8. Run `npm-package-readiness-skill` or `scripts/npm-package-readiness` with the mode-appropriate expectation flags.
-9. Run evidence-pack planning with `scripts/evidence-pack --dry-run`, or write an evidence pack only if local-edit evidence creation is explicitly approved.
-10. Check README and changelog or release-note presence.
-11. If npm mode is used for a candidate package, record whether the package name is still a John-required blocker.
-12. Classify release readiness.
-13. State exactly which gates remain separate: publish, tag, push, deploy, remote registry mutation, and GitHub release.
+9. Run `npm-package-readiness-skill` or `scripts/npm-package-readiness` with the mode-appropriate expectation flags.
+10. Run evidence-pack planning with `scripts/evidence-pack --dry-run`, or write an evidence pack only if local-edit evidence creation is explicitly approved.
+11. Check README and changelog or release-note presence.
+12. If npm mode is used for a candidate package, record whether the package name is still a John-required blocker.
+13. Classify release readiness.
+14. State exactly which gates remain separate: publish, tag, push, deploy, remote registry mutation, and GitHub release.
 
 ## Evidence Required
 
@@ -103,6 +107,7 @@ git -C "$TARGET_REPO" tag --points-at HEAD
 - Recent commits.
 - Tag-at-HEAD result.
 - Validation commands run or explicit not-run list.
+- Pre-commit full gate result when relevant.
 - Package readiness result.
 - Evidence pack dry-run or output path.
 - README result.

@@ -15,7 +15,7 @@ corrected workflow corpus
   -> backlog confidence
   -> repo-map helper automation (implemented)
   -> project-KB compiler (implemented)
-  -> reusable helper hardening
+  -> pre-commit validation hook (implemented)
   -> browser/live proof and GitHub deep review
   -> secret-access adapter, if approved
   -> capability acquisition/prefetch, if still needed
@@ -62,6 +62,8 @@ Implemented:
 - `scripts/docs-list`
 - `scripts/repo-map`
 - `scripts/project-kb`
+- `scripts/pre-commit-check`
+- `scripts/install-git-hooks`
 - `scripts/run-next`
 - `scripts/lane-state`
 - `scripts/objective-authority`
@@ -78,7 +80,6 @@ Implemented:
 Missing helpers:
 
 - migration-review automation helper
-- reusable pre-commit validation hook
 
 ## Routes And Control Plane
 
@@ -98,6 +99,7 @@ New route added:
 - `docs-list-foundation`
 - `repo-map-helper-automation`
 - `project-kb-compiler`
+- `pre-commit-validation-hook`
 
 ## Capability Adapters
 
@@ -128,8 +130,8 @@ Capability acquisition remains `NEWLY_PROPOSED` until browser proof and secret-a
 
 3. Keep `scripts/repo-map` current as the deterministic source-only workspace orientation helper.
 4. Keep `scripts/project-kb` current as the deterministic source-only project memory compiler.
-5. Add migration-review helper.
-6. Add pre-commit validation hook.
+5. Keep `scripts/pre-commit-check` and `scripts/install-git-hooks` current as the deterministic local commit gate.
+6. Add migration-review helper.
 
 ### P2
 

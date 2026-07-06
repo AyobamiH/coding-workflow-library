@@ -15,7 +15,7 @@ status: active
 
 Prepare a local Git handoff after changes: exact-file status, diff evidence, commit readiness, PR readiness, merge handoff boundaries, caveats, and next permission gates.
 
-Use `scripts/committer` when a local commit is approved and the helper is available. This skill separates `ready-to-commit` from `ready-to-deploy`, and it does not turn commit permission into push, PR, release, deploy, migration, database, or external-service permission.
+Use `scripts/pre-commit-check` before local commits in this library, and use `scripts/committer` when a local commit is approved and the helper is available. This skill separates `ready-to-commit` from `ready-to-deploy`, and it does not turn commit permission into push, PR, release, deploy, migration, database, or external-service permission.
 
 Use `github-auth-gate-skill` before push or PR work when `gh auth status` fails, the active account is unclear, or credentials may be expired, revoked, wrong-account, or under-scoped.
 
@@ -51,6 +51,8 @@ Read-only state and evidence:
 git status --short
 git status -sb
 git diff --check
+./scripts/pre-commit-check
+./scripts/pre-commit-check --staged
 git diff --stat
 git diff -- path/to/file
 git diff --cached --stat
@@ -116,34 +118,35 @@ Never use `git add .`.
 2. Identify intended files and unrelated dirty files separately.
 3. Inspect exact-file diffs for intended files when possible.
 4. Run `git diff --check`.
-5. Record validation caveats from lint, test, build, security, or source-only checks. If lint/test fail because of unrelated known issues, include them as caveats instead of hiding them.
-6. Decide the status:
+5. For this library, run `scripts/pre-commit-check`; use `--staged` after exact files are staged or when the managed hook is installed.
+6. Record validation caveats from lint, test, build, security, or source-only checks. If lint/test fail because of unrelated known issues, include them as caveats instead of hiding them.
+7. Decide the status:
    - `ready-to-commit`: exact files are known, diff/check evidence is collected, no secret-shaped diff markers are present, and commit permission is either granted or can be requested.
    - `ready-to-deploy`: build/runtime/deployment proof and deployment plan exist, but deploy permission is still separate.
-7. If the user has not approved a commit, produce a handoff summary and the exact `scripts/committer --dry-run` command.
-8. If local commit preparation is approved, prefer `scripts/committer`.
-9. Use `scripts/committer --dry-run` before `--no-commit` or default commit mode unless the user specifically asks to proceed directly.
-10. In `--no-commit` mode, stage exact files only and report the suggested commit command.
-11. In default helper mode, commit exact files only with the provided message.
-12. If `scripts/committer` is unavailable, stage with `git add -- <exact files>` only after confirming no unrelated staged files exist.
-13. Do not stage untracked evidence directories unless they are explicitly listed in the intended files.
-14. If identity is missing, ask whether to set repo-local or global config and do not guess.
-15. Before any approved push or PR work, run the GitHub auth preflight.
-16. If `gh auth status` fails, route to `github-auth-gate-skill`.
-17. Do not ask John for vague auth help; use the auth gate to produce exact local provisioning steps when needed.
-18. Do not proceed to push or PR until `github-auth-gate-skill` returns `PASS`.
-19. After `PASS`, continue only the separately approved feature branch, push, and PR work.
-20. If already on the intended feature branch, keep it and verify the intended commit is present.
-21. If already on a different feature branch, report it and do not switch unless the gate allows branch switching.
-22. If a PR already exists, confirm URL, head/base, changed files, commits, and state instead of creating a duplicate.
-23. Do not push `main`; push only the intended feature branch.
-24. Do not force push unless John gives a separate force-push approval and recovery plan.
-25. Do not push, create PRs, merge PRs, tag, release, deploy, run migrations, or verify production unless the active objective grants that consequence class and route-specific safety gates pass.
-26. For PR readiness, inspect exact files, commits, checks, mergeability, review state, reviewed head SHA, and any workflow/deploy implication before any merge.
-27. If PR merge is allowed, recheck the PR immediately before merging: expected account, repo access, `OPEN` state, exact changed files, reviewed head SHA unchanged, `MERGEABLE`, nonblocking checks, and repo-local workflow deployment evidence.
-28. If a repo-local workflow clearly suggests merging `main` may deploy, stop with a deployment-aware owner decision instead of merging.
-29. Do not delete the feature branch during merge unless John explicitly approves branch deletion.
-30. After a merge, verify exact merge commit, local validation, remote alignment, ledger update, and run-record update before recording completion. Stop before deployment planning unless that separate route is approved.
+8. If the user has not approved a commit, produce a handoff summary and the exact `scripts/committer --dry-run` command.
+9. If local commit preparation is approved, prefer `scripts/committer`.
+10. Use `scripts/committer --dry-run` before `--no-commit` or default commit mode unless the user specifically asks to proceed directly.
+11. In `--no-commit` mode, stage exact files only and report the suggested commit command.
+12. In default helper mode, commit exact files only with the provided message.
+13. If `scripts/committer` is unavailable, stage with `git add -- <exact files>` only after confirming no unrelated staged files exist.
+14. Do not stage untracked evidence directories unless they are explicitly listed in the intended files.
+15. If identity is missing, ask whether to set repo-local or global config and do not guess.
+16. Before any approved push or PR work, run the GitHub auth preflight.
+17. If `gh auth status` fails, route to `github-auth-gate-skill`.
+18. Do not ask John for vague auth help; use the auth gate to produce exact local provisioning steps when needed.
+19. Do not proceed to push or PR until `github-auth-gate-skill` returns `PASS`.
+20. After `PASS`, continue only the separately approved feature branch, push, and PR work.
+21. If already on the intended feature branch, keep it and verify the intended commit is present.
+22. If already on a different feature branch, report it and do not switch unless the gate allows branch switching.
+23. If a PR already exists, confirm URL, head/base, changed files, commits, and state instead of creating a duplicate.
+24. Do not push `main`; push only the intended feature branch.
+25. Do not force push unless John gives a separate force-push approval and recovery plan.
+26. Do not push, create PRs, merge PRs, tag, release, deploy, run migrations, or verify production unless the active objective grants that consequence class and route-specific safety gates pass.
+27. For PR readiness, inspect exact files, commits, checks, mergeability, review state, reviewed head SHA, and any workflow/deploy implication before any merge.
+28. If PR merge is allowed, recheck the PR immediately before merging: expected account, repo access, `OPEN` state, exact changed files, reviewed head SHA unchanged, `MERGEABLE`, nonblocking checks, and repo-local workflow deployment evidence.
+29. If a repo-local workflow clearly suggests merging `main` may deploy, stop with a deployment-aware owner decision instead of merging.
+30. Do not delete the feature branch during merge unless John explicitly approves branch deletion.
+31. After a merge, verify exact merge commit, local validation, remote alignment, ledger update, and run-record update before recording completion. Stop before deployment planning unless that separate route is approved.
 
 ## Evidence Required
 
@@ -153,6 +156,7 @@ Never use `git add .`.
 - Exact files staged, if staging was approved.
 - Diff stat and staged diff stat.
 - `git diff --check` result.
+- `scripts/pre-commit-check` result when working in this library.
 - Secret-shaped staged diff scan result when using `scripts/committer`.
 - Handoff caveats from validation.
 - Commit hash if commit succeeded.
@@ -168,6 +172,7 @@ Never use `git add .`.
 ## Safety Rules
 
 - Use exact-file commit rules.
+- Run `scripts/pre-commit-check` or rely on the installed managed hook before local commits in this library.
 - Prefer `scripts/committer` before commit when available.
 - Never use `git add .`.
 - Do not stage unrelated files.
@@ -229,5 +234,5 @@ Git handoff:
 - Add optional repo-specific references after a real GitHub workflow is confirmed.
 - Add a public-source handoff helper that verifies repository emptiness/conflicts, exact files, remote HEAD parity, and release blockers before push.
 - Add a GitHub deep-review skill that inspects open PRs, review comments, CI runs, and branch protection before PR handoff.
-- Add a pre-commit hook that runs `scripts/committer`-style path and secret checks before manual commits.
+- Keep `scripts/pre-commit-check` aligned with `scripts/committer` staged secret-scan rules as future helpers are added.
 - Add first-version source tag handoff that pushes an exact release commit, waits for CI on that commit, creates/pushes one annotated tag, verifies remote tag dereference, records post-tag bookkeeping, and still blocks npm publish and GitHub release creation.

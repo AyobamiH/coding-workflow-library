@@ -37,6 +37,7 @@ skills/coding-workflow-library/
     workflow-source-manifest.schema.json
     repo-map.schema.json
     project-kb.schema.json
+    pre-commit-check.schema.json
   runs/
     decisions/
     skill-runs.md
@@ -58,11 +59,15 @@ skills/coding-workflow-library/
     docs-list
     repo-map
     project-kb
+    pre-commit-check
+    install-git-hooks
     run-next
     route-audit
     skill-cleaner
     validate-skills
   templates/
+    hooks/
+      pre-commit
     repo-agents-pointer-template.md
     skill-run-template.md
     new-skill-template.md
@@ -75,6 +80,7 @@ skills/coding-workflow-library/
     docs-list.test.js
     repo-map.test.js
     project-kb.test.js
+    pre-commit-check.test.js
     library-validation-checklist.md
   skill-files/
     coding-workflow-orchestrator-skill.md
@@ -330,6 +336,29 @@ cd /home/johnh/.openclaw/skills/coding-workflow-library
 ```
 
 Commit permission is separate from push, PR, deploy, migration, and release permission.
+
+## Pre-Commit Validation Hook
+
+`scripts/pre-commit-check` is the local commit gate for this library. It runs deterministic checks before a commit: `git diff --check`, Node syntax checks for core helpers, docs-list validation, repo-map validation, project-KB validation, route audit, and skill validation. `--staged` also inspects the staged diff for whitespace issues and secret-shaped additions, reporting only file/risk category without printing values. `--full` adds `npm test` and `skill-cleaner`.
+
+```bash
+./scripts/pre-commit-check
+./scripts/pre-commit-check --staged
+./scripts/pre-commit-check --full
+./scripts/pre-commit-check --json
+
+coding-workflow pre-commit-check --staged
+```
+
+The optional hook template is tracked at `templates/hooks/pre-commit`. Install it only when desired:
+
+```bash
+./scripts/install-git-hooks --dry-run
+./scripts/install-git-hooks
+coding-workflow install-hooks --dry-run
+```
+
+The installer writes only `.git/hooks/pre-commit` in the selected Git repository, refuses unmanaged existing hooks by default, and uses a managed marker for safe updates. It does not stage, commit, push, install packages, publish, deploy, read secrets, or call remote services. The hook is not a substitute for CI or release preflight; it is a fast local guardrail before exact-file commits.
 
 ## Local Verification And Release Evidence
 

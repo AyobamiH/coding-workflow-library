@@ -132,6 +132,7 @@ Use this before final response or before saying a workflow is complete.
 
 - `git status --short` or `git status -sb` checked.
 - `git diff --check` run when repo exists.
+- `scripts/pre-commit-check` result recorded before local commits in this library.
 - Exact-file diffs reviewed for changed files.
 - Exact-file staging used if a commit was authorized.
 - `git add .` avoided.
@@ -139,6 +140,7 @@ Use this before final response or before saying a workflow is complete.
 - Exact files staged recorded.
 - Staged diff stat recorded.
 - Secret scan on staged diff recorded without printing secret values.
+- Pre-commit staged scan reports file/risk category only when secret-shaped additions are found.
 - Secret scanner safe notes for runtime env/header access separated from fatal hardcoded literal findings.
 - Commit hash recorded only if a local commit was approved and created.
 - Final status recorded.

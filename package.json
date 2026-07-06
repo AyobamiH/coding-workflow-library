@@ -23,7 +23,7 @@
   ],
   "scripts": {
     "check:js": "node scripts/check-js",
-    "test": "npm run check:js && node tests/lane-state.test.js && node tests/objective-authority.test.js && node tests/autonomous-boundaries.test.js && node tests/pipeline-diagnostics.test.js && node tests/run-next-resume.test.js && node tests/workflow-extraction.test.js && node tests/docs-list.test.js && node tests/repo-map.test.js && node tests/project-kb.test.js && node scripts/docs-list --validate && node scripts/repo-map --repo . --validate && node scripts/project-kb --repo . --validate && node scripts/route-audit && node scripts/validate-skills",
+    "test": "npm run check:js && node tests/lane-state.test.js && node tests/objective-authority.test.js && node tests/autonomous-boundaries.test.js && node tests/pipeline-diagnostics.test.js && node tests/run-next-resume.test.js && node tests/workflow-extraction.test.js && node tests/docs-list.test.js && node tests/repo-map.test.js && node tests/project-kb.test.js && node tests/pre-commit-check.test.js && node scripts/docs-list --validate && node scripts/repo-map --repo . --validate && node scripts/project-kb --repo . --validate && node scripts/route-audit && node scripts/validate-skills",
     "validate": "node scripts/validate-skills",
     "cleaner": "node scripts/skill-cleaner",
     "routes": "node scripts/route-audit",
@@ -34,6 +34,9 @@
     "repo:validate": "node scripts/repo-map --repo . --validate",
     "project:kb": "node scripts/project-kb --repo .",
     "project:kb:validate": "node scripts/project-kb --repo . --validate",
+    "precommit": "node scripts/pre-commit-check",
+    "precommit:full": "node scripts/pre-commit-check --full",
+    "hooks:install": "node scripts/install-git-hooks",
     "readiness": "node scripts/library-packaging-readiness --repo .",
     "readiness:open-source": "node scripts/library-packaging-readiness --repo . --expect-open-source",
     "readiness:npm": "node scripts/library-packaging-readiness --repo . --expect-npm",

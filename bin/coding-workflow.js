@@ -51,6 +51,15 @@ const COMMANDS = {
     script: "scripts/project-kb",
     description: "Compile a deterministic source-only project knowledge base.",
   },
+  "pre-commit-check": {
+    script: "scripts/pre-commit-check",
+    description: "Run deterministic local checks before committing.",
+  },
+  "install-hooks": {
+    script: "scripts/install-git-hooks",
+    description: "Install the optional local Git pre-commit hook when safe.",
+    cwd: "caller",
+  },
 };
 
 function printHelp() {
@@ -72,6 +81,8 @@ Usage:
   coding-workflow docs-list [--json] [--validate] [--orphans]
   coding-workflow repo-map --repo /path/to/repo [--json] [--validate]
   coding-workflow project-kb --repo /path/to/repo [--output /path/to/PROJECT_KB.md] [--json] [--validate] [--dry-run]
+  coding-workflow pre-commit-check [--staged] [--full] [--json]
+  coding-workflow install-hooks [--dry-run] [--force]
   coding-workflow objective show --lane <lane-id> --state-file /path/to/lanes.json
   coding-workflow objective approve --lane <lane-id> --grant remote_publication --state-file /path/to/lanes.json
   coding-workflow run-next --lane <lane-id> --state-file /path/to/lanes.json --explain-next
@@ -99,7 +110,7 @@ function delegate(commandName, args) {
   }
 
   const result = spawnSync(process.execPath, [scriptPath, ...args], {
-    cwd: ROOT,
+    cwd: command.cwd === "caller" ? process.cwd() : ROOT,
     env: process.env,
     stdio: "inherit",
   });

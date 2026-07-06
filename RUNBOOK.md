@@ -19,9 +19,10 @@ Read `AGENTS.md` first. Its hard rules and permission gates override individual 
 11. If no skill fits, create a skill gap note instead of improvising silently.
 12. If a command fails, record the failure and recovery path.
 13. If secrets or credentials are found, stop and report without printing the secret value.
-14. Before any commit, use `github-handoff-skill`.
-15. If committing locally is approved, prefer `scripts/committer`.
-16. Commit permission does not imply push permission.
+14. Before any commit, run `scripts/pre-commit-check` or rely on the installed managed pre-commit hook.
+15. Before publication-oriented git work, use `github-handoff-skill`.
+16. If committing locally is approved, prefer `scripts/committer`.
+17. Commit permission does not imply push permission.
 
 ## Execution Order
 
@@ -41,6 +42,8 @@ The system requests authority for consequences, not permission for every tool ca
 Objective authority in `AGENTS.md` overrides individual skill convenience. Local execution is normally autonomous inside the selected objective. A skill may suggest a command, but only consequence-bearing actions need a granted authority class: `remote_publication`, `production_mutation`, `secret_mutation`, or `destructive_action`.
 
 Use `github-handoff-skill` before publication-oriented git work, use `scripts/committer` for exact-file local commits, and treat push, PR mutation, merge, tag push, GitHub Release, and npm publication as `remote_publication` consequences under the active objective rather than separate repeated prompts.
+
+Use `scripts/pre-commit-check` before local commits in this library. Default mode is fast and local; `--staged` adds staged diff safety and secret-shaped marker scanning without values; `--full` adds `npm test` and `skill-cleaner`. `scripts/install-git-hooks` can install the optional managed `.git/hooks/pre-commit` template, but it must preserve unmanaged hooks unless `--force` is explicitly chosen. The hook does not grant commit, push, publish, deploy, or release authority.
 
 `scripts/run-next` is the default executable path when the next step is represented in lane state or `work-ledger.md`. In lane mode it reads the selected objective authority and can continue through multiple safe/local stages until a structured blocker appears. Legacy `--allow <route>` flags remain compatible; new work should prefer objective grants. Use `--explain`, `--explain-next`, or `--dry-run` when the selected job should be reported without mutating lane state, ledger, run log, target repo, or external services.
 

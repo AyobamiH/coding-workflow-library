@@ -165,6 +165,18 @@ General helper templates:
 
 `scripts/committer` secret scanning blocks hardcoded secret-shaped literal values. Runtime secret access such as `Deno.env.get(...)`, `process.env.NAME`, `import.meta.env.NAME`, and header reads are reported as safe notes instead of fatal findings.
 
+Pre-commit gate for this library:
+
+```bash
+./scripts/pre-commit-check
+./scripts/pre-commit-check --staged
+./scripts/pre-commit-check --full
+./scripts/pre-commit-check --json
+./scripts/install-git-hooks --dry-run
+```
+
+`scripts/pre-commit-check --staged` reports staged secret-shaped additions by file and category without printing values. `scripts/install-git-hooks` installs only the managed `.git/hooks/pre-commit` template and refuses unmanaged hook overwrites unless `--force` is explicit.
+
 Fallback raw Git commands if `scripts/committer` is unavailable:
 
 ```bash

@@ -46,6 +46,7 @@ Preserve safety gates. Failed tests, failed validation, unsafe package contents,
 - Treat untracked files as evidence until classified.
 - Preserve unrelated user changes.
 - Prefer exact-file diffs and exact-file commits.
+- Before local commits in this library, run `scripts/pre-commit-check` or rely on the installed managed hook.
 
 ## Package Manager Safety
 
@@ -80,6 +81,7 @@ Preserve safety gates. Failed tests, failed validation, unsafe package contents,
 - deciding next work -> `coding-workflow-orchestrator-skill`
 - repo orientation -> `repo-map-skill` with `scripts/repo-map --repo <path>` first
 - durable source-only project context -> `project-kb-builder-skill` with `scripts/project-kb --repo <path>`
+- pre-commit gate for this library -> `build-verify-skill` with `scripts/pre-commit-check`
 - env/secrets -> `env-audit-skill`
 - Supabase RLS/public anon safety -> `supabase-rls-audit-skill`
 - security finding or patch plan -> `security-hardening-review-skill`

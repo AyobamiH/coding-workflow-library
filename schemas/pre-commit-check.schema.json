@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AyobamiH/coding-workflow-library/schemas/pre-commit-check.schema.json",
+  "title": "Coding Workflow Pre-Commit Check Result",
+  "type": "object",
+  "required": [
+    "status",
+    "mode",
+    "repo",
+    "checks_run",
+    "passed",
+    "failed",
+    "skipped",
+    "first_failure",
+    "checks"
+  ],
+  "properties": {
+    "status": {
+      "enum": ["pass", "fail"]
+    },
+    "mode": {
+      "type": "object",
+      "required": ["full", "staged"],
+      "properties": {
+        "full": { "type": "boolean" },
+        "staged": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "repo": {
+      "type": "object",
+      "required": ["root", "classification", "git_root_found"],
+      "properties": {
+        "root": { "const": "." },
+        "classification": { "type": "string" },
+        "git_root_found": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "checks_run": { "type": "integer", "minimum": 0 },
+    "passed": { "type": "integer", "minimum": 0 },
+    "failed": { "type": "integer", "minimum": 0 },
+    "skipped": { "type": "integer", "minimum": 0 },
+    "first_failure": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["id", "message"],
+          "properties": {
+            "id": { "type": "string" },
+            "message": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "status": { "enum": ["passed", "failed", "skipped"] },
+          "message": { "type": "string" },
+          "command": {
+            "anyOf": [
+              { "type": "null" },
+              { "type": "string" }
+            ]
+          },
+          "output": { "type": "string" },
+          "risks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["file", "category"],
+              "properties": {
+                "file": { "type": "string" },
+                "line": {
+                  "anyOf": [
+                    { "type": "null" },
+                    { "type": "integer", "minimum": 1 }
+                  ]
+                },
+                "category": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "duration_ms": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

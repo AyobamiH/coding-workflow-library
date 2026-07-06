@@ -15,19 +15,10 @@
 
 - Evidence source: `migration-review-skill.md`; Supabase scheduler work proved source-only migration and secret-hardcoding review needs.
 - Primary type: `SCRIPT_OR_HELPER`.
-- Dependency: repo-map helper.
+- Dependency: repo-map helper and pre-commit validation hook.
 - Authority required: `local_execution`; SQL execution remains a separate `production_mutation` boundary.
 - Done definition: helper inventories migrations, flags destructive patterns, secret-shaped literals, rollback gaps, ordering risks, and source-only limitations.
 - Reason for priority: migration review is reusable and safety-critical.
-
-## Pre-commit validation hook
-
-- Evidence source: `github-handoff-skill.md`, `runs/skill-runs.md` Peter-pattern follow-up.
-- Primary type: `HOOK`.
-- Dependency: exact-file committer and validator already exist.
-- Authority required: `local_execution`.
-- Done definition: opt-in hook runs secret-shaped marker scan and exact-file safety checks before manual commits without broad staging or remote mutation.
-- Reason for priority: it prevents regressions around the already-proven exact-file handoff pattern.
 
 ## Browser live proof skill
 
@@ -136,3 +127,4 @@
 - Deterministic documentation inventory foundation (`scripts/docs-list`).
 - Deterministic source-only repository map helper (`scripts/repo-map`).
 - Deterministic source-only project KB compiler (`scripts/project-kb`).
+- Pre-commit validation hook (`scripts/pre-commit-check`, `scripts/install-git-hooks`, `templates/hooks/pre-commit`).

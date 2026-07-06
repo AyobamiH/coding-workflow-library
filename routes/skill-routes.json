@@ -1412,6 +1412,77 @@
       "provenance": "P1 helper identified by project-kb-builder-skill evidence and corrected workflow corpus roadmap"
     },
     {
+      "id": "pre-commit-validation-hook",
+      "skill_file": "skill-files/build-verify-skill.md",
+      "ledger_states_handled": [
+        "project-KB compiler complete",
+        "pre-commit validation hook requested"
+      ],
+      "permission_flag": "pre-commit-validation-hook",
+      "helper_scripts": [
+        "scripts/pre-commit-check",
+        "scripts/install-git-hooks",
+        "scripts/run-next",
+        "scripts/docs-list",
+        "scripts/repo-map",
+        "scripts/project-kb",
+        "scripts/route-audit",
+        "scripts/validate-skills"
+      ],
+      "permission_level": "local_execution, remote_publication",
+      "explicit_permission_required": true,
+      "requires_authority": [
+        "local_execution",
+        "remote_publication"
+      ],
+      "forbidden_actions": [
+        "npm publish",
+        "npm version",
+        "git tag",
+        "GitHub release creation",
+        "force push",
+        "broad staging",
+        "automatic commit",
+        "automatic hook overwrite",
+        "product repo mutation",
+        "deploy",
+        "production endpoint calls",
+        "secret value printing",
+        "package installation",
+        "remote mutation outside the approved push"
+      ],
+      "success_ledger_state": "pre-commit validation hook complete",
+      "blocked_ledger_state": "pre-commit validation hook blocked",
+      "next_permission": "build migration-review helper",
+      "evidence_required": [
+        "pre-commit helper contract",
+        "fast and full mode boundary",
+        "staged diff and secret-shaped marker scan",
+        "hook template marker in templates/hooks/pre-commit",
+        "installer overwrite refusal",
+        "synthetic installer and staged scan tests",
+        "CLI delegation",
+        "package contents review",
+        "exact commit and exact-commit CI"
+      ],
+      "safety_gates": [
+        "no .env value reads",
+        "no raw staged secret values in output",
+        "no automatic staging or committing",
+        "no unmanaged hook overwrite unless explicit --force",
+        "no external service calls",
+        "no npm publish",
+        "no version bump",
+        "no tag or release"
+      ],
+      "idempotency_evidence": [
+        "rerun validates existing helper, installer, template, and tests",
+        "dry-run installer writes no files",
+        "managed marker allows safe update detection"
+      ],
+      "provenance": "P1 foundation selected after project-KB because it protects future helper, skill, route, and release commits"
+    },
+    {
       "id": "workflow-corpus-recovery",
       "skill_file": "skill-files/session-log-extraction-skill.md",
       "ledger_states_handled": [

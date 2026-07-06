@@ -59,7 +59,7 @@ Use for OpenClaw/host security review. Read-only baseline first, then Gate A-E c
 ### build-verify-skill
 
 File: `skill-files/build-verify-skill.md`
-Use after edits. Runs git status, `git diff --check`, and reviews opstruth-style evidence reports.
+Use after edits and before local commits. Runs git status, `git diff --check`, the deterministic `scripts/pre-commit-check` gate, and reviews opstruth-style evidence reports. The optional managed hook is installed through `scripts/install-git-hooks`.
 
 ### evidence-pack-builder-skill
 

@@ -1,0 +1,11 @@
+#!/bin/sh
+# coding-workflow-library-managed-pre-commit v1
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "coding-workflow pre-commit: not inside a Git repository" >&2
+  exit 1
+}
+
+cd "$repo_root" || exit 1
+
+exec scripts/pre-commit-check --staged
