@@ -76,13 +76,13 @@ Top skill mentions:
 | Planner/worker/reviewer roles are ready as durable agents | `NOT_SUPPORTED` | Mentions are sparse compared with product-specific roles and do not yet prove distinct reusable contracts. |
 | Capability acquisition/prefetch is a historical P0 | `CANNOT_VERIFY` | The corrected corpus does not make it older or more foundational than extraction, docs inventory, browser proof, or secret-access prerequisites. |
 
-## Confirmed Missing Reusable Components
+## Reusable Components Status
 
 - deterministic session extraction helper: now implemented
 - source manifest and coverage reports: now implemented
-- `scripts/docs-list`: still missing
-- repo-map helper automation: still missing
-- project-KB compiler: still missing
+- `scripts/docs-list`: now implemented
+- repo-map helper automation: now implemented
+- project-KB compiler: now implemented
 - migration-review helper: still missing
 - pre-commit validation hook: still missing
 - browser live proof skill: still missing

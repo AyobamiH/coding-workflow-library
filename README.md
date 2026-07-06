@@ -36,6 +36,7 @@ skills/coding-workflow-library/
     workflow-corpus.schema.json
     workflow-source-manifest.schema.json
     repo-map.schema.json
+    project-kb.schema.json
   runs/
     decisions/
     skill-runs.md
@@ -56,6 +57,7 @@ skills/coding-workflow-library/
     extract-session-workflows.mjs
     docs-list
     repo-map
+    project-kb
     run-next
     route-audit
     skill-cleaner
@@ -72,6 +74,7 @@ skills/coding-workflow-library/
     workflow-extraction.test.js
     docs-list.test.js
     repo-map.test.js
+    project-kb.test.js
     library-validation-checklist.md
   skill-files/
     coding-workflow-orchestrator-skill.md
@@ -198,6 +201,21 @@ coding-workflow repo-map --repo /path/to/repo --validate
 ```
 
 The helper reports git state, top-level files and directories, detected languages, package/config markers, safe package scripts, command candidates, documentation summary from `scripts/docs-list`, source/database directories, environment-file presence without values, and secret-surface warning categories. It works for Git and non-Git directories. It does not install dependencies, run build/test commands in the target repo, mutate git, read `.env` values, call external services, inspect private corpus output, publish, deploy, push, tag, or prove runtime behaviour.
+
+## Project Knowledge Base
+
+Use `scripts/project-kb` after `repo-map` and `docs-list` when a repo needs durable, source-only handoff context:
+
+```bash
+./scripts/project-kb --repo /path/to/repo --dry-run
+./scripts/project-kb --repo /path/to/repo --json
+./scripts/project-kb --repo /path/to/repo --validate
+./scripts/project-kb --repo /path/to/repo --output /path/to/PROJECT_KB.md
+
+coding-workflow project-kb --repo /path/to/repo --validate
+```
+
+The compiler synthesizes deterministic facts about project identity, repository shape, stack, commands, documentation, skills/routes, validation gates, source-only safety boundaries, verified facts, and unknowns. It does not read `.env` values, raw session transcripts, private corpus output, caches, temp data, or generated evidence. It does not install dependencies, run target build/test commands, mutate git, call services, publish, deploy, or prove runtime behaviour.
 
 ## Objective-Level Autonomy
 

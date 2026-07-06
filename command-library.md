@@ -14,6 +14,18 @@ coding-workflow repo-map --repo "$TARGET_REPO" --validate
 
 `scripts/repo-map` is source-only orientation. It must not install dependencies, run target build/test commands, mutate git, read `.env` values, call external services, publish, deploy, push, tag, or prove runtime behaviour.
 
+## Project Knowledge Base
+
+```bash
+./scripts/project-kb --repo "$TARGET_REPO" --dry-run
+./scripts/project-kb --repo "$TARGET_REPO" --json
+./scripts/project-kb --repo "$TARGET_REPO" --validate
+./scripts/project-kb --repo "$TARGET_REPO" --output "$TARGET_REPO/PROJECT_KB.md"
+coding-workflow project-kb --repo "$TARGET_REPO" --validate
+```
+
+`scripts/project-kb` compiles deterministic source-only handoff context from repo-map, docs-list, package, route, skill, and control-doc metadata. It must not read `.env` values, raw sessions, private corpus output, install dependencies, run target build/test commands, call services, mutate git, publish, deploy, push, tag, or prove runtime behaviour.
+
 Manual follow-up after reading the map:
 
 ```bash

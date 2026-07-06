@@ -53,6 +53,7 @@ Use this checklist after creating, updating, or reorganizing the coding workflow
 ./scripts/validate-skills
 ./scripts/docs-list --validate
 ./scripts/repo-map --repo . --validate
+./scripts/project-kb --repo . --validate
 find . -maxdepth 3 -type f | sort
 grep -R "TODO|TBD|placeholder|lorem|changeme" . --exclude=library-validation-checklist.md || true
 grep -R "sk-[A-Za-z0-9]|SUPABASE_SERVICE_ROLE|PRIVATE KEY|BEGIN RSA|BEGIN OPENSSH" . --exclude=library-validation-checklist.md || true

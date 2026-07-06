@@ -1,0 +1,560 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+
+const {
+  buildRepoMap,
+  safeScriptCommand,
+  shouldExclude,
+  validateRepoMap,
+} = require("./repo-map");
+const docsList = require("./docs-list");
+
+const CONTROL_DOCS = [
+  "README.md",
+  "AGENTS.md",
+  "RUNBOOK.md",
+  "skills-index.md",
+  "build-queue.md",
+  "CHANGELOG.md",
+];
+
+const SECRET_PATTERNS = [
+  /gh[pousr]_[A-Za-z0-9_]+/,
+  /sk-[A-Za-z0-9_-]{12,}/,
+  /Bearer\s+[A-Za-z0-9._-]+/,
+  /postgres(?:ql)?:\/\/[^\s"]+/,
+  /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/,
+  /-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----/,
+];
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/project-kb --repo <path> [--output <path>] [--json] [--validate] [--dry-run]
+
+Compile a deterministic, privacy-safe, source-only project knowledge base.
+
+Modes:
+  default       Print Markdown project KB to stdout.
+  --output     Write Markdown project KB to the requested file only.
+  --json       Print deterministic machine-readable JSON.
+  --validate   Exit non-zero if the compiled KB violates the helper contract.
+  --dry-run    Compile and report the planned write without creating files.
+
+Optional inputs:
+  --from-repo-map <path>    Use an existing repo-map JSON file.
+  --from-docs-list <path>   Use an existing docs-list JSON file.
+  --max-docs <number>       Limit document entries in the KB JSON.
+
+The helper never installs dependencies, runs target build/test commands, reads
+.env values, calls external services, mutates git, or writes files unless
+--output is explicitly supplied.`);
+}
+
+function parseArgs(argv) {
+  const args = {
+    repo: null,
+    output: null,
+    json: false,
+    validate: false,
+    dryRun: false,
+    includeDocs: true,
+    includeRoutes: true,
+    includePackageScripts: true,
+    fromRepoMap: null,
+    fromDocsList: null,
+    maxDocs: 30,
+    help: false,
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--repo") {
+      args.repo = argv[++index];
+      if (!args.repo) throw new Error("--repo requires a path");
+    } else if (arg === "--output") {
+      args.output = argv[++index];
+      if (!args.output) throw new Error("--output requires a path");
+    } else if (arg === "--json") {
+      args.json = true;
+    } else if (arg === "--validate") {
+      args.validate = true;
+    } else if (arg === "--dry-run") {
+      args.dryRun = true;
+    } else if (arg === "--include-docs") {
+      args.includeDocs = true;
+    } else if (arg === "--no-docs") {
+      args.includeDocs = false;
+    } else if (arg === "--include-routes") {
+      args.includeRoutes = true;
+    } else if (arg === "--no-routes") {
+      args.includeRoutes = false;
+    } else if (arg === "--include-package-scripts") {
+      args.includePackageScripts = true;
+    } else if (arg === "--no-package-scripts") {
+      args.includePackageScripts = false;
+    } else if (arg === "--from-repo-map") {
+      args.fromRepoMap = argv[++index];
+      if (!args.fromRepoMap) throw new Error("--from-repo-map requires a path");
+    } else if (arg === "--from-docs-list") {
+      args.fromDocsList = argv[++index];
+      if (!args.fromDocsList) throw new Error("--from-docs-list requires a path");
+    } else if (arg === "--max-docs") {
+      const value = argv[++index];
+      if (!value || !/^\d+$/.test(value)) throw new Error("--max-docs requires a positive integer");
+      args.maxDocs = Number(value);
+      if (args.maxDocs < 1) throw new Error("--max-docs must be at least 1");
+    } else if (arg === "--help" || arg === "-h") {
+      args.help = true;
+    } else {
+      throw new Error(`unknown argument: ${arg}`);
+    }
+  }
+
+  if (!args.repo && !args.help) throw new Error("--repo is required");
+  return args;
+}
+
+function normalizeRelative(value) {
+  return String(value || "").replaceAll(path.sep, "/").replace(/^\/+/, "");
+}
+
+function toRelative(root, absolutePath) {
+  return normalizeRelative(path.relative(root, absolutePath));
+}
+
+function projectKbShouldExclude(relativePath) {
+  const normalized = normalizeRelative(relativePath);
+  const parts = normalized.split("/");
+  if (shouldExclude(normalized)) return true;
+  return parts.some((part) => ["evidence", "vendor-intake", ".openclaw"].includes(part));
+}
+
+function readJsonFile(file) {
+  return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+
+function readPackage(repo) {
+  const file = path.join(repo, "package.json");
+  if (!fs.existsSync(file)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function extractTitle(text) {
+  const match = text.match(/^#\s+(.+?)\s*#*\s*$/m);
+  return match ? match[1].trim() : null;
+}
+
+function safeDocMeta(repo, relativePath) {
+  const file = path.join(repo, relativePath);
+  if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return null;
+  const text = fs.readFileSync(file, "utf8");
+  return {
+    path: relativePath,
+    title: extractTitle(text),
+    present: true,
+  };
+}
+
+function walkFiles(dir, root, files = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    const relative = toRelative(root, full);
+    if (projectKbShouldExclude(relative)) continue;
+    if (entry.isDirectory()) {
+      walkFiles(full, root, files);
+    } else if (entry.isFile()) {
+      files.push(relative);
+    }
+  }
+  return files;
+}
+
+function discoverFiles(repo) {
+  return walkFiles(repo, repo).sort((a, b) => a.localeCompare(b));
+}
+
+function safeRepository(value) {
+  if (!value) return null;
+  if (typeof value === "string") return safeScriptCommand(value);
+  if (typeof value === "object" && typeof value.url === "string") return safeScriptCommand(value.url);
+  return null;
+}
+
+function routeSummary(repo, includeRoutes) {
+  if (!includeRoutes) return { available: false, reason: "disabled" };
+  const file = path.join(repo, "routes", "skill-routes.json");
+  if (!fs.existsSync(file)) return { available: false, reason: "routes metadata not present" };
+  try {
+    const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
+    const routes = Array.isArray(parsed.routes) ? parsed.routes : [];
+    return {
+      available: true,
+      count: routes.length,
+      route_ids: routes
+        .map((route) => route.id)
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b))
+        .slice(0, 40),
+    };
+  } catch {
+    return { available: false, reason: "routes metadata unreadable" };
+  }
+}
+
+function skillSummary(files) {
+  const skillFiles = files.filter((file) => file.startsWith("skill-files/") && file.endsWith(".md"));
+  return {
+    count: skillFiles.length,
+    files: skillFiles.slice(0, 60),
+  };
+}
+
+function commandSummary(repoMap, includePackageScripts) {
+  if (!includePackageScripts) return { package_scripts: {}, command_candidates: {}, package_scripts_included: false };
+  const scripts = {};
+  for (const [name, command] of Object.entries(repoMap.package_scripts || {})) {
+    scripts[name] = safeScriptCommand(command);
+  }
+  return {
+    package_scripts: scripts,
+    command_candidates: repoMap.command_candidates || {},
+    package_scripts_included: true,
+  };
+}
+
+function validationGates(commands, files) {
+  const scriptNames = Object.keys(commands.package_scripts || {});
+  const gates = [];
+  for (const name of scriptNames) {
+    if (/^(test|check|validate|routes?|route:audit|repo:validate|docs:validate|project:kb|release|package|readiness)/i.test(name)) {
+      gates.push(`npm run ${name}`);
+    }
+  }
+  for (const file of ["scripts/validate-skills", "scripts/route-audit", "scripts/skill-cleaner"]) {
+    if (files.includes(file)) gates.push(file);
+  }
+  return [...new Set(gates)].sort((a, b) => a.localeCompare(b));
+}
+
+function docsSummary(repo, args, files) {
+  if (!args.includeDocs) return { available: false, reason: "disabled", totals: {}, key_documents: [] };
+  const report = args.fromDocsList
+    ? readJsonFile(args.fromDocsList)
+    : docsList.buildInventory({ repo });
+  const documents = Array.isArray(report.documents) ? report.documents : [];
+  return {
+    available: true,
+    source: report.source || "unknown",
+    totals: report.totals || {},
+    categories: report.categories || {},
+    key_documents: documents
+      .filter((doc) => doc.current !== false)
+      .slice(0, args.maxDocs)
+      .map((doc) => ({
+        path: doc.path,
+        title: doc.title || null,
+        category: doc.category || "unknown",
+        indexed: Boolean(doc.indexed),
+      })),
+    warnings: {
+      missing_h1: report.warnings?.missing_h1 || [],
+      duplicate_titles: report.warnings?.duplicate_titles || [],
+      orphans: report.warnings?.orphans || [],
+    },
+  };
+}
+
+function buildProjectKb(options) {
+  const repo = path.resolve(options.repo);
+  if (!fs.existsSync(repo) || !fs.statSync(repo).isDirectory()) {
+    throw new Error(`repo path is not a directory: ${options.repo}`);
+  }
+
+  const repoMap = options.fromRepoMap ? readJsonFile(options.fromRepoMap) : buildRepoMap({ repo, maxFiles: 500 });
+  const repoMapFailures = validateRepoMap(repoMap);
+  const files = discoverFiles(repo);
+  const pkg = readPackage(repo);
+  const commands = commandSummary(repoMap, options.includePackageScripts);
+  const docs = docsSummary(repo, options, files);
+  const routes = routeSummary(repo, options.includeRoutes);
+  const skills = skillSummary(files);
+  const controlDocs = CONTROL_DOCS.map((doc) => safeDocMeta(repo, doc)).filter(Boolean);
+
+  const kb = {
+    schema_version: 1,
+    project_identity: {
+      name: pkg?.name || "unpackaged repository",
+      description: pkg?.description || null,
+      package_name: pkg?.name || null,
+      version: pkg?.version || null,
+      repository: safeRepository(pkg?.repository),
+      root: ".",
+    },
+    repository_shape: {
+      source: repoMap.repo?.source || "unknown",
+      git: repoMap.git || {},
+      file_count_considered: repoMap.repo?.file_count_considered || 0,
+      file_count_total: repoMap.repo?.file_count_total || 0,
+      top_level: {
+        files: (repoMap.top_level?.files || []).filter((item) => !projectKbShouldExclude(item)),
+        directories: (repoMap.top_level?.directories || []).filter((item) => !projectKbShouldExclude(item)),
+      },
+      important_configs: (repoMap.frameworks_and_configs || []).filter((item) => !projectKbShouldExclude(item)),
+      source_directories: (repoMap.source_directories || []).filter((item) => !projectKbShouldExclude(item)),
+      database_directories: (repoMap.database_directories || []).filter((item) => !projectKbShouldExclude(item)),
+      control_documents: controlDocs,
+    },
+    stack_and_package_manager: {
+      package_manager: repoMap.package_manager || "not_detected",
+      languages: repoMap.languages || [],
+    },
+    important_commands: commands,
+    documentation_surface: docs,
+    skills_and_routes: {
+      skills,
+      routes,
+    },
+    validation_and_release_gates: {
+      detected_gates: validationGates(commands, files),
+      package_scripts_included: commands.package_scripts_included,
+    },
+    source_only_safety_boundaries: [
+      "No dependency installation",
+      "No target build/test execution",
+      "No git mutation",
+      "No external service calls",
+      "No production endpoint calls",
+      "No secret value reads",
+      "No environment file value output",
+    ],
+    known_local_only_state: {
+      env_files: repoMap.env_files || [],
+      secret_surface_warnings: repoMap.secret_surface_warnings || [],
+      note: "Presence-only metadata; local runtime state and credentials stay outside portable KB output.",
+    },
+    verified_facts: [
+      `repo-map source: ${repoMap.repo?.source || "unknown"}`,
+      `package manager: ${repoMap.package_manager || "not_detected"}`,
+      `docs inventory: ${docs.available ? `${docs.totals.documents || 0} documents` : "not available"}`,
+      `routes metadata: ${routes.available ? `${routes.count} routes` : "not present"}`,
+      `skill files: ${skills.count}`,
+    ],
+    unknowns_and_not_verified: [
+      "Runtime behaviour is not verified by this source-only KB.",
+      "Deployment state is not verified by this source-only KB.",
+      "Secret values are not inspected.",
+      "External account permissions are not verified.",
+      "Package registry ownership or availability is not verified.",
+    ],
+    recommended_first_skills: [
+      repoMap.recommended_first_skill || "repo-map-skill",
+      "project-kb-builder-skill",
+    ],
+    last_generated: {
+      value: "not_timestamped_for_determinism",
+      note: "Regenerate when source files change; wall-clock timestamps are intentionally omitted from portable output.",
+    },
+    diagnostics: {
+      repo_map_validation_failures: repoMapFailures,
+    },
+  };
+
+  return kb;
+}
+
+function validateProjectKb(kb) {
+  const failures = [];
+  const required = [
+    "schema_version",
+    "project_identity",
+    "repository_shape",
+    "stack_and_package_manager",
+    "important_commands",
+    "documentation_surface",
+    "skills_and_routes",
+    "validation_and_release_gates",
+    "source_only_safety_boundaries",
+    "known_local_only_state",
+    "verified_facts",
+    "unknowns_and_not_verified",
+    "recommended_first_skills",
+    "last_generated",
+  ];
+
+  for (const key of required) {
+    if (!(key in kb)) failures.push(`missing section: ${key}`);
+  }
+  if (kb.schema_version !== 1) failures.push("schema_version must be 1");
+  if (!kb.project_identity || kb.project_identity.root !== ".") failures.push("project_identity.root must be portable");
+  if (!Array.isArray(kb.source_only_safety_boundaries) || !kb.source_only_safety_boundaries.length) {
+    failures.push("source_only_safety_boundaries must be non-empty");
+  }
+  if (!Array.isArray(kb.verified_facts) || !kb.verified_facts.length) failures.push("verified_facts must be non-empty");
+  if (!Array.isArray(kb.unknowns_and_not_verified) || !kb.unknowns_and_not_verified.length) {
+    failures.push("unknowns_and_not_verified must be non-empty");
+  }
+  if (kb.diagnostics?.repo_map_validation_failures?.length) {
+    failures.push(`repo-map validation failures: ${kb.diagnostics.repo_map_validation_failures.join("; ")}`);
+  }
+
+  const json = JSON.stringify(kb);
+  if (/\/home\/johnh/.test(json)) failures.push("private absolute path found in project KB output");
+  if (SECRET_PATTERNS.some((pattern) => pattern.test(json))) failures.push("secret-shaped value found in project KB output");
+  if (Array.isArray(kb.known_local_only_state?.env_files) && kb.known_local_only_state.env_files.some((entry) => "value" in entry)) {
+    failures.push("env file value field is forbidden");
+  }
+  return failures;
+}
+
+function bulletList(items, empty = "- None") {
+  return items && items.length ? items.map((item) => `- ${item}`).join("\n") : empty;
+}
+
+function renderMarkdown(kb) {
+  const commands = Object.entries(kb.important_commands.package_scripts || {})
+    .map(([name, command]) => `\`${name}\`: \`${command}\``);
+  const docs = (kb.documentation_surface.key_documents || [])
+    .map((doc) => `\`${doc.path}\`: ${doc.title || "missing H1"} (${doc.category})`);
+  const routes = kb.skills_and_routes.routes.available
+    ? kb.skills_and_routes.routes.route_ids.map((id) => `\`${id}\``)
+    : [];
+  const skills = (kb.skills_and_routes.skills.files || []).map((file) => `\`${file}\``);
+  const envFiles = (kb.known_local_only_state.env_files || []).map((entry) => `\`${entry.path}\`: ${entry.status}`);
+
+  return `# Project Knowledge Base
+
+## Project Identity
+- Name: ${kb.project_identity.name}
+- Description: ${kb.project_identity.description || "not specified"}
+- Package: ${kb.project_identity.package_name || "not detected"}
+- Version: ${kb.project_identity.version || "not detected"}
+- Repository: ${kb.project_identity.repository || "not specified"}
+
+## Repository Shape
+- Source: ${kb.repository_shape.source}
+- Git status: ${kb.repository_shape.git.status || "unknown"}
+- Branch: ${kb.repository_shape.git.current_branch || "n/a"}
+- Files considered: ${kb.repository_shape.file_count_considered}/${kb.repository_shape.file_count_total}
+- Top-level files: ${(kb.repository_shape.top_level.files || []).join(", ") || "none"}
+- Top-level directories: ${(kb.repository_shape.top_level.directories || []).join(", ") || "none"}
+- Important configs: ${kb.repository_shape.important_configs.join(", ") || "none"}
+
+## Stack and Package Manager
+- Package manager: ${kb.stack_and_package_manager.package_manager}
+${bulletList((kb.stack_and_package_manager.languages || []).map((item) => `${item.language}: ${item.files}`))}
+
+## Important Commands
+${bulletList(commands)}
+
+## Documentation Surface
+- Available: ${kb.documentation_surface.available ? "yes" : "no"}
+- Documents: ${kb.documentation_surface.totals.documents || 0}
+- Missing H1: ${kb.documentation_surface.totals.missing_h1 || 0}
+- Duplicate titles: ${kb.documentation_surface.totals.duplicate_titles || 0}
+- Orphans: ${kb.documentation_surface.totals.orphans || 0}
+${bulletList(docs)}
+
+## Skills and Routes
+- Skill files: ${kb.skills_and_routes.skills.count}
+- Routes: ${kb.skills_and_routes.routes.available ? kb.skills_and_routes.routes.count : "not present"}
+${bulletList(skills.slice(0, 20))}
+${routes.length ? `\nRoute ids:\n${bulletList(routes)}` : ""}
+
+## Validation and Release Gates
+${bulletList(kb.validation_and_release_gates.detected_gates)}
+
+## Source-Only Safety Boundaries
+${bulletList(kb.source_only_safety_boundaries)}
+
+## Known Local-Only State
+${bulletList(envFiles)}
+${bulletList((kb.known_local_only_state.secret_surface_warnings || []).map((warning) => `warning: ${warning}`), "- Warnings: none")}
+
+## Verified Facts
+${bulletList(kb.verified_facts)}
+
+## Unknowns and Not Verified
+${bulletList(kb.unknowns_and_not_verified)}
+
+## Recommended First Skills
+${bulletList(kb.recommended_first_skills)}
+
+## Last Generated
+${kb.last_generated.note}
+`;
+}
+
+function writeOutput(file, content) {
+  const parent = path.dirname(path.resolve(file));
+  if (!fs.existsSync(parent) || !fs.statSync(parent).isDirectory()) {
+    throw new Error(`output parent directory does not exist: ${parent}`);
+  }
+  fs.writeFileSync(file, content);
+}
+
+function main() {
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    process.exit(2);
+  }
+
+  if (args.help) {
+    usage();
+    return;
+  }
+
+  let kb;
+  try {
+    kb = buildProjectKb(args);
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
+
+  const failures = validateProjectKb(kb);
+  const markdown = renderMarkdown(kb);
+
+  if (args.output && args.dryRun) {
+    console.log(`dry-run: would write Markdown project KB to ${path.basename(args.output)}`);
+  } else if (args.output) {
+    try {
+      writeOutput(args.output, markdown);
+      console.log(`project KB written: ${args.output}`);
+    } catch (error) {
+      console.error(error.message);
+      process.exit(1);
+    }
+  }
+
+  if (args.json) {
+    console.log(JSON.stringify(kb, null, 2));
+  } else if (!args.output && !args.validate) {
+    console.log(markdown);
+  }
+
+  if (args.validate) {
+    if (failures.length) {
+      console.error("Project KB validation failures:");
+      for (const failure of failures) console.error(`- ${failure}`);
+      process.exit(1);
+    }
+    if (!args.json && !args.output) console.log("Project KB validation passed.");
+  }
+}
+
+if (require.main === module) main();
+
+module.exports = {
+  buildProjectKb,
+  renderMarkdown,
+  validateProjectKb,
+};

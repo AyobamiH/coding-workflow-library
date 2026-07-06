@@ -1334,3 +1334,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: project-kb-builder-skill / migration-review-skill.
 * Exact next action: build project-KB compiler or migration-review helper.
 * Whether John is needed: Yes for the next permission boundary..
+
+## 2026-07-06 - run-next Autonomous Work Loop
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: project-kb-compiler. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: project-KB compiler complete.
+* Selected skill: project-kb-builder-skill / coding-workflow-orchestrator-skill.
+* Last commands run: `scripts/run-next --repo <LIBRARY_REPO> --allow project-kb-compiler`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; project-KB purpose: deterministic privacy-safe source-only project knowledge base; project-KB inputs: repo-map, docs-list, package metadata, route metadata, skill index, and selected public control docs; project-kb syntax exit: 0; project-kb tests exit: 0; project-kb dry run exit: 0; project-kb markdown report exit: 0; project-kb json report exit: 0; project-kb strict validation exit: 0; project-kb CLI validation exit: 0.
+* Blockers: deterministic source-only project KB compiler validates; next active dependency is migration-review helper or pre-commit validation hook.
+* Next recommended skill: migration-review-skill / coding-workflow-orchestrator-skill.
+* Exact next action: build migration-review helper or pre-commit validation hook.
+* Whether John is needed: Yes for the next permission boundary..

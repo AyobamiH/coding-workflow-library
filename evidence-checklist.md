@@ -31,6 +31,16 @@ Use this before final response or before saying a workflow is complete.
 - Important contract/config files identified.
 - Source-only limits recorded: no dependency install, target build/test execution, git mutation, external call, production proof, or secret read.
 
+## Project Knowledge Base
+
+- `scripts/project-kb --repo <path> --validate` ran or a clear reason it was unavailable was recorded.
+- Repo-map and docs-list inputs were generated internally or supplied explicitly.
+- Markdown output was written only when `--output <path>` was intentionally supplied.
+- JSON output used relative paths and omitted private local absolute paths.
+- Env-file presence was reported without values.
+- Verified facts and unknown/not-verified areas were both present.
+- Source-only limits recorded: no dependency install, target build/test execution, git mutation, external call, production proof, secret read, raw session transcript read, or private corpus read.
+
 ## Orchestration
 
 - Work item classified.

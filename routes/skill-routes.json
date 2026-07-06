@@ -1345,6 +1345,73 @@
       "provenance": "P1 helper identified by repo-map skill upgrade idea and corrected workflow corpus roadmap"
     },
     {
+      "id": "project-kb-compiler",
+      "skill_file": "skill-files/project-kb-builder-skill.md",
+      "ledger_states_handled": [
+        "repo-map helper automation complete",
+        "project-KB compiler requested"
+      ],
+      "permission_flag": "project-kb-compiler",
+      "helper_scripts": [
+        "scripts/project-kb",
+        "scripts/repo-map",
+        "scripts/docs-list",
+        "scripts/run-next",
+        "scripts/route-audit",
+        "scripts/validate-skills"
+      ],
+      "permission_level": "local_execution, remote_publication",
+      "explicit_permission_required": true,
+      "requires_authority": [
+        "local_execution",
+        "remote_publication"
+      ],
+      "forbidden_actions": [
+        "npm publish",
+        "npm version",
+        "git tag",
+        "GitHub release creation",
+        "force push",
+        "product repo mutation",
+        "deploy",
+        "production endpoint calls",
+        "secret value printing",
+        "dependency installation in target repos",
+        "target repo build/test execution",
+        "automatic agent-role creation"
+      ],
+      "success_ledger_state": "project-KB compiler complete",
+      "blocked_ledger_state": "project-KB compiler blocked",
+      "next_permission": "build migration-review helper or pre-commit validation hook",
+      "evidence_required": [
+        "project-KB helper contract",
+        "repo-map and docs-list input evidence",
+        "source-only privacy model",
+        "JSON schema",
+        "synthetic package and non-package fixture tests",
+        "CLI delegation",
+        "Markdown output boundary",
+        "package contents review",
+        "exact commit and exact-commit CI"
+      ],
+      "safety_gates": [
+        "no .env value reads",
+        "no raw local absolute paths in portable JSON",
+        "generated and cache directories excluded",
+        "no build/test execution in mapped target repos",
+        "no external service calls",
+        "no npm publish",
+        "no version bump",
+        "no tag or release"
+      ],
+      "idempotency_evidence": [
+        "rerun validates existing compiler",
+        "stable sorted repo and docs facts",
+        "synthetic repeated-run test proves equivalent output"
+      ],
+      "provenance": "P1 helper identified by project-kb-builder-skill evidence and corrected workflow corpus roadmap"
+    },
+    {
       "id": "workflow-corpus-recovery",
       "skill_file": "skill-files/session-log-extraction-skill.md",
       "ledger_states_handled": [

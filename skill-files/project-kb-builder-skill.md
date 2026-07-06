@@ -1,90 +1,137 @@
 ---
 name: project-kb-builder-skill
-description: Create durable project memory without leaking secrets.
+description: Compile deterministic source-only project knowledge bases without leaking secrets.
 category: documentation
 routing_triggers:
   - project memory
   - knowledge base
-  - durable notes
-  - daily memory
+  - durable context
+  - project handoff
 status: active
 ---
 # Project KB Builder Skill
 
 ## Purpose
 
-Create and maintain local project memory files without turning them into noisy logs or private dossiers.
+Compile a deterministic, privacy-safe project knowledge base from existing source evidence so future runs can start with durable context instead of rediscovering the same facts.
+
+The project KB is source-only memory. It is not runtime proof, an embedding store, an LLM summarizer, a private transcript archive, or an agent role.
 
 ## When to Use
 
-Use when the user asks to write lasting notes, create daily memory, explain missing memory files, or standardize watchlist/runbook notes.
+Use when a repo needs durable handoff context, repeated orientation has become wasteful, or an agent needs a safe package of known project facts before routing the next skill.
+
+Preferred sequence:
+
+1. Run `repo-map` for source orientation.
+2. Run `docs-list` for documentation surface.
+3. Run `project-kb` to compile durable project memory.
 
 ## Inputs Required
 
-- Note content.
-- Date.
-- Target memory folder, usually `workspace/memory`.
-- Whether the note is durable enough to store.
+- Target repo path.
+- Optional Markdown output path when a local KB file is explicitly wanted.
+- Optional existing `repo-map` or `docs-list` JSON files.
+- Maximum document count if the default needs narrowing.
 
 ## Commands
 
-Read/check templates:
+Preview Markdown without writing:
 
 ```bash
-ls memory
-ls MEMORY.md
-find . -maxdepth 4 -type f -iname 'watchlist*' -ls
+./scripts/project-kb --repo /path/to/repo --dry-run
 ```
 
-Confirmed file operations were tool writes:
+Emit portable JSON:
 
-```text
-write {"file_path":"memory/2026-02-12.md","content":"# 2026-02-12\n"}
-write {"path":"/home/johnh/.openclaw/workspace/memory/2026-02-10.md","content":"# 2026-02-10\n- Agreed on visual identity: compass-themed emblem ...\n"}
+```bash
+./scripts/project-kb --repo /path/to/repo --json
+```
+
+Validate compiled facts:
+
+```bash
+./scripts/project-kb --repo /path/to/repo --validate
+```
+
+Write an explicit Markdown KB file:
+
+```bash
+./scripts/project-kb --repo /path/to/repo --output /path/to/PROJECT_KB.md
+```
+
+CLI delegation:
+
+```bash
+coding-workflow project-kb --repo /path/to/repo --validate
 ```
 
 ## Procedure
 
-1. Decide whether the note is durable, factual, and useful later.
-2. Ensure `memory/YYYY-MM-DD.md` exists.
-3. Append or write concise bullets.
-4. Read back the file if verification is needed.
-5. For missing long-term `MEMORY.md`, explain the difference between daily notes and distilled memory.
+1. Inspect repo state before writing any output file.
+2. Generate or reuse `repo-map` evidence.
+3. Generate or reuse `docs-list` evidence when documentation is present.
+4. Compile the KB with `scripts/project-kb`.
+5. Validate the compiled KB.
+6. If writing Markdown, use `--output` with an explicit path.
+7. Confirm no secret values, database URLs, tokens, private local paths, raw session text, or private corpus bodies are present.
+8. Use the KB to select the next safe skill; do not treat it as deployed/runtime truth.
 
 ## Evidence Required
 
-- Successful write result.
-- File readback or directory listing.
-- Date and path used.
+- `scripts/project-kb --repo <path> --validate` result.
+- JSON or Markdown output mode used.
+- Repo-map and docs-list inputs, or a note that they were generated internally.
+- Privacy check result.
+- Explicit statement of unknowns and not-verified areas.
 
 ## Safety Rules
 
-- Do not store sensitive secrets.
-- Do not over-collect personal details.
-- Do not write speculative notes as facts.
-- Do not create files outside the workspace without approval.
+- Do not read `.env` values.
+- Do not store or print secrets, tokens, database URLs, cookies, private keys, or raw credential material.
+- Do not include raw chat/session transcript bodies or private corpus outputs.
+- Use relative paths in portable JSON.
+- Report environment files only as present or absent.
+- Do not install dependencies.
+- Do not run target repo build/test commands.
+- Do not mutate git.
+- Do not call external services or production endpoints.
+- Do not claim runtime truth, deployment status, or account permission proof from the KB.
 
 ## Common Failures
 
-- Missing `memory/`: create directory only if requested or clearly needed.
-- Wrong date/timezone: use current local date.
-- User asks to summarize missing file: search first, then ask for exact path.
+- Missing `repo-map` helper: run or build repo-map first.
+- Missing `docs-list` helper: compile with repo-map and top-level docs only, then record docs as not verified.
+- Secret-shaped output: stop, redact the source field, and rerun validation.
+- Output parent directory missing: create it only if local edits are approved and the path is intentional.
+- Dirty target repo: report it as source evidence; do not clean or reset.
 
 ## Output Format
 
-For successful writes:
+Markdown output includes:
 
 ```text
-Stored in memory/YYYY-MM-DD.md:
-- ...
+# Project Knowledge Base
+
+## Project Identity
+## Repository Shape
+## Stack and Package Manager
+## Important Commands
+## Documentation Surface
+## Skills and Routes
+## Validation and Release Gates
+## Source-Only Safety Boundaries
+## Known Local-Only State
+## Verified Facts
+## Unknowns and Not Verified
+## Recommended First Skills
+## Last Generated
 ```
 
-For no durable note:
-
-```text
-NO_REPLY
-```
+JSON output follows `schemas/project-kb.schema.json`.
 
 ## Upgrade Ideas
 
-Create `scripts/ensure_daily_memory.sh` that creates the daily file and appends sanitized bullets.
+- Add an opt-in project-local KB write route for downstream repos.
+- Add a migration-review input section after the migration-review helper exists.
+- Add a pre-commit hook check that validates committed KB files contain no private paths or secret-shaped values.

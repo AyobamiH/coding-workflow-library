@@ -47,6 +47,10 @@ const COMMANDS = {
     script: "scripts/repo-map",
     description: "Produce a privacy-safe source-only repository orientation report.",
   },
+  "project-kb": {
+    script: "scripts/project-kb",
+    description: "Compile a deterministic source-only project knowledge base.",
+  },
 };
 
 function printHelp() {
@@ -67,6 +71,7 @@ Usage:
   coding-workflow extract-workflows --source /path/to/sessions --output-dir /private/path
   coding-workflow docs-list [--json] [--validate] [--orphans]
   coding-workflow repo-map --repo /path/to/repo [--json] [--validate]
+  coding-workflow project-kb --repo /path/to/repo [--output /path/to/PROJECT_KB.md] [--json] [--validate] [--dry-run]
   coding-workflow objective show --lane <lane-id> --state-file /path/to/lanes.json
   coding-workflow objective approve --lane <lane-id> --grant remote_publication --state-file /path/to/lanes.json
   coding-workflow run-next --lane <lane-id> --state-file /path/to/lanes.json --explain-next

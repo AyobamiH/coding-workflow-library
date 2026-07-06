@@ -14,6 +14,7 @@ corrected workflow corpus
   -> docs/source inventory helper (implemented)
   -> backlog confidence
   -> repo-map helper automation (implemented)
+  -> project-KB compiler (implemented)
   -> reusable helper hardening
   -> browser/live proof and GitHub deep review
   -> secret-access adapter, if approved
@@ -60,6 +61,7 @@ Implemented:
 - `scripts/extract-session-workflows.mjs`
 - `scripts/docs-list`
 - `scripts/repo-map`
+- `scripts/project-kb`
 - `scripts/run-next`
 - `scripts/lane-state`
 - `scripts/objective-authority`
@@ -75,7 +77,6 @@ Implemented:
 
 Missing helpers:
 
-- project-KB compiler
 - migration-review automation helper
 - reusable pre-commit validation hook
 
@@ -96,6 +97,7 @@ New route added:
 - `workflow-corpus-recovery`
 - `docs-list-foundation`
 - `repo-map-helper-automation`
+- `project-kb-compiler`
 
 ## Capability Adapters
 
@@ -125,7 +127,7 @@ Capability acquisition remains `NEWLY_PROPOSED` until browser proof and secret-a
 ### P1
 
 3. Keep `scripts/repo-map` current as the deterministic source-only workspace orientation helper.
-4. Add project-KB compiler.
+4. Keep `scripts/project-kb` current as the deterministic source-only project memory compiler.
 5. Add migration-review helper.
 6. Add pre-commit validation hook.
 

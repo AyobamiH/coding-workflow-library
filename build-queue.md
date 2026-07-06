@@ -11,15 +11,6 @@
 
 # P1 - Documented Missing Reusable Components
 
-## Project-KB compiler
-
-- Evidence source: `project-kb-builder-skill.md`; prior ledgers record repeated durable-memory needs.
-- Primary type: `SCRIPT_OR_HELPER`.
-- Dependency: repo-map helper.
-- Authority required: `local_execution`.
-- Done definition: helper writes or previews safe project memory summaries from validated local evidence and excludes secrets/private transcript bodies.
-- Reason for priority: it turns repeated project context reconstruction into a controlled local artifact.
-
 ## Migration-review helper
 
 - Evidence source: `migration-review-skill.md`; Supabase scheduler work proved source-only migration and secret-hardcoding review needs.
@@ -144,3 +135,4 @@
 - Reproducible workflow corpus extraction foundation.
 - Deterministic documentation inventory foundation (`scripts/docs-list`).
 - Deterministic source-only repository map helper (`scripts/repo-map`).
+- Deterministic source-only project KB compiler (`scripts/project-kb`).

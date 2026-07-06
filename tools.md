@@ -84,6 +84,18 @@ Required boundaries:
 - Do not read `.env` contents, print token values, print DB URLs, install dependencies, run target build/test commands, mutate git, create files in the target repo, call external services, publish, deploy, push, tag, or prove runtime behaviour.
 - Treat framework/config detection as orientation evidence, not proof of runtime behaviour.
 
+## Project Knowledge Base
+
+`scripts/project-kb` is `local_execution` only. It compiles deterministic project memory from `repo-map`, `docs-list`, package metadata, route metadata, skill files, and selected public control documents.
+
+Required boundaries:
+
+- Use relative paths in portable JSON and do not emit private local absolute paths.
+- Report env files only as present; never read or write `.env` values.
+- Do not read raw session transcripts, private corpus output, pseudonym maps, caches, temp files, generated evidence, or credential stores.
+- Do not install dependencies, run target build/test commands, mutate git, call external services, publish, deploy, push, tag, or prove runtime behaviour.
+- Treat the KB as durable source-only context. It may guide skill selection, but it is not runtime truth, account-auth proof, deployed-state proof, or an LLM memory agent.
+
 ## Tool Catalogue
 
 ### git

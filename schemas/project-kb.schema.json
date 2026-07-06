@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AyobamiH/coding-workflow-library/schemas/project-kb.schema.json",
+  "title": "Project Knowledge Base",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "project_identity",
+    "repository_shape",
+    "stack_and_package_manager",
+    "important_commands",
+    "documentation_surface",
+    "skills_and_routes",
+    "validation_and_release_gates",
+    "source_only_safety_boundaries",
+    "known_local_only_state",
+    "verified_facts",
+    "unknowns_and_not_verified",
+    "recommended_first_skills",
+    "last_generated",
+    "diagnostics"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "project_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "description", "package_name", "version", "repository", "root"],
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": ["string", "null"] },
+        "package_name": { "type": ["string", "null"] },
+        "version": { "type": ["string", "null"] },
+        "repository": { "type": ["string", "null"] },
+        "root": { "const": "." }
+      }
+    },
+    "repository_shape": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "source",
+        "git",
+        "file_count_considered",
+        "file_count_total",
+        "top_level",
+        "important_configs",
+        "source_directories",
+        "database_directories",
+        "control_documents"
+      ],
+      "properties": {
+        "source": { "type": "string" },
+        "git": { "type": "object" },
+        "file_count_considered": { "type": "number" },
+        "file_count_total": { "type": "number" },
+        "top_level": { "type": "object" },
+        "important_configs": { "type": "array", "items": { "type": "string" } },
+        "source_directories": { "type": "array", "items": { "type": "string" } },
+        "database_directories": { "type": "array", "items": { "type": "string" } },
+        "control_documents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "title", "present"],
+            "properties": {
+              "path": { "type": "string" },
+              "title": { "type": ["string", "null"] },
+              "present": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "stack_and_package_manager": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["package_manager", "languages"],
+      "properties": {
+        "package_manager": { "type": "string" },
+        "languages": { "type": "array" }
+      }
+    },
+    "important_commands": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["package_scripts", "command_candidates", "package_scripts_included"],
+      "properties": {
+        "package_scripts": { "type": "object", "additionalProperties": { "type": "string" } },
+        "command_candidates": { "type": "object", "additionalProperties": { "type": "string" } },
+        "package_scripts_included": { "type": "boolean" }
+      }
+    },
+    "documentation_surface": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["available", "totals", "key_documents"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "source": { "type": "string" },
+        "totals": { "type": "object" },
+        "categories": { "type": "object" },
+        "key_documents": { "type": "array" },
+        "warnings": { "type": "object" },
+        "reason": { "type": "string" }
+      }
+    },
+    "skills_and_routes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skills", "routes"],
+      "properties": {
+        "skills": { "type": "object" },
+        "routes": { "type": "object" }
+      }
+    },
+    "validation_and_release_gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["detected_gates", "package_scripts_included"],
+      "properties": {
+        "detected_gates": { "type": "array", "items": { "type": "string" } },
+        "package_scripts_included": { "type": "boolean" }
+      }
+    },
+    "source_only_safety_boundaries": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "known_local_only_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["env_files", "secret_surface_warnings", "note"],
+      "properties": {
+        "env_files": { "type": "array" },
+        "secret_surface_warnings": { "type": "array", "items": { "type": "string" } },
+        "note": { "type": "string" }
+      }
+    },
+    "verified_facts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "unknowns_and_not_verified": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "recommended_first_skills": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "last_generated": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "note"],
+      "properties": {
+        "value": { "const": "not_timestamped_for_determinism" },
+        "note": { "type": "string" }
+      }
+    },
+    "diagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repo_map_validation_failures"],
+      "properties": {
+        "repo_map_validation_failures": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

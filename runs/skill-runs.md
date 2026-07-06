@@ -1424,3 +1424,17 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: No forbidden deploy, migration, Supabase mutation, production endpoint call, direct main push, force push, merge, token printing, token file write, unrelated staging, or evidence inclusion occurred..
 * Follow-up skill needed: project-kb-builder-skill / migration-review-skill.
 * Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.
+
+## 2026-07-06 - run-next Autonomous Work Loop
+
+* Skill used: coding-workflow-orchestrator-skill; selected next skill was project-kb-builder-skill / coding-workflow-orchestrator-skill.
+* Goal: Read `work-ledger.md`, classify status `v0.2.0 locally prepared and validated; remote publication awaiting one objective-level approval`, check permission flags, and run only the next safe action.
+* Starting state: Target repo `<LIBRARY_REPO>`; permission flags `project-kb-compiler`; dry-run `no`.
+* Commands/tools used: `scripts/run-next --repo <LIBRARY_REPO> --allow project-kb-compiler`.
+* Files inspected: `AGENTS.md`; `RUNBOOK.md`; `tools.md`; `work-ledger.md`; selected ledger entry for `<LIBRARY_REPO>`.
+* Files changed: `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; project-KB purpose: deterministic privacy-safe source-only project knowledge base; project-KB inputs: repo-map, docs-list, package metadata, route metadata, skill index, and selected public control docs; project-kb syntax exit: 0; project-kb tests exit: 0; project-kb dry run exit: 0; project-kb markdown report exit: 0; project-kb json report exit: 0; project-kb strict validation exit: 0; project-kb CLI validation exit: 0.
+* Result: READY: deterministic source-only project KB compiler validates; next active dependency is migration-review helper or pre-commit validation hook.
+* Failure/recovery notes: No forbidden deploy, migration, Supabase mutation, production endpoint call, direct main push, force push, merge, token printing, token file write, unrelated staging, or evidence inclusion occurred..
+* Follow-up skill needed: migration-review-skill / coding-workflow-orchestrator-skill.
+* Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.

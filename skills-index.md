@@ -136,7 +136,7 @@ Use for Cloudflare Pages or Workers deployment planning, deploy proof boundaries
 ### project-kb-builder-skill
 
 File: `skill-files/project-kb-builder-skill.md`
-Use to write durable daily project memory notes.
+Use after `repo-map` and `docs-list` to compile a deterministic, source-only project knowledge base with project identity, repo shape, commands, docs, skills/routes, validation gates, verified facts, unknowns, and safety boundaries. It delegates to `scripts/project-kb` and is not runtime proof or an LLM memory agent.
 
 ### public-market-scan-skill
 
@@ -180,6 +180,8 @@ Use for read-only migration review until repo-specific apply commands are confir
 - `scripts/docs-list`: dependency-free documentation inventory helper for tracked Markdown files, H1 titles, duplicate titles, orphan checks, JSON output, and strict validation.
 - `scripts/repo-map`: dependency-free source-only repository map helper for Git and non-Git directories, with JSON and validation modes.
 - `schemas/repo-map.schema.json`: portable schema for `scripts/repo-map --json` output.
+- `scripts/project-kb`: dependency-free project knowledge base compiler that synthesizes repo-map, docs-list, package, route, skill, and control-doc metadata without reading secrets or calling services.
+- `schemas/project-kb.schema.json`: portable schema for `scripts/project-kb --json` output.
 - `schemas/workflow-corpus.schema.json`: portable event schema for redacted corpus events.
 - `schemas/workflow-source-manifest.schema.json`: portable source manifest schema with terminal parse statuses.
 - `templates/workflow-extraction-config.example.json`: neutral example config for private corpus extraction.
