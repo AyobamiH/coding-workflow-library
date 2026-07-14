@@ -4,6 +4,15 @@
 
 - Nothing yet.
 
+## 0.2.1 - 2026-07-14
+
+- Added reproducible, privacy-safe workflow-corpus extraction and rebuilt the engineering roadmap from validated aggregate evidence.
+- Added deterministic documentation inventory, repository map, project knowledge-base, pre-commit validation, and source-only migration-review helpers with CLI delegation and tests.
+- Hardened interrupted-run recovery, autonomous decision boundaries, exact route auditing, and validation behavior.
+- Added Opstruth product-video truth guardrails that require project-owned source evidence and portable HyperFrames skill resolution before creative or render claims.
+- Preserved explicit authority boundaries for remote publication, production mutation, secret mutation, and destructive actions.
+- Prepared the first npm registry publication of `autonomous-coding-workflow-library`; registry publication remains contingent on authenticated npm access.
+
 ## 0.2.0 - 2026-06-26
 
 - Replaced per-step permission prompting with objective-level authority classes: `local_execution`, `remote_publication`, `production_mutation`, `secret_mutation`, and `destructive_action`.
