@@ -1494,6 +1494,18 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: No push, npm publish, tag, release, product repo mutation, render, deploy, external call, reset, stash, clean, or secret access occurred.
 * Follow-up skill needed: github-handoff-skill only after explicit Opstruth remote-publication authority.
 
+## 2026-07-14 - v0.2.1 GitHub Release And npm Publication Attempt
+
+* Skill used: release-preflight-skill / npm-package-readiness-skill / github-handoff-skill.
+* Goal: Publish the accumulated validated foundations as `v0.2.1`, create the source release, and deploy the package to npm when authenticated.
+* Starting state: Local main was three commits ahead of remote main; `v0.2.0` already pointed to an older immutable release commit; package version was `0.2.0`; npm package lookup returned not found.
+* Commands/tools used: package/readiness checks; full pre-commit gate; actual temporary tarball pack/install; installed CLI smoke; exact-file release commit; non-force main push; exact-commit GitHub Actions watch; annotated tag create/push; GitHub Release create/view; `npm whoami`; official npm web login; token-variable presence checks without values.
+* Files changed: `package.json`; `package-lock.json`; `CHANGELOG.md`; `docs/releases/v0.2.1.md`; `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: package/open-source/CLI readiness passed; tarball contained 111 safe entries; installed CLI help, validation, docs-list, and migration-review passed; release commit `62a2d936c04fbcce6bafb6783e4fdba74b35f44e`; CI run `29333443590` succeeded; remote annotated tag dereferences to the release commit; public GitHub Release exists.
+* Result: GitHub source release complete. npm publication is `BLOCKED_CAPABILITY` because no authenticated npm session or approved token variable is available.
+* Failure/recovery notes: The npm web-login flow reached browser authorization but expired into a legacy credential prompt; it was cancelled without entering or exposing credentials. No `npm publish`, force push, history rewrite, production-service deploy, secret output, or unrelated mutation occurred.
+* Follow-up skill needed: npm-package-readiness-skill after npm authentication succeeds; authority to publish `0.2.1` remains granted.
+
 ## 2026-07-14 - Autonomous Local Skill Recovery Policy
 
 * Skill used: coding-workflow-orchestrator-skill.

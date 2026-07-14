@@ -1410,6 +1410,21 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Exact next action: keep the Opstruth commits local pending a separate remote-publication decision.
 * Whether John is needed: Yes for Opstruth remote publication only.
 
+## 2026-07-14 - v0.2.1 GitHub Release And npm Publication Attempt
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Publish the validated post-v0.2.0 foundations as `v0.2.1`, create the GitHub Release, and publish the npm package when authenticated.
+* Current permission level: remote_publication for main push, annotated tag, GitHub Release, and npm publication. No production-service mutation, secret disclosure, force push, history rewrite, or unrelated deployment.
+* Current status: v0.2.1 GitHub release complete; npm publication blocked by npm authentication capability.
+* Selected skill: release-preflight-skill / npm-package-readiness-skill / github-handoff-skill.
+* Release evidence: release commit `62a2d936c04fbcce6bafb6783e4fdba74b35f44e`; exact CI run `29333443590` succeeded; annotated tag `v0.2.1` dereferences to the release commit; GitHub Release published at `https://github.com/AyobamiH/coding-workflow-library/releases/tag/v0.2.1`.
+* Package evidence: version and lockfile are `0.2.1`; package and open-source readiness passed; clean temporary tarball install passed; installed CLI help, validation, docs inventory, and migration review passed; 111 package entries had zero risky paths.
+* Registry evidence: package-name lookup returned not found; `npm whoami` returned `E401`; official web login could not complete in this shell; `NPM_TOKEN` and `NODE_AUTH_TOKEN` were not set. No credential values were read or printed.
+* Blockers: `BLOCKED_CAPABILITY` - authenticated npm session required before `npm publish` can run.
+* Next recommended skill: npm-package-readiness-skill after npm authentication succeeds.
+* Exact next action: authenticate with npm outside the chat, verify `npm whoami`, then publish `autonomous-coding-workflow-library@0.2.1` and verify the registry entry.
+* Whether John is needed: Yes, to complete npm authentication only; publication authority is already granted.
+
 ## 2026-07-14 - Autonomous Local Skill Recovery Policy
 
 * Active repo: `<LIBRARY_REPO>`.
