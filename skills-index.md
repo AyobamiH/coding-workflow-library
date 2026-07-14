@@ -89,7 +89,7 @@ Use for generic runtime verification after deploy-like work or live endpoint cha
 ### opstruth-runtime-truth-skill
 
 File: `skill-files/opstruth-runtime-truth-skill.md`
-Use to classify what runtime, deploy, CI, release, and handoff evidence actually proves. It separates `Verified`, `Warning`, `Failure`, `Skipped`, and `Not Verified`, and prevents source-only or skipped checks from being reported as runtime truth.
+Use to classify what runtime, deploy, CI, release, handoff, and product-video evidence actually proves. It separates `Verified`, `Warning`, `Failure`, `Skipped`, and `Not Verified`, and prevents source-only, skipped, or theme-disconnected media work from being reported as runtime truth.
 
 ### supabase-function-deploy-skill
 

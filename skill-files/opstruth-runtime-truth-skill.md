@@ -8,6 +8,7 @@ routing_triggers:
   - proof model
   - evidence classification
   - verified not verified
+  - product video truth
 status: active
 ---
 # Opstruth Runtime Truth Skill
@@ -29,6 +30,7 @@ Use this skill when:
 - an evidence pack must separate facts from next-step assumptions;
 - `runtime-verification-skill` produced endpoint evidence that needs final classification;
 - CI, browser checks, deploy logs, or production monitoring need a common proof vocabulary.
+- a product video, demo, launch film, HyperFrames composition, or website media asset claims to show current Opstruth product truth.
 
 Use `runtime-verification-skill` for how to run live checks. Use this skill for how to classify and report what those checks prove.
 
@@ -65,6 +67,46 @@ Library helper templates:
 ```
 
 Do not call external Opstruth services from this skill. If an `opstruth` CLI exists in a target repo, treat it as an external/local tool that needs explicit command approval and record the exact command separately.
+
+## Product Video Truth Protocol
+
+For Opstruth product-video, demo, or HyperFrames work, the project repository is the source of truth. Do not create or continue a standalone private marketing pack as the authoritative deliverable unless John explicitly asks for an external scratch pack. The default workflow is to update the project-owned video sources, website assets, evidence docs, and render outputs.
+
+Before planning or editing any video:
+
+1. Inspect the target project repository state, existing docs, website source, media paths, screenshots, prior renders, and current product facts.
+2. Prefer `repo-map-skill` and `project-kb-builder-skill` for source-only orientation before creative work in an unfamiliar repo.
+3. Read the project's own video/theme documents first, such as current video briefs, website audit notes, demo scripts, existing HyperFrames compositions, screenshot evidence, and release notes.
+4. Compare the proposed visual language with the actual product interface and prior in-repo assets.
+5. Treat mismatch between a new pack and the project theme as a `Warning` or `Failure`, not as a polish issue.
+
+Required HyperFrames skill stack for product-video work:
+
+- read `/home/johnh/.claude/skills/hyperframes/SKILL.md` first for routing;
+- read `/home/johnh/.agents/skills/hyperframes-core/SKILL.md` before writing or editing composition HTML;
+- read `/home/johnh/.agents/skills/hyperframes-creative/SKILL.md` before choosing palette, typography, pacing, narrative, or visual density;
+- read `/home/johnh/.agents/skills/hyperframes-animation/SKILL.md` before motion design, timeline work, transitions, or animation runtime choices;
+- read `/home/johnh/.agents/skills/hyperframes-cli/SKILL.md` before lint, validate, inspect, snapshot, preview, render, doctor, or troubleshooting;
+- read `/home/johnh/.agents/skills/hyperframes-registry/SKILL.md` only when installing or wiring registry blocks/components.
+
+For non-trivial product videos, also follow `hyperframes-creative` references for house style and video composition before authoring a fresh visual system. The video must feel produced for the product, not like a generic SaaS promo or detached poster system.
+
+Product-video proof must distinguish:
+
+- current repo truth from historical launch material;
+- source CLI truth from npm package truth;
+- website/demo media truth from production deployment truth;
+- local validation from production evidence;
+- a rendered file from a publish-ready social asset.
+
+Forbidden shortcuts:
+
+- starting in a new external repo or private pack before inspecting the project itself;
+- replacing the project theme with a generic campaign style;
+- inventing proof cards, customers, metrics, production confidence, or dashboards;
+- treating package metadata, local demo output, or static docs as deployed runtime proof;
+- reporting a video as final without lint/validate/inspect, rendered output, decode checks, and visual review frames;
+- deleting a rejected pack or other work without destructive-action authority.
 
 ## Procedure
 

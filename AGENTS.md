@@ -93,6 +93,7 @@ Preserve safety gates. Failed tests, failed validation, unsafe package contents,
 - migration review -> `migration-review-skill`
 - skill extraction -> `session-log-extraction-skill`
 - skill hygiene -> `skill-cleaner-skill`
+- Opstruth product-video, demo, or HyperFrames runtime-truth claims -> `opstruth-runtime-truth-skill` before creative/render work
 
 ## John Required
 

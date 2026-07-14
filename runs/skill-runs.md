@@ -1466,3 +1466,17 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: No forbidden deploy, migration, Supabase mutation, production endpoint call, direct main push, force push, merge, token printing, token file write, unrelated staging, or evidence inclusion occurred..
 * Follow-up skill needed: migration-review-skill / coding-workflow-orchestrator-skill.
 * Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.
+
+## 2026-07-14 - Opstruth Product Video Truth Guardrails
+
+* Skill used: opstruth-runtime-truth-skill; supporting skills were repo-map-skill / project-kb-builder-skill / HyperFrames skills as required by future product-video work.
+* Goal: Route Opstruth product-video, demo, and HyperFrames runtime-truth work back to the actual project repository, existing theme, current product facts, and evidence classifications before creative or render work begins.
+* Starting state: Dirty worktree contained only `AGENTS.md` and `skill-files/opstruth-runtime-truth-skill.md` edits after migration-review helper was already committed and published.
+* Commands/tools used: `git status --short`; `git diff --stat`; `git diff --check`; `rg`; `sed`; `scripts/route-audit`; `scripts/validate-skills`; `scripts/docs-list --validate`; `scripts/pre-commit-check`.
+* Files inspected: `AGENTS.md`; `skill-files/opstruth-runtime-truth-skill.md`; `skills-index.md`; `routes/skill-routes.json`; `runs/skill-runs.md`; `work-ledger.md`.
+* Files changed: `AGENTS.md`; `skill-files/opstruth-runtime-truth-skill.md`; `skills-index.md`; `routes/skill-routes.json`; `runs/skill-runs.md`; `work-ledger.md`.
+* Evidence collected: product-video routing added to AGENTS; product-video truth trigger added to Opstruth runtime truth skill; protocol requires project-owned sources and theme before video planning; route metadata now accepts Opstruth product-video truth review; docs-list, route audit, validate-skills, and pre-commit gate passed before commit.
+* Result: READY: Opstruth product-video truth guardrails validate locally and are ready for exact-file commit.
+* Failure/recovery notes: No Opstruth repo video work, HyperFrames render, private marketing pack mutation, production call, deploy, npm publish, tag, push, force push, reset, clean, or destructive action occurred.
+* Follow-up skill needed: github-handoff-skill if remote publication is granted; otherwise opstruth-runtime-truth-skill before any future product-video work.
+* Upgrade idea: Add a bounded route executor for product-video truth review only if future repeated work proves it is needed.

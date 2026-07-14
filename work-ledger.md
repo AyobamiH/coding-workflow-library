@@ -1379,3 +1379,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: migration-review-skill / coding-workflow-orchestrator-skill.
 * Exact next action: choose browser live proof, GitHub deep review, Opstruth self-test, or release/package preflight hardening.
 * Whether John is needed: Yes for the next permission boundary..
+
+## 2026-07-14 - Opstruth Product Video Truth Guardrails
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Preserve the dirty Opstruth product-video truth work by routing future video/demo/HyperFrames claims through project-owned source truth before creative or render work begins.
+* Current permission level: local_execution. No remote publication, production mutation, secret mutation, destructive action, package publish, tag, release, or product repo mutation.
+* Current status: Opstruth product-video truth guardrails ready locally.
+* Selected skill: opstruth-runtime-truth-skill.
+* Last commands run: `git status --short`; `git diff --stat`; `git diff --check`; `scripts/route-audit`; `scripts/validate-skills`; `scripts/docs-list --validate`; `scripts/pre-commit-check`.
+* Files changed: `AGENTS.md`; `skill-files/opstruth-runtime-truth-skill.md`; `skills-index.md`; `routes/skill-routes.json`; `runs/skill-runs.md`; `work-ledger.md`.
+* Validation evidence: route audit passed with 31 routes and 0 errors/warnings; skill validation passed with 28 skills and 0 errors/warnings; docs-list validation passed with 64 documents, 0 missing H1s, 0 duplicate titles, and 0 current-document orphans; pre-commit check passed with 13 checks.
+* Blockers: remote publication not granted for this guardrail commit.
+* Next recommended skill: github-handoff-skill if John grants remote publication; otherwise opstruth-runtime-truth-skill before future product-video work.
+* Exact next action: commit exact local files, then hold before push.
+* Whether John is needed: Yes for remote publication.
