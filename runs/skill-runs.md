@@ -1518,3 +1518,15 @@ This file records every real use of the coding workflow skills library.
 * Result: READY: local workflow policy clarifies that prompts are fallback control, not the default recovery mechanism.
 * Failure/recovery notes: No push, npm publish, tag, release, product repo mutation, deploy, external call, reset, stash, clean, or secret access occurred.
 * Follow-up skill needed: github-handoff-skill only after explicit remote-publication authority.
+
+## 2026-07-14 - v0.2.1 npm Publication Completion
+
+* Skill used: npm-package-readiness-skill / release-preflight-skill / github-handoff-skill.
+* Goal: Finish the authorized npm publication of `autonomous-coding-workflow-library@0.2.1` from the exact validated release commit and verify the registry result.
+* Starting state: GitHub release and annotated tag `v0.2.1` were public; the release commit CI had passed; npm publication was blocked only by authentication capability.
+* Commands/tools used: official npm browser authorization; `npm whoami`; `npm publish --access public` in a detached exact-tag worktree; read-only `npm view`; Git and remote reference verification.
+* Files changed: `work-ledger.md`; `runs/skill-runs.md`; private lane state updated separately and remains untracked.
+* Evidence collected: npm prepack test suite passed; publication returned `+ autonomous-coding-workflow-library@0.2.1`; registry reports version `0.2.1` and `latest: 0.2.1`; repository metadata points to `AyobamiH/coding-workflow-library`; remote tag dereferences to release commit `62a2d936c04fbcce6bafb6783e4fdba74b35f44e`.
+* Result: COMPLETE: v0.2.1 published to npm and GitHub.
+* Failure/recovery notes: Two expired browser authorization links caused no publication or package mutation. The successful attempt used a fresh live authorization session. No secret value or npm configuration was read or printed; no new version, tag, GitHub Release, force push, product deploy, or production mutation occurred.
+* Follow-up skill needed: coding-workflow-orchestrator-skill to select the next verified roadmap objective.
