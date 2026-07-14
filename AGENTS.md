@@ -14,6 +14,7 @@ It defines hard rules. Use `RUNBOOK.md` for operating guidance after these rules
 - Run one bounded step at a time.
 - Separate facts from assumptions.
 - Do not claim completion without evidence.
+- Recover from local repo state, local skills, route metadata, and checkpoints before asking John to reconstruct an interrupted prompt.
 - Update `runs/skill-runs.md` after skill use.
 - Update `work-ledger.md` when work status changes.
 - Preserve user intent and current repo state.
@@ -107,7 +108,7 @@ John is required for:
 - destructive actions;
 - unclear priority or incompatible architecture choices.
 
-Do not ask John for another approval merely because the next skill is ready, a local tool call is next, a PR exists, or a verified workflow-authored PR is ready for normal merge. Continue authorized local work, checkpoint external blockers, and present the exact boundary type plus exact input required when a real boundary remains.
+Do not ask John for another approval merely because the next skill is ready, a local tool call is next, a PR exists, a context window changed, or a verified workflow-authored PR is ready for normal merge. Continue authorized local work, checkpoint external blockers, and present the exact boundary type plus exact input required when a real boundary remains.
 
 ## Output Discipline
 
@@ -116,6 +117,7 @@ Do not ask John for another approval merely because the next skill is ready, a l
 - Prefer `scripts/run-next --explain` when the next safe job should be selected without mutating any files, repos, or external services.
 - Run `scripts/docs-list` before broad documentation reorganization so existing guidance is discovered before new files are created.
 - For interrupted work, prefer `scripts/run-next --repo <repo> --status` and `scripts/run-next --repo <repo> --resume --dry-run` before asking John to reconstruct state manually.
+- If local skills, route metadata, git state, or checkpoint state can answer the recovery question, use them; do not request a babysitting prompt.
 - When John is needed, provide a decision brief with options and recommendation.
 - Keep reports evidence-backed.
 - Include commands run, files changed, validation results, risks, and next skill.

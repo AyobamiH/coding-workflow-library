@@ -1493,3 +1493,16 @@ This file records every real use of the coding workflow skills library.
 * Result: Opstruth product-video truth guardrails are complete and committed locally; remote publication remains a separate boundary.
 * Failure/recovery notes: No push, npm publish, tag, release, product repo mutation, render, deploy, external call, reset, stash, clean, or secret access occurred.
 * Follow-up skill needed: github-handoff-skill only after explicit Opstruth remote-publication authority.
+
+## 2026-07-14 - Autonomous Local Skill Recovery Policy
+
+* Skill used: coding-workflow-orchestrator-skill.
+* Goal: Make the workflow library prefer local skills, route metadata, checkpoints, git state, and run logs over asking John to reconstruct babysitting prompts after interruptions.
+* Starting state: Local Opstruth guardrail commits were already ahead of `origin/main`; working tree was clean before this policy edit.
+* Commands/tools used: `git status`; `rg`; `sed`; `apply_patch`; local validation gates.
+* Files inspected: `AGENTS.md`; `skill-files/coding-workflow-orchestrator-skill.md`; `docs/interrupted-run-resume.md`; `runs/skill-runs.md`; `work-ledger.md`.
+* Files changed: `AGENTS.md`; `skill-files/coding-workflow-orchestrator-skill.md`; `docs/interrupted-run-resume.md`; `runs/skill-runs.md`; `work-ledger.md`.
+* Evidence collected: AGENTS now requires recovery from local repo state, skills, route metadata, and checkpoints before asking John to reconstruct interrupted context; orchestrator skill now defines autonomous recovery sources; interrupted-run docs now include local recovery before prompts.
+* Result: READY: local workflow policy clarifies that prompts are fallback control, not the default recovery mechanism.
+* Failure/recovery notes: No push, npm publish, tag, release, product repo mutation, deploy, external call, reset, stash, clean, or secret access occurred.
+* Follow-up skill needed: github-handoff-skill only after explicit remote-publication authority.

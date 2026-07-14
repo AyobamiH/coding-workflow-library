@@ -37,6 +37,10 @@ The status command reports the latest checkpoint for the target repo, including 
 
 Dry-run resume locates the latest incomplete run, inspects current Git state, checks the branch, checks tracked changes, checks required permission, and explains what would resume. It makes no file changes.
 
+## Local Recovery Before Prompts
+
+Interrupted runs should be recovered from local evidence before asking John to restate a long prompt. Use git state, `.run-next/` checkpoints, route metadata, skill frontmatter, `work-ledger.md`, and `runs/skill-runs.md` first. A new prompt is only needed when local evidence cannot identify the selected objective, when an authority class is not granted, when a capability is missing, when safety checks fail, or when a product/business decision is genuinely required.
+
 ## Real Resume
 
 ```bash

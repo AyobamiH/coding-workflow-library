@@ -1409,3 +1409,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: github-handoff-skill if remote publication is later granted for Opstruth guardrails.
 * Exact next action: keep the Opstruth commits local pending a separate remote-publication decision.
 * Whether John is needed: Yes for Opstruth remote publication only.
+
+## 2026-07-14 - Autonomous Local Skill Recovery Policy
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Prefer local skills, route metadata, checkpoints, git history, and validation evidence before asking John to reconstruct interrupted prompts.
+* Current permission level: local_execution and exact local commit. No remote publication, product mutation, deploy, package publication, tag, release, or destructive action.
+* Current status: autonomous recovery policy ready locally.
+* Selected skill: coding-workflow-orchestrator-skill.
+* Last commands run: `git status`; `rg`; `sed`; focused local validation gates.
+* Files changed: `AGENTS.md`; `skill-files/coding-workflow-orchestrator-skill.md`; `docs/interrupted-run-resume.md`; `runs/skill-runs.md`; `work-ledger.md`.
+* Validation evidence: pending final local validation after exact-file edit.
+* Blockers: remote publication not granted for this policy commit.
+* Next recommended skill: github-handoff-skill if remote publication is later granted.
+* Exact next action: validate, exact-file commit locally, then hold before push.
+* Whether John is needed: Yes for remote publication only.

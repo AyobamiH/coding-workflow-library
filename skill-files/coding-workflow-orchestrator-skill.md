@@ -144,6 +144,8 @@ The orchestrator must not perform deep implementation itself unless the selected
 
 `scripts/run-next` is the executable implementation of this orchestrator loop. It reads lane objective state or legacy ledger state, selects the next skill, checks objective authority or legacy `--allow` flags, runs covered safe actions, updates lane or ledger/run-log evidence, and stops at structured blockers. Manual prompts are fallback control, not the default, when `scripts/run-next` covers the current state.
 
+Autonomous recovery means reconstructing state from the repository, local lane files, `.run-next/` checkpoints, skill frontmatter, route metadata, git history, and validation evidence before asking John for more narrative context. Ask for a prompt only when those local sources are insufficient and a real authority, capability, safety, or product-decision boundary remains.
+
 `routes/skill-routes.json` is the route ownership layer. Use it to keep reusable skills from becoming manual-only documents and to keep proven production workflow logic from staying hidden inside `scripts/run-next`. The runner should remain a bounded orchestrator over skills, route metadata, and helper scripts. Product-specific live actions still require explicit permission gates.
 
 For GitHub work, `scripts/run-next` can continue past `PR opened, not merged` into PR readiness inspection. It may collect PR metadata, checks, changed files, commits, mergeability, review decision, reviewed head SHA, and local repo evidence. If `remote_publication` is granted for the active objective and the automatic merge policy passes, the normal merge is not a fresh John boundary.
