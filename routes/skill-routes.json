@@ -1483,6 +1483,81 @@
       "provenance": "P1 foundation selected after project-KB because it protects future helper, skill, route, and release commits"
     },
     {
+      "id": "migration-review-helper",
+      "skill_file": "skill-files/migration-review-skill.md",
+      "ledger_states_handled": [
+        "pre-commit validation hook complete",
+        "migration-review helper requested"
+      ],
+      "permission_flag": "migration-review-helper",
+      "helper_scripts": [
+        "scripts/migration-review",
+        "scripts/run-next",
+        "scripts/pre-commit-check",
+        "scripts/repo-map",
+        "scripts/project-kb",
+        "scripts/route-audit",
+        "scripts/validate-skills"
+      ],
+      "permission_level": "local_execution, remote_publication",
+      "explicit_permission_required": true,
+      "requires_authority": [
+        "local_execution",
+        "remote_publication"
+      ],
+      "forbidden_actions": [
+        "SQL execution",
+        "Supabase commands",
+        "migration apply",
+        "database connection",
+        "database mutation",
+        "npm publish",
+        "npm version",
+        "git tag",
+        "GitHub release creation",
+        "force push",
+        "broad staging",
+        "product repo mutation",
+        "deploy",
+        "production endpoint calls",
+        "secret value printing",
+        "package installation",
+        "remote mutation outside the approved push"
+      ],
+      "success_ledger_state": "migration-review helper complete",
+      "blocked_ledger_state": "migration-review helper blocked",
+      "next_permission": "choose browser live proof, GitHub deep review, Opstruth self-test, or release/package preflight hardening",
+      "evidence_required": [
+        "migration-review helper contract",
+        "source-only safety boundary",
+        "risk model for destructive, RLS, grants, functions, triggers, scheduler, Vault, extension, and data-mutation patterns",
+        "secret-shaped SQL detection without values",
+        "JSON schema",
+        "synthetic migration fixture tests",
+        "CLI delegation",
+        "package contents review",
+        "exact commit and exact-commit CI"
+      ],
+      "safety_gates": [
+        "no SQL execution",
+        "no database connections",
+        "no Supabase CLI calls",
+        "no .env value reads",
+        "no raw secret-shaped migration values in output",
+        "no automatic staging or committing",
+        "no external service calls",
+        "no npm publish",
+        "no version bump",
+        "no tag or release"
+      ],
+      "idempotency_evidence": [
+        "rerun validates existing helper, schema, tests, and CLI delegation",
+        "synthetic repeated-run test proves equivalent output",
+        "source-only no-mutation test proves target repo files are unchanged"
+      ],
+      "provenance": "P1 helper identified by migration-review-skill and Supabase scheduler work that required source-only migration/secret-hardcoding review before any apply gate"
+    },
+    {
       "id": "workflow-corpus-recovery",
       "skill_file": "skill-files/session-log-extraction-skill.md",
       "ledger_states_handled": [

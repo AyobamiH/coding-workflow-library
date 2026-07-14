@@ -1,0 +1,605 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+const { spawnSync } = require("child_process");
+
+const COMMON_MIGRATION_DIRS = [
+  "supabase/migrations",
+  "migrations",
+  "db/migrations",
+  "database/migrations",
+];
+
+const GENERATED_PARTS = new Set([
+  ".git",
+  ".run-next",
+  ".npm",
+  ".tmp",
+  "tmp",
+  "node_modules",
+  "coverage",
+  "dist",
+  "build",
+  ".next",
+  ".turbo",
+  ".cache",
+]);
+
+const HIGH = "HIGH";
+const MEDIUM = "MEDIUM";
+const LOW = "LOW";
+const UNKNOWN = "UNKNOWN";
+
+const SEVERITY_ORDER = new Map([
+  [LOW, 1],
+  [UNKNOWN, 2],
+  [MEDIUM, 3],
+  [HIGH, 4],
+]);
+
+const SOURCE_ONLY_BOUNDARIES = [
+  "source-only migration review; SQL is never executed",
+  "no database connection, Supabase CLI, migration apply, deploy, or production endpoint call",
+  "risk classification is pattern-based and cannot prove deployed database state",
+  "high-risk findings should block apply/deploy decisions until separately reviewed with explicit authority",
+];
+
+const SECRET_PATTERNS = [
+  { category: "database_url", pattern: /postgres(?:ql)?:\/\/[^\s'")]+/i },
+  { category: "bearer_token", pattern: /Bearer\s+[A-Za-z0-9._-]{12,}/i },
+  { category: "openai_or_api_key", pattern: /\bsk-[A-Za-z0-9_-]{12,}\b/ },
+  { category: "github_token", pattern: /\bgh[pousr]_[A-Za-z0-9_]{12,}\b/ },
+  { category: "jwt", pattern: /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/ },
+  { category: "private_key", pattern: /-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----/ },
+  { category: "service_role_key", pattern: /\bSUPABASE_SERVICE_ROLE_KEY\b\s*[:=]/i },
+  { category: "import_secret", pattern: /\bIMPORT_REDDIT_TIPS_SECRET\b\s*[:=]/i },
+  { category: "generic_secret_assignment", pattern: /\b(?:SECRET|TOKEN|PASSWORD|PRIVATE_KEY)\b\s*[:=]\s*['"][^'"]{12,}['"]/i },
+];
+
+const HIGH_PATTERNS = [
+  { category: "destructive_drop_table", pattern: /\bdrop\s+table\b/i, description: "drop table statement" },
+  { category: "destructive_drop_schema", pattern: /\bdrop\s+schema\b/i, description: "drop schema statement" },
+  { category: "destructive_drop_column", pattern: /\balter\s+table\b[\s\S]{0,240}\bdrop\s+(?:column\s+)?/i, description: "alter table drop statement" },
+  { category: "destructive_truncate", pattern: /\btruncate\b/i, description: "truncate statement" },
+  { category: "destructive_delete", pattern: /\bdelete\s+from\b/i, description: "delete from statement" },
+  { category: "policy_drop", pattern: /\bdrop\s+policy\b/i, description: "drop policy statement" },
+  { category: "function_drop", pattern: /\bdrop\s+(?:function|procedure)\b/i, description: "drop function/procedure statement" },
+  { category: "trigger_drop", pattern: /\bdrop\s+trigger\b/i, description: "drop trigger statement" },
+  { category: "revoke", pattern: /\brevoke\b/i, description: "revoke statement" },
+  { category: "rls_disabled", pattern: /\bdisable\s+row\s+level\s+security\b/i, description: "RLS disable statement" },
+  { category: "destructive_type_change", pattern: /\bdrop\s+type\b|\balter\s+type\b[\s\S]{0,160}\bdrop\b/i, description: "destructive enum/type change" },
+];
+
+const MEDIUM_PATTERNS = [
+  { category: "policy_change", pattern: /\bcreate\s+policy\b|\balter\s+policy\b/i, description: "policy creation/change" },
+  { category: "rls_change", pattern: /\benable\s+row\s+level\s+security\b/i, description: "RLS enable/change" },
+  { category: "alter_table", pattern: /\balter\s+table\b/i, description: "alter table statement" },
+  { category: "function_change", pattern: /\bcreate\s+(?:or\s+replace\s+)?(?:function|procedure)\b/i, description: "function/procedure creation/change" },
+  { category: "trigger_change", pattern: /\bcreate\s+trigger\b/i, description: "trigger creation" },
+  { category: "grant", pattern: /\bgrant\b/i, description: "grant statement" },
+  { category: "broad_public_grant", pattern: /\bgrant\b[\s\S]{0,240}\bto\s+public\b/i, description: "grant to public" },
+  { category: "extension_change", pattern: /\bcreate\s+extension\b|\balter\s+extension\b/i, description: "extension creation/change" },
+  { category: "scheduler_change", pattern: /\bpg_cron\b|\bcron\.schedule\b|\bcron\.unschedule\b|\bcron\.alter_job\b/i, description: "pg_cron scheduler reference" },
+  { category: "pg_net_change", pattern: /\bpg_net\b|\bnet\.http_(?:get|post|delete)\b/i, description: "pg_net/http reference" },
+  { category: "vault_reference", pattern: /\bvault\.|\bdecrypted_secrets\b|\bcreate_secret\b|\bupdate_secret\b/i, description: "Vault/secret reference" },
+  { category: "storage_policy", pattern: /\bstorage\.objects\b|\bstorage\b[\s\S]{0,160}\bpolicy\b/i, description: "storage policy/reference" },
+  { category: "rpc_security_boundary", pattern: /\bsecurity\s+definer\b|\bsecurity\s+invoker\b/i, description: "function security boundary" },
+];
+
+const LOW_PATTERNS = [
+  { category: "create_table", pattern: /\bcreate\s+table\b/i, description: "create table statement" },
+  { category: "create_index", pattern: /\bcreate\s+(?:unique\s+)?index\b/i, description: "create index statement" },
+  { category: "comment", pattern: /\bcomment\s+on\b/i, description: "comment statement" },
+  { category: "additive_column", pattern: /\balter\s+table\b[\s\S]{0,240}\badd\s+column\b/i, description: "additive column statement" },
+  { category: "idempotent_guard", pattern: /\bif\s+not\s+exists\b|\bif\s+exists\b/i, description: "idempotent guard" },
+];
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/migration-review --repo <path> [--json] [--validate]
+  ./scripts/migration-review --repo <path> --migrations-dir <relative-path>
+
+Source-only migration risk review. The helper reads migration files, emits
+relative-path metadata, and classifies likely SQL risk before any apply/deploy
+step. It never connects to a database, runs SQL, calls Supabase, mutates files,
+stages files, installs dependencies, deploys, or calls production endpoints.
+
+Options:
+  --json                 Print deterministic JSON.
+  --validate             Validate the generated review contract.
+  --migrations-dir PATH  Review one relative migration directory.
+  --max-files NUMBER     Limit reviewed SQL files. Default: 500.
+  --include-sql-functions
+                         Also inspect SQL files under supabase/functions.
+  --fail-on-high-risk    Exit non-zero when HIGH-risk migration files exist.
+  --help                 Show this help.`);
+}
+
+function parseArgs(argv) {
+  const args = {
+    repo: null,
+    json: false,
+    validate: false,
+    migrationsDir: null,
+    maxFiles: 500,
+    includeSqlFunctions: false,
+    failOnHighRisk: false,
+    help: false,
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--repo") {
+      args.repo = argv[++index];
+      if (!args.repo) throw new Error("--repo requires a path");
+    } else if (arg === "--json") {
+      args.json = true;
+    } else if (arg === "--validate") {
+      args.validate = true;
+    } else if (arg === "--migrations-dir") {
+      args.migrationsDir = normalizeRelative(argv[++index]);
+      if (!args.migrationsDir) throw new Error("--migrations-dir requires a relative path");
+      if (path.isAbsolute(args.migrationsDir) || args.migrationsDir.split("/").includes("..")) {
+        throw new Error("--migrations-dir must be a safe relative path");
+      }
+    } else if (arg === "--max-files") {
+      const value = argv[++index];
+      if (!value || !/^\d+$/.test(value)) throw new Error("--max-files requires a positive integer");
+      args.maxFiles = Number(value);
+      if (args.maxFiles < 1) throw new Error("--max-files must be at least 1");
+    } else if (arg === "--include-sql-functions") {
+      args.includeSqlFunctions = true;
+    } else if (arg === "--fail-on-high-risk") {
+      args.failOnHighRisk = true;
+    } else if (arg === "--help" || arg === "-h") {
+      args.help = true;
+    } else {
+      throw new Error(`unknown argument: ${arg}`);
+    }
+  }
+
+  if (!args.repo && !args.help) throw new Error("--repo is required");
+  return args;
+}
+
+function run(command, args, options = {}) {
+  return spawnSync(command, args, {
+    cwd: options.cwd,
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024 * 8,
+  });
+}
+
+function normalizeRelative(value) {
+  return String(value || "").replaceAll(path.sep, "/").replace(/^\/+/, "");
+}
+
+function toRelative(root, absolutePath) {
+  return normalizeRelative(path.relative(root, absolutePath));
+}
+
+function shouldExclude(relativePath) {
+  const normalized = normalizeRelative(relativePath);
+  if (!normalized || normalized === ".") return false;
+  const parts = normalized.split("/");
+  if (parts.some((part) => GENERATED_PARTS.has(part))) return true;
+  if (normalized.endsWith(".tgz")) return true;
+  if (normalized.includes("workflow-corpus/")) return true;
+  if (normalized.endsWith("pseudonym-map.json")) return true;
+  return false;
+}
+
+function gitFiles(repo) {
+  const tracked = run("git", ["-C", repo, "ls-files"]);
+  if (tracked.status !== 0) return null;
+  const others = run("git", ["-C", repo, "ls-files", "--others", "--exclude-standard"]);
+  const files = [
+    ...tracked.stdout.split(/\r?\n/),
+    ...(others.status === 0 ? others.stdout.split(/\r?\n/) : []),
+  ]
+    .filter(Boolean)
+    .map(normalizeRelative)
+    .filter((file) => !shouldExclude(file));
+  return [...new Set(files)].sort((a, b) => a.localeCompare(b));
+}
+
+function walkFiles(dir, root, files = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    const relative = toRelative(root, full);
+    if (shouldExclude(relative)) continue;
+    if (entry.isDirectory()) {
+      walkFiles(full, root, files);
+    } else if (entry.isFile()) {
+      files.push(relative);
+    }
+  }
+  return files;
+}
+
+function discoverFiles(repo) {
+  const fromGit = gitFiles(repo);
+  if (fromGit) return { source: "git", files: fromGit };
+  return {
+    source: "filesystem",
+    files: walkFiles(repo, repo).filter((file) => !shouldExclude(file)).sort((a, b) => a.localeCompare(b)),
+  };
+}
+
+function directoryExists(repo, relativePath) {
+  return fs.existsSync(path.join(repo, relativePath)) && fs.statSync(path.join(repo, relativePath)).isDirectory();
+}
+
+function discoverMigrationDirectories(repo, files, args) {
+  const dirs = [];
+  if (args.migrationsDir) {
+    dirs.push(args.migrationsDir);
+  } else {
+    for (const dir of COMMON_MIGRATION_DIRS) {
+      if (directoryExists(repo, dir) || files.some((file) => file.startsWith(`${dir}/`))) dirs.push(dir);
+    }
+  }
+
+  if (args.includeSqlFunctions && (directoryExists(repo, "supabase/functions") || files.some((file) => file.startsWith("supabase/functions/")))) {
+    dirs.push("supabase/functions");
+  }
+
+  return [...new Set(dirs)].sort((a, b) => a.localeCompare(b));
+}
+
+function migrationFilesForDirectories(files, directories, maxFiles) {
+  const migrationFiles = files
+    .filter((file) => file.toLowerCase().endsWith(".sql"))
+    .filter((file) => directories.some((dir) => file === dir || file.startsWith(`${dir}/`)))
+    .sort((a, b) => a.localeCompare(b));
+  return {
+    files: migrationFiles.slice(0, maxFiles),
+    total: migrationFiles.length,
+    limitReached: migrationFiles.length > maxFiles,
+  };
+}
+
+function lineForPattern(text, pattern) {
+  const lines = text.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index += 1) {
+    if (pattern.test(lines[index])) return index + 1;
+  }
+  return null;
+}
+
+function pushFinding(findings, text, severity, category, description, pattern) {
+  findings.push({
+    severity,
+    category,
+    description,
+    line: lineForPattern(text, new RegExp(pattern.source, pattern.flags)),
+  });
+}
+
+function splitSqlStatements(text) {
+  return text
+    .split(";")
+    .map((statement) => statement.trim())
+    .filter(Boolean);
+}
+
+function detectUpdateWithoutWhere(text, findings) {
+  for (const statement of splitSqlStatements(text)) {
+    if (/\bupdate\s+["\w.]+\s+set\b/i.test(statement) && !/\bwhere\b/i.test(statement)) {
+      findings.push({
+        severity: HIGH,
+        category: "unsafe_update",
+        description: "update statement without an obvious where clause",
+        line: lineForPattern(text, /\bupdate\s+["\w.]+\s+set\b/i),
+      });
+      return;
+    }
+  }
+}
+
+function detectSecurityDefinerWithoutSearchPath(text, findings) {
+  if (/\bsecurity\s+definer\b/i.test(text) && !/\bsearch_path\b/i.test(text)) {
+    findings.push({
+      severity: HIGH,
+      category: "unsafe_security_definer",
+      description: "security definer function without an obvious search_path guard",
+      line: lineForPattern(text, /\bsecurity\s+definer\b/i),
+    });
+  }
+}
+
+function detectSecretMaterial(text, findings) {
+  for (const { category, pattern } of SECRET_PATTERNS) {
+    if (pattern.test(text)) {
+      findings.push({
+        severity: HIGH,
+        category: "secret_shaped_value",
+        description: `secret-shaped value detected: ${category}`,
+        line: lineForPattern(text, new RegExp(pattern.source, pattern.flags)),
+      });
+    }
+  }
+}
+
+function highestRisk(findings) {
+  if (!findings.length) return UNKNOWN;
+  return findings
+    .map((finding) => finding.severity)
+    .sort((a, b) => SEVERITY_ORDER.get(b) - SEVERITY_ORDER.get(a))[0] || UNKNOWN;
+}
+
+function prefixFromFilename(filename) {
+  const match = filename.match(/^(\d{8,14}|[0-9]{3,})[_-]/);
+  return match ? match[1] : null;
+}
+
+function reviewMigrationFile(repo, relativePath, directory) {
+  const full = path.join(repo, relativePath);
+  const text = fs.readFileSync(full, "utf8");
+  const findings = [];
+
+  for (const item of HIGH_PATTERNS) {
+    if (item.pattern.test(text)) pushFinding(findings, text, HIGH, item.category, item.description, item.pattern);
+  }
+  detectUpdateWithoutWhere(text, findings);
+  detectSecurityDefinerWithoutSearchPath(text, findings);
+  detectSecretMaterial(text, findings);
+
+  for (const item of MEDIUM_PATTERNS) {
+    if (item.pattern.test(text)) pushFinding(findings, text, MEDIUM, item.category, item.description, item.pattern);
+  }
+
+  for (const item of LOW_PATTERNS) {
+    if (item.pattern.test(text)) pushFinding(findings, text, LOW, item.category, item.description, item.pattern);
+  }
+
+  if (!findings.length && text.trim()) {
+    findings.push({
+      severity: UNKNOWN,
+      category: "unclassified_sql",
+      description: "SQL file contains statements outside known migration-review patterns",
+      line: 1,
+    });
+  }
+
+  const risk = highestRisk(findings);
+  const statementCategories = [...new Set(findings.map((finding) => finding.category))].sort((a, b) => a.localeCompare(b));
+  const riskCategories = [...new Set(findings.map((finding) => finding.severity === LOW ? "low_additive" : finding.category))].sort((a, b) => a.localeCompare(b));
+  const rollbackHints = [];
+  if ([HIGH, MEDIUM].includes(risk) && !/\brollback\b|\brevert\b|\bdown migration\b|--\s*down\b|\bundo\b|\bforward fix\b/i.test(text)) {
+    rollbackHints.push("no rollback or forward-fix marker found in source file");
+  }
+  if (risk === HIGH) {
+    rollbackHints.push("review backup, recovery, and apply authority before execution");
+  }
+
+  return {
+    path: relativePath,
+    directory,
+    filename: path.basename(relativePath),
+    prefix: prefixFromFilename(path.basename(relativePath)),
+    line_count: text.split(/\r?\n/).length,
+    risk,
+    statement_categories: statementCategories,
+    risk_categories: riskCategories,
+    secret_shaped_value_detected: findings.some((finding) => finding.category === "secret_shaped_value"),
+    findings,
+    rollback_hints: [...new Set(rollbackHints)],
+  };
+}
+
+function directorySummaries(directories, migrationFiles) {
+  return directories.map((directory) => ({
+    path: directory,
+    files: migrationFiles.filter((file) => file === directory || file.startsWith(`${directory}/`)).length,
+  }));
+}
+
+function orderingWarnings(migrations) {
+  const warnings = [];
+  const prefixes = new Map();
+  for (const migration of migrations) {
+    if (!migration.prefix) {
+      warnings.push({
+        category: "missing_prefix",
+        file: migration.path,
+        description: "migration filename does not start with a deterministic numeric prefix",
+      });
+      continue;
+    }
+    const existing = prefixes.get(migration.prefix) || [];
+    existing.push(migration.path);
+    prefixes.set(migration.prefix, existing);
+  }
+  for (const [prefix, files] of prefixes.entries()) {
+    if (files.length > 1) {
+      warnings.push({
+        category: "duplicate_prefix",
+        prefix,
+        files,
+        description: "multiple migrations share the same ordering prefix",
+      });
+    }
+  }
+  return warnings.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+}
+
+function reviewStatus(migrations, ordering, limitReached) {
+  if (!migrations.length) return "NO_MIGRATIONS_FOUND";
+  if (migrations.some((migration) => migration.risk === HIGH)) return "FAIL";
+  if (migrations.some((migration) => [MEDIUM, UNKNOWN].includes(migration.risk)) || ordering.length || limitReached) return "WARN";
+  return "PASS";
+}
+
+function buildMigrationReview(options) {
+  const repo = path.resolve(options.repo);
+  if (!fs.existsSync(repo) || !fs.statSync(repo).isDirectory()) {
+    throw new Error(`repo does not exist or is not a directory: ${options.repo}`);
+  }
+  const discovery = discoverFiles(repo);
+  const directories = discoverMigrationDirectories(repo, discovery.files, options);
+  const selected = migrationFilesForDirectories(discovery.files, directories, options.maxFiles || 500);
+  const migrations = selected.files.map((file) => {
+    const directory = directories.find((dir) => file === dir || file.startsWith(`${dir}/`)) || path.dirname(file);
+    return reviewMigrationFile(repo, file, directory);
+  });
+  const ordering = orderingWarnings(migrations);
+  const status = reviewStatus(migrations, ordering, selected.limitReached);
+  const summary = {
+    directories_found: directories.length,
+    files_found: selected.total,
+    files_reviewed: migrations.length,
+    high_risk_files: migrations.filter((migration) => migration.risk === HIGH).length,
+    medium_risk_files: migrations.filter((migration) => migration.risk === MEDIUM).length,
+    low_risk_files: migrations.filter((migration) => migration.risk === LOW).length,
+    unknown_risk_files: migrations.filter((migration) => migration.risk === UNKNOWN).length,
+    secret_shaped_files: migrations.filter((migration) => migration.secret_shaped_value_detected).length,
+    ordering_warnings: ordering.length,
+    limit_reached: selected.limitReached,
+  };
+
+  return {
+    schema_version: 1,
+    repo: {
+      root: ".",
+      source: discovery.source,
+      migrations_dir_argument: options.migrationsDir || null,
+      max_files: options.maxFiles || 500,
+      include_sql_functions: Boolean(options.includeSqlFunctions),
+    },
+    status,
+    summary,
+    migration_directories: directorySummaries(directories, selected.files),
+    migrations,
+    ordering_warnings: ordering,
+    source_only_boundaries: SOURCE_ONLY_BOUNDARIES,
+  };
+}
+
+function validateMigrationReview(review) {
+  const errors = [];
+  if (!review || typeof review !== "object") return ["review must be an object"];
+  if (review.schema_version !== 1) errors.push("schema_version must be 1");
+  if (!["PASS", "WARN", "FAIL", "NO_MIGRATIONS_FOUND"].includes(review.status)) errors.push("status is invalid");
+  if (!review.repo || review.repo.root !== ".") errors.push("repo.root must be portable");
+  for (const arrayName of ["migration_directories", "migrations", "ordering_warnings", "source_only_boundaries"]) {
+    if (!Array.isArray(review[arrayName])) errors.push(`${arrayName} must be an array`);
+  }
+  if (!review.summary || typeof review.summary.files_reviewed !== "number") errors.push("summary is missing file counts");
+  if (Array.isArray(review.migrations)) {
+    for (const migration of review.migrations) {
+      if (!migration.path || path.isAbsolute(migration.path) || migration.path.includes("..")) errors.push(`migration path is not safe: ${migration.path || "<missing>"}`);
+      if (!["LOW", "MEDIUM", "HIGH", "UNKNOWN"].includes(migration.risk)) errors.push(`migration risk is invalid: ${migration.path || "<missing>"}`);
+      if (!Array.isArray(migration.findings)) errors.push(`migration findings must be an array: ${migration.path || "<missing>"}`);
+    }
+  }
+  const serialized = JSON.stringify(review);
+  if (/\/home\/johnh\/|postgres(?:ql)?:\/\/[^"]+|Bearer\s+[A-Za-z0-9._-]{12,}|-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----/.test(serialized)) {
+    errors.push("review output contains private absolute paths or secret-shaped values");
+  }
+  return errors;
+}
+
+function renderHuman(review) {
+  const lines = [];
+  lines.push("# Migration Review");
+  lines.push("");
+  lines.push(`Status: ${review.status}`);
+  lines.push(`Source: ${review.repo.source}`);
+  lines.push(`Directories: ${review.summary.directories_found}`);
+  lines.push(`Files reviewed: ${review.summary.files_reviewed}/${review.summary.files_found}`);
+  lines.push(`High risk files: ${review.summary.high_risk_files}`);
+  lines.push(`Medium risk files: ${review.summary.medium_risk_files}`);
+  lines.push(`Unknown risk files: ${review.summary.unknown_risk_files}`);
+  lines.push(`Secret-shaped files: ${review.summary.secret_shaped_files}`);
+  if (review.summary.limit_reached) lines.push("Limit reached: true");
+  lines.push("");
+  lines.push("## Directories");
+  if (review.migration_directories.length) {
+    for (const dir of review.migration_directories) lines.push(`- ${dir.path}: ${dir.files} file(s)`);
+  } else {
+    lines.push("- None");
+  }
+  lines.push("");
+  lines.push("## Files");
+  if (review.migrations.length) {
+    for (const migration of review.migrations) {
+      const categories = migration.statement_categories.length ? migration.statement_categories.join(", ") : "none";
+      lines.push(`- ${migration.risk}: ${migration.path} (${categories})`);
+      for (const finding of migration.findings.filter((item) => item.severity !== LOW).slice(0, 8)) {
+        const line = finding.line ? ` line ${finding.line}` : "";
+        lines.push(`  - ${finding.severity} ${finding.category}${line}: ${finding.description}`);
+      }
+      if (migration.rollback_hints.length) lines.push(`  - rollback: ${migration.rollback_hints.join("; ")}`);
+    }
+  } else {
+    lines.push("- No migration SQL files found.");
+  }
+  lines.push("");
+  lines.push("## Ordering Warnings");
+  if (review.ordering_warnings.length) {
+    for (const warning of review.ordering_warnings) lines.push(`- ${warning.category}: ${warning.description}`);
+  } else {
+    lines.push("- None");
+  }
+  lines.push("");
+  lines.push("## Source-Only Boundaries");
+  for (const boundary of review.source_only_boundaries) lines.push(`- ${boundary}`);
+  return lines.join("\n");
+}
+
+function main() {
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    usage();
+    process.exit(2);
+  }
+
+  if (args.help) {
+    usage();
+    return;
+  }
+
+  let review;
+  try {
+    review = buildMigrationReview(args);
+  } catch (error) {
+    console.error(error.message);
+    process.exit(2);
+  }
+
+  const validationErrors = validateMigrationReview(review);
+  if (args.json) {
+    console.log(JSON.stringify(review, null, 2));
+  } else {
+    console.log(renderHuman(review));
+  }
+
+  if (args.validate && validationErrors.length) {
+    console.error("Migration review validation failed:");
+    for (const error of validationErrors) console.error(`- ${error}`);
+    process.exit(1);
+  }
+
+  if (args.failOnHighRisk && review.summary.high_risk_files > 0) {
+    console.error("Migration review failed: high-risk migration findings present.");
+    process.exit(1);
+  }
+}
+
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  buildMigrationReview,
+  detectSecretMaterial,
+  parseArgs,
+  renderHuman,
+  reviewMigrationFile,
+  validateMigrationReview,
+};

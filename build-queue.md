@@ -11,15 +11,6 @@
 
 # P1 - Documented Missing Reusable Components
 
-## Migration-review helper
-
-- Evidence source: `migration-review-skill.md`; Supabase scheduler work proved source-only migration and secret-hardcoding review needs.
-- Primary type: `SCRIPT_OR_HELPER`.
-- Dependency: repo-map helper and pre-commit validation hook.
-- Authority required: `local_execution`; SQL execution remains a separate `production_mutation` boundary.
-- Done definition: helper inventories migrations, flags destructive patterns, secret-shaped literals, rollback gaps, ordering risks, and source-only limitations.
-- Reason for priority: migration review is reusable and safety-critical.
-
 ## Browser live proof skill
 
 - Evidence source: `work-ledger.md`, `runs/skill-runs.md`, `tools.md` `browser-live-proof` permission level.
@@ -128,3 +119,4 @@
 - Deterministic source-only repository map helper (`scripts/repo-map`).
 - Deterministic source-only project KB compiler (`scripts/project-kb`).
 - Pre-commit validation hook (`scripts/pre-commit-check`, `scripts/install-git-hooks`, `templates/hooks/pre-commit`).
+- Deterministic source-only migration review helper (`scripts/migration-review`).

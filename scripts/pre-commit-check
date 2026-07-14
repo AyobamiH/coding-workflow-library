@@ -134,9 +134,11 @@ function buildDefaultChecks(options = {}) {
     { id: "syntax-docs-list", command: process.execPath, args: ["--check", "scripts/docs-list"] },
     { id: "syntax-repo-map", command: process.execPath, args: ["--check", "scripts/repo-map"] },
     { id: "syntax-project-kb", command: process.execPath, args: ["--check", "scripts/project-kb"] },
+    { id: "syntax-migration-review", command: process.execPath, args: ["--check", "scripts/migration-review"] },
     { id: "docs-list-validate", command: process.execPath, args: ["scripts/docs-list", "--validate"] },
     { id: "repo-map-validate", command: process.execPath, args: ["scripts/repo-map", "--repo", ".", "--validate"] },
     { id: "project-kb-validate", command: process.execPath, args: ["scripts/project-kb", "--repo", ".", "--validate"] },
+    { id: "migration-review-validate", command: process.execPath, args: ["scripts/migration-review", "--repo", ".", "--validate"] },
     { id: "route-audit", command: process.execPath, args: ["scripts/route-audit"] },
     { id: "validate-skills", command: process.execPath, args: ["scripts/validate-skills"] },
   ];

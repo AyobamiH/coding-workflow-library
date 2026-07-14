@@ -1452,3 +1452,17 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: No forbidden deploy, migration, Supabase mutation, production endpoint call, direct main push, force push, merge, token printing, token file write, unrelated staging, or evidence inclusion occurred..
 * Follow-up skill needed: migration-review-skill / coding-workflow-orchestrator-skill.
 * Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.
+
+## 2026-07-14 - run-next Autonomous Work Loop
+
+* Skill used: coding-workflow-orchestrator-skill; selected next skill was migration-review-skill / coding-workflow-orchestrator-skill.
+* Goal: Read `work-ledger.md`, classify status `v0.2.0 locally prepared and validated; remote publication awaiting one objective-level approval`, check permission flags, and run only the next safe action.
+* Starting state: Target repo `<LIBRARY_REPO>`; permission flags `migration-review-helper`; dry-run `no`.
+* Commands/tools used: `scripts/run-next --repo <LIBRARY_REPO> --allow migration-review-helper`.
+* Files inspected: `AGENTS.md`; `RUNBOOK.md`; `tools.md`; `work-ledger.md`; selected ledger entry for `<LIBRARY_REPO>`.
+* Files changed: `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; migration-review purpose: deterministic source-only migration risk classification before any database apply/deploy step; migration-review boundaries: no SQL execution, Supabase commands, database connections, migration apply, deploy, staging, commits, package publication, or production calls; migration-review syntax exit: 0; migration-review tests exit: 0; migration-review human exit: 0; migration-review json exit: 0; migration-review validate exit: 0; migration-review CLI validate exit: 0; pre-commit full gate exit: 0.
+* Result: READY: deterministic source-only migration review helper validates; next active dependency must come from the verified roadmap.
+* Failure/recovery notes: No forbidden deploy, migration, Supabase mutation, production endpoint call, direct main push, force push, merge, token printing, token file write, unrelated staging, or evidence inclusion occurred..
+* Follow-up skill needed: migration-review-skill / coding-workflow-orchestrator-skill.
+* Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.

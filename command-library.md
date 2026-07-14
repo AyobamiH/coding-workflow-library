@@ -26,6 +26,19 @@ coding-workflow project-kb --repo "$TARGET_REPO" --validate
 
 `scripts/project-kb` compiles deterministic source-only handoff context from repo-map, docs-list, package, route, skill, and control-doc metadata. It must not read `.env` values, raw sessions, private corpus output, install dependencies, run target build/test commands, call services, mutate git, publish, deploy, push, tag, or prove runtime behaviour.
 
+## Migration Review
+
+```bash
+./scripts/migration-review --repo "$TARGET_REPO"
+./scripts/migration-review --repo "$TARGET_REPO" --json
+./scripts/migration-review --repo "$TARGET_REPO" --validate
+./scripts/migration-review --repo "$TARGET_REPO" --migrations-dir supabase/migrations
+./scripts/migration-review --repo "$TARGET_REPO" --fail-on-high-risk
+coding-workflow migration-review --repo "$TARGET_REPO" --validate
+```
+
+`scripts/migration-review` is source-only SQL migration risk classification. It detects common migration directories, destructive statements, RLS/policy changes, grants/revokes, functions, triggers, extension changes, pg_cron/pg_net, Vault references, data mutation, rollback gaps, ordering warnings, and secret-shaped material by category only. It must not connect to a database, run Supabase CLI, execute SQL, apply migrations, read `.env` values, print secrets, mutate files, stage, commit, publish, deploy, push, tag, or prove deployed database state.
+
 Manual follow-up after reading the map:
 
 ```bash

@@ -158,7 +158,7 @@ Use for read-only source-only Supabase public-anon/RLS safety audits: client bou
 ### migration-review-skill
 
 File: `skill-files/migration-review-skill.md`
-Use for read-only migration review until repo-specific apply commands are confirmed.
+Use for source-only migration risk review before any apply/deploy step. Run `scripts/repo-map --repo <path>` first for orientation, then `scripts/migration-review --repo <path>` or `--json`/`--validate` to classify destructive changes, RLS/policies, grants/revokes, functions, triggers, scheduler/Vault references, rollback gaps, ordering warnings, and secret-shaped material by category only. This skill does not execute SQL, call Supabase, apply migrations, deploy, or prove deployed database truth.
 
 ## Operational Control Files
 
@@ -182,6 +182,8 @@ Use for read-only migration review until repo-specific apply commands are confir
 - `schemas/repo-map.schema.json`: portable schema for `scripts/repo-map --json` output.
 - `scripts/project-kb`: dependency-free project knowledge base compiler that synthesizes repo-map, docs-list, package, route, skill, and control-doc metadata without reading secrets or calling services.
 - `schemas/project-kb.schema.json`: portable schema for `scripts/project-kb --json` output.
+- `scripts/migration-review`: dependency-free source-only migration risk review helper for common migration directories, with JSON, validation, custom directory, and high-risk gate modes.
+- `schemas/migration-review.schema.json`: portable schema for `scripts/migration-review --json` output.
 - `schemas/workflow-corpus.schema.json`: portable event schema for redacted corpus events.
 - `schemas/workflow-source-manifest.schema.json`: portable source manifest schema with terminal parse statuses.
 - `templates/workflow-extraction-config.example.json`: neutral example config for private corpus extraction.

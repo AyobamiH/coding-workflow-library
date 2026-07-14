@@ -181,13 +181,14 @@ Use this mapping before acting:
 - Need to compile durable source-only project context: `project-kb-builder-skill` with `scripts/project-kb --repo <path>`
 - Need to review security before production: `security-hardening-review-skill`
 - Need to control LLM drift during a long coding task: `llm-drift-control-skill`
-- Need to review migrations: `migration-review-skill`
+- Need to review migrations before any apply/deploy step: `migration-review-skill` with `scripts/migration-review --repo <path>` after `repo-map` and optional `project-kb`
 - Need to prepare GitHub handoff or repo sync: `github-handoff-skill`
 - Need to extract more skills from a chat/session log: `session-log-extraction-skill`
 - Need to rebuild backlog or agent-roadmap evidence from local history: `session-log-extraction-skill` with `scripts/extract-session-workflows.mjs`
 - Need to inventory docs, H1s, duplicate titles, or orphan references before broad documentation work: `scripts/docs-list`
 - Need deterministic source-only workspace orientation, package/config markers, docs summary, and env-file presence without values: `scripts/repo-map`
 - Need deterministic project identity, commands, docs, route/skill, verified-fact, and unknowns synthesis from source-only evidence: `scripts/project-kb`
+- Need source-only migration risk classification without SQL execution: `scripts/migration-review`
 - Need to trace OpenClaw subagent routing: `route-trace-skill`
 - Need to compare OpenClaw config backups: `openclaw-config-diff-skill`
 - Need to coordinate local tools, reads, writes, process logs, or gateway calls: `tool-patterns-skill`

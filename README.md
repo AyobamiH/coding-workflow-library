@@ -38,6 +38,7 @@ skills/coding-workflow-library/
     repo-map.schema.json
     project-kb.schema.json
     pre-commit-check.schema.json
+    migration-review.schema.json
   runs/
     decisions/
     skill-runs.md
@@ -60,6 +61,7 @@ skills/coding-workflow-library/
     repo-map
     project-kb
     pre-commit-check
+    migration-review
     install-git-hooks
     run-next
     route-audit
@@ -81,6 +83,7 @@ skills/coding-workflow-library/
     repo-map.test.js
     project-kb.test.js
     pre-commit-check.test.js
+    migration-review.test.js
     library-validation-checklist.md
   skill-files/
     coding-workflow-orchestrator-skill.md
@@ -223,6 +226,21 @@ coding-workflow project-kb --repo /path/to/repo --validate
 
 The compiler synthesizes deterministic facts about project identity, repository shape, stack, commands, documentation, skills/routes, validation gates, source-only safety boundaries, verified facts, and unknowns. It does not read `.env` values, raw session transcripts, private corpus output, caches, temp data, or generated evidence. It does not install dependencies, run target build/test commands, mutate git, call services, publish, deploy, or prove runtime behaviour.
 
+## Migration Review
+
+Use `scripts/migration-review` after `repo-map` and before any migration apply, deploy, Supabase command, or production mutation. It performs source-only SQL risk classification for common migration directories:
+
+```bash
+./scripts/migration-review --repo /path/to/repo
+./scripts/migration-review --repo /path/to/repo --json
+./scripts/migration-review --repo /path/to/repo --validate
+./scripts/migration-review --repo /path/to/repo --migrations-dir supabase/migrations
+
+coding-workflow migration-review --repo /path/to/repo --validate
+```
+
+The helper reports relative migration paths, ordering prefixes, statement categories, risk categories, rollback hints, RLS/policy changes, grants/revokes, functions, triggers, extensions, pg_cron/pg_net, Vault references, destructive/data-mutation patterns, and secret-shaped findings by category only. It never executes SQL, connects to a database, runs Supabase CLI, applies migrations, deploys, mutates files, reads `.env` values, prints secret values, or proves deployed database truth. High-risk findings should block apply/deploy decisions until a separate authority gate and human review approve the next step.
+
 ## Objective-Level Autonomy
 
 The system requests authority for consequences, not permission for every tool call.
@@ -339,7 +357,7 @@ Commit permission is separate from push, PR, deploy, migration, and release perm
 
 ## Pre-Commit Validation Hook
 
-`scripts/pre-commit-check` is the local commit gate for this library. It runs deterministic checks before a commit: `git diff --check`, Node syntax checks for core helpers, docs-list validation, repo-map validation, project-KB validation, route audit, and skill validation. `--staged` also inspects the staged diff for whitespace issues and secret-shaped additions, reporting only file/risk category without printing values. `--full` adds `npm test` and `skill-cleaner`.
+`scripts/pre-commit-check` is the local commit gate for this library. It runs deterministic checks before a commit: `git diff --check`, Node syntax checks for core helpers, docs-list validation, repo-map validation, project-KB validation, migration-review validation, route audit, and skill validation. `--staged` also inspects the staged diff for whitespace issues and secret-shaped additions, reporting only file/risk category without printing values. `--full` adds `npm test` and `skill-cleaner`.
 
 ```bash
 ./scripts/pre-commit-check

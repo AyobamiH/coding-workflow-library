@@ -106,6 +106,7 @@ const ALLOWED_FLAGS = new Set([
   "repo-map-helper-automation",
   "project-kb-compiler",
   "pre-commit-validation-hook",
+  "migration-review-helper",
   "local_execution",
   "remote_publication",
   "production_mutation",
@@ -274,6 +275,8 @@ function main() {
       result = runProjectKbCompiler(active);
     } else if (route.kind === "pre-commit-validation-hook") {
       result = runPreCommitValidationHook(active);
+    } else if (route.kind === "migration-review-helper") {
+      result = runMigrationReviewHelper(active);
     } else {
       result = notImplemented(route, active);
     }
@@ -499,6 +502,8 @@ function printHelp() {
   ./scripts/run-next --repo <library-repo> --allow project-kb-compiler --dry-run
   ./scripts/run-next --repo <library-repo> --allow pre-commit-validation-hook
   ./scripts/run-next --repo <library-repo> --allow pre-commit-validation-hook --dry-run
+  ./scripts/run-next --repo <library-repo> --allow migration-review-helper
+  ./scripts/run-next --repo <library-repo> --allow migration-review-helper --dry-run
 
 Supported --allow values:
   auth-check
@@ -542,6 +547,7 @@ Supported --allow values:
   repo-map-helper-automation
   project-kb-compiler
   pre-commit-validation-hook
+  migration-review-helper
   local_execution
   remote_publication
   production_mutation
@@ -793,6 +799,16 @@ function routeStatus(status, active = {}) {
       requiresAuthority: ["local_execution", "remote_publication"],
       kind: "pre-commit-validation-hook",
       nextAction: "verify deterministic local pre-commit gate, staged secret scan, safe hook installer, CLI delegation, tests, and stop before migration-review work",
+    };
+  }
+
+  if (args.allow.has("migration-review-helper") && path.resolve(targetRepo) === LIBRARY_ROOT) {
+    return {
+      skill: "migration-review-skill / coding-workflow-orchestrator-skill",
+      permission: "migration-review-helper",
+      requiresAuthority: ["local_execution", "remote_publication"],
+      kind: "migration-review-helper",
+      nextAction: "verify deterministic source-only migration review helper, schema, CLI delegation, tests, package contents, and stop before browser/GitHub/release work",
     };
   }
 
@@ -3566,6 +3582,71 @@ function runPreCommitValidationHook() {
     ledgerStatus: "pre-commit validation hook complete",
     summary: "deterministic local pre-commit gate validates; next active dependency is migration-review helper",
     nextPermission: "build migration-review helper",
+    nextSkill: "migration-review-skill / coding-workflow-orchestrator-skill",
+    exitCode: 0,
+  };
+}
+
+function runMigrationReviewHelper() {
+  const helper = "scripts/migration-review";
+  const schema = "schemas/migration-review.schema.json";
+  const testFile = "tests/migration-review.test.js";
+  evidence.push("migration-review purpose: deterministic source-only migration risk classification before any database apply/deploy step");
+  evidence.push("migration-review boundaries: no SQL execution, Supabase commands, database connections, migration apply, deploy, staging, commits, package publication, or production calls");
+  actions.push("migration review reports secret-shaped findings by file and category without values");
+
+  if (dryRun) {
+    actions.push("would verify migration-review syntax, schema, synthetic tests, and CLI delegation");
+    actions.push("would run migration-review human, JSON, and validate modes against the library");
+    actions.push("would run fail-on-high-risk coverage through synthetic fixtures");
+    actions.push("would stop before browser live proof, GitHub deep review, release work, package publication, tags, releases, deploys, SQL, or product repos");
+    return {
+      finalStatus: "DRY RUN PASSED",
+      ledgerStatus: "migration-review helper dry-run complete",
+      summary: "migration-review-helper would verify deterministic source-only migration risk review",
+      nextPermission: "build next verified dependency after migration-review",
+      nextSkill: "migration-review-skill / coding-workflow-orchestrator-skill",
+      exitCode: 0,
+    };
+  }
+
+  const blockers = [];
+  for (const required of [helper, schema, testFile]) {
+    if (!fs.existsSync(path.join(LIBRARY_ROOT, required))) blockers.push(`${required} missing`);
+  }
+
+  const commands = [
+    ["migration-review syntax", process.execPath, ["--check", helper]],
+    ["migration-review tests", process.execPath, [testFile]],
+    ["migration-review human", `./${helper}`, ["--repo", "."]],
+    ["migration-review json", `./${helper}`, ["--repo", ".", "--json"]],
+    ["migration-review validate", `./${helper}`, ["--repo", ".", "--validate"]],
+    ["migration-review CLI validate", "./bin/coding-workflow.js", ["migration-review", "--repo", ".", "--validate"]],
+    ["pre-commit full gate", "./scripts/pre-commit-check", ["--full"]],
+  ];
+
+  for (const [label, command, commandArgs] of commands) {
+    const result = run(command, commandArgs, { cwd: LIBRARY_ROOT, allowFailure: true });
+    evidence.push(`${label} exit: ${result.code}`);
+    if (result.code !== 0) blockers.push(`${label} failed`);
+  }
+
+  if (blockers.length) {
+    return {
+      finalStatus: "BLOCKED_SAFETY",
+      ledgerStatus: "migration-review helper blocked",
+      summary: blockers.join("; "),
+      nextPermission: "fix migration-review helper or validation failures",
+      nextSkill: "migration-review-skill / error-evidence-skill",
+      exitCode: 1,
+    };
+  }
+
+  return {
+    finalStatus: "READY",
+    ledgerStatus: "migration-review helper complete",
+    summary: "deterministic source-only migration review helper validates; next active dependency must come from the verified roadmap",
+    nextPermission: "choose browser live proof, GitHub deep review, Opstruth self-test, or release/package preflight hardening",
     nextSkill: "migration-review-skill / coding-workflow-orchestrator-skill",
     exitCode: 0,
   };

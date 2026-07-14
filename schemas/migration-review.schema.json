@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AyobamiH/coding-workflow-library/schemas/migration-review.schema.json",
+  "title": "Migration Review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "repo",
+    "status",
+    "summary",
+    "migration_directories",
+    "migrations",
+    "ordering_warnings",
+    "source_only_boundaries"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "repo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "root",
+        "source",
+        "migrations_dir_argument",
+        "max_files",
+        "include_sql_functions"
+      ],
+      "properties": {
+        "root": {
+          "const": "."
+        },
+        "source": {
+          "enum": [
+            "git",
+            "filesystem"
+          ]
+        },
+        "migrations_dir_argument": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "max_files": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "include_sql_functions": {
+          "type": "boolean"
+        }
+      }
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL",
+        "NO_MIGRATIONS_FOUND"
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "directories_found",
+        "files_found",
+        "files_reviewed",
+        "high_risk_files",
+        "medium_risk_files",
+        "low_risk_files",
+        "unknown_risk_files",
+        "secret_shaped_files",
+        "ordering_warnings",
+        "limit_reached"
+      ],
+      "properties": {
+        "directories_found": { "type": "integer", "minimum": 0 },
+        "files_found": { "type": "integer", "minimum": 0 },
+        "files_reviewed": { "type": "integer", "minimum": 0 },
+        "high_risk_files": { "type": "integer", "minimum": 0 },
+        "medium_risk_files": { "type": "integer", "minimum": 0 },
+        "low_risk_files": { "type": "integer", "minimum": 0 },
+        "unknown_risk_files": { "type": "integer", "minimum": 0 },
+        "secret_shaped_files": { "type": "integer", "minimum": 0 },
+        "ordering_warnings": { "type": "integer", "minimum": 0 },
+        "limit_reached": { "type": "boolean" }
+      }
+    },
+    "migration_directories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "files"
+        ],
+        "properties": {
+          "path": { "type": "string" },
+          "files": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "migrations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "directory",
+          "filename",
+          "prefix",
+          "line_count",
+          "risk",
+          "statement_categories",
+          "risk_categories",
+          "secret_shaped_value_detected",
+          "findings",
+          "rollback_hints"
+        ],
+        "properties": {
+          "path": { "type": "string" },
+          "directory": { "type": "string" },
+          "filename": { "type": "string" },
+          "prefix": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "line_count": { "type": "integer", "minimum": 1 },
+          "risk": {
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "UNKNOWN"
+            ]
+          },
+          "statement_categories": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "risk_categories": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "secret_shaped_value_detected": { "type": "boolean" },
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "severity",
+                "category",
+                "description",
+                "line"
+              ],
+              "properties": {
+                "severity": {
+                  "enum": [
+                    "LOW",
+                    "MEDIUM",
+                    "HIGH",
+                    "UNKNOWN"
+                  ]
+                },
+                "category": { "type": "string" },
+                "description": { "type": "string" },
+                "line": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1
+                }
+              }
+            }
+          },
+          "rollback_hints": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "ordering_warnings": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "source_only_boundaries": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

@@ -18,6 +18,7 @@ const explicit = [
   "tests/repo-map.test.js",
   "tests/project-kb.test.js",
   "tests/pre-commit-check.test.js",
+  "tests/migration-review.test.js",
 ];
 
 function isNodeScript(relativePath) {

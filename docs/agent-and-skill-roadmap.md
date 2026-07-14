@@ -16,6 +16,7 @@ corrected workflow corpus
   -> repo-map helper automation (implemented)
   -> project-KB compiler (implemented)
   -> pre-commit validation hook (implemented)
+  -> migration-review helper (implemented)
   -> browser/live proof and GitHub deep review
   -> secret-access adapter, if approved
   -> capability acquisition/prefetch, if still needed
@@ -64,6 +65,7 @@ Implemented:
 - `scripts/project-kb`
 - `scripts/pre-commit-check`
 - `scripts/install-git-hooks`
+- `scripts/migration-review`
 - `scripts/run-next`
 - `scripts/lane-state`
 - `scripts/objective-authority`
@@ -79,7 +81,8 @@ Implemented:
 
 Missing helpers:
 
-- migration-review automation helper
+- browser live proof helper/skill automation
+- GitHub deep review helper/skill automation
 
 ## Routes And Control Plane
 
@@ -100,6 +103,7 @@ New route added:
 - `repo-map-helper-automation`
 - `project-kb-compiler`
 - `pre-commit-validation-hook`
+- `migration-review-helper`
 
 ## Capability Adapters
 
@@ -131,16 +135,17 @@ Capability acquisition remains `NEWLY_PROPOSED` until browser proof and secret-a
 3. Keep `scripts/repo-map` current as the deterministic source-only workspace orientation helper.
 4. Keep `scripts/project-kb` current as the deterministic source-only project memory compiler.
 5. Keep `scripts/pre-commit-check` and `scripts/install-git-hooks` current as the deterministic local commit gate.
-6. Add migration-review helper.
+6. Keep `scripts/migration-review` current as the deterministic source-only migration risk helper.
 
 ### P2
 
 7. Build browser-live-proof-skill.
 8. Build GitHub deep review skill.
-9. Harden release/package preflight around generated corpus evidence.
+9. Add Opstruth runtime truth self-test if still needed.
+10. Harden release/package preflight around generated corpus evidence.
 
 ### P3
 
-10. Explore one-password secret access only after a non-printing local contract is approved.
-11. Revisit capability acquisition and prefetch only after adapter prerequisites exist.
-12. Revisit agent-role system only after at least two independent sessions prove a reusable role contract.
+11. Explore one-password secret access only after a non-printing local contract is approved.
+12. Revisit capability acquisition and prefetch only after adapter prerequisites exist.
+13. Revisit agent-role system only after at least two independent sessions prove a reusable role contract.

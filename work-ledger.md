@@ -1364,3 +1364,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: migration-review-skill / coding-workflow-orchestrator-skill.
 * Exact next action: build migration-review helper.
 * Whether John is needed: Yes for the next permission boundary..
+
+## 2026-07-14 - run-next Autonomous Work Loop
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: migration-review-helper. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: migration-review helper complete.
+* Selected skill: migration-review-skill / coding-workflow-orchestrator-skill.
+* Last commands run: `scripts/run-next --repo <LIBRARY_REPO> --allow migration-review-helper`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; migration-review purpose: deterministic source-only migration risk classification before any database apply/deploy step; migration-review boundaries: no SQL execution, Supabase commands, database connections, migration apply, deploy, staging, commits, package publication, or production calls; migration-review syntax exit: 0; migration-review tests exit: 0; migration-review human exit: 0; migration-review json exit: 0; migration-review validate exit: 0; migration-review CLI validate exit: 0; pre-commit full gate exit: 0.
+* Blockers: deterministic source-only migration review helper validates; next active dependency must come from the verified roadmap.
+* Next recommended skill: migration-review-skill / coding-workflow-orchestrator-skill.
+* Exact next action: choose browser live proof, GitHub deep review, Opstruth self-test, or release/package preflight hardening.
+* Whether John is needed: Yes for the next permission boundary..

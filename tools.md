@@ -96,6 +96,17 @@ Required boundaries:
 - Do not install dependencies, run target build/test commands, mutate git, call external services, publish, deploy, push, tag, or prove runtime behaviour.
 - Treat the KB as durable source-only context. It may guide skill selection, but it is not runtime truth, account-auth proof, deployed-state proof, or an LLM memory agent.
 
+## Migration Review
+
+`scripts/migration-review` is `local_execution` only. It provides deterministic source-only migration risk classification before any database apply, Supabase command, deploy, or production mutation.
+
+Required boundaries:
+
+- Discover common migration directories, list SQL files deterministically, and report only relative paths.
+- Classify destructive changes, data mutation, RLS/policy changes, grants/revokes, function/procedure changes, triggers, extensions, pg_cron/pg_net, Vault references, rollback hints, ordering warnings, and secret-shaped values by category only.
+- Do not execute SQL, connect to a database, run Supabase CLI, apply migrations, mutate schedulers/Vault, deploy, call production endpoints, read `.env` values, print secret values, stage files, commit, push, tag, publish, or prove deployed database truth.
+- Treat `HIGH` risk as a blocker for apply/deploy decisions until a separate authority gate and human review approve the next step.
+
 ## Tool Catalogue
 
 ### git
@@ -339,6 +350,7 @@ Examples:
 ./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow package-candidate-dry-run
 ./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cli-package-smoke
 ./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow pre-commit-validation-hook
+./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow migration-review-helper
 ```
 
 Supported permission flags:
@@ -401,6 +413,7 @@ Rules:
 - CLI entrypoint package smoke may run after `Package candidate dry-run complete` when John grants `--allow cli-package-smoke`. It may verify `coding-workflow` local CLI metadata, run local CLI helper commands, run package readiness with `--expect-cli`, run release preflight CLI mode, run `npm pack --dry-run`, create a local temp tarball, install that local tarball into a clean temp consumer with lifecycle scripts disabled, run the installed CLI, remove temp files, and validate. It must not publish, version, tag, push, create PRs, create GitHub releases, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, mutate registries, install remote dependencies, or mutate remote services.
 - First version tag mode may run after `GitHub open-source handoff complete` when John grants `--allow first-version-tag`. It may update package version `0.1.0`, changelog, release notes, route metadata, and local docs; run local validation and clean-temp package smoke; exact-file commit; push `main` non-force; inspect GitHub Actions for the exact release commit; create/push annotated tag `v0.1.0`; verify the remote tag; and record post-tag bookkeeping. It must not publish, run `npm version`, create a GitHub release, deploy, run Supabase or Cloudflare commands, call production endpoints, print secrets, force-push, rewrite history, or stage broad/excluded paths.
 - Pre-commit validation hook mode may run after `project-KB compiler complete` when John grants `--allow pre-commit-validation-hook`. It may verify `scripts/pre-commit-check`, `scripts/install-git-hooks`, the hook template, staged secret-shaped marker scanning, CLI delegation, tests, package contents, exact-file commit, non-force push, and exact-commit CI. It must not publish, version, tag, create GitHub releases, force-push, broad-stage, deploy, install packages, touch product repos, print secrets, or overwrite unmanaged local hooks without explicit `--force`.
+- Migration-review helper mode may run after `pre-commit validation hook complete` when John grants `--allow migration-review-helper`. It may verify `scripts/migration-review`, schema, synthetic SQL fixture tests, CLI delegation, package contents, exact-file commit, non-force push, and exact-commit CI. It must not execute SQL, call Supabase, connect to databases, apply migrations, deploy, publish, version, tag, create GitHub releases, force-push, broad-stage, touch product repos, or print secrets.
 - Scheduler application decision mode may inspect source/docs/env presence, Supabase CLI help, read-only project access, and read-only database capability evidence when John grants `--allow scheduler-application-decision`. It must prove a non-hardcoded `pg_cron` secret path before any scheduler mutation; otherwise it must stop at `Scheduler blocked: safe secret storage path not proven`. It must not deploy functions, run `supabase db push`, apply migrations, execute unrelated SQL, write app tables or `pet_tips`, invoke a valid scheduler/admin success path, trigger a successful import, stage excluded files, push, create PRs, merge, or print tokens/secrets.
 - Scheduler Vault design/apply mode may use `psql` and a local DB URL when John grants `--allow scheduler-vault-design-apply`. It may inspect Vault/pg_cron/pg_net/current-job metadata, create or update one Vault secret outside the repo using a temporary deleted SQL file, and replace only `import-reddit-tips-daily` with a Vault-backed header. It must not print DB URLs or secrets, deploy functions, run `supabase db push`, apply migrations, run unrelated SQL, write app tables or `pet_tips`, invoke a valid scheduler/admin success path, trigger a successful import, stage excluded files, push, create PRs, or merge.
 - Scheduler Vault apply retry mode may use `psql` and a corrected local DB URL when John grants `--allow scheduler-vault-apply-retry` for `Scheduler blocked: Vault/pg_cron/pg_net capability not proven`. It may retry DB connectivity, capability discovery, one Vault secret create/update, and replacement of only `import-reddit-tips-daily`. It must stop before runtime verification and must not print DB URLs or secrets, deploy functions, run `supabase db push`, apply migrations, run unrelated SQL, write app tables or `pet_tips`, invoke a valid scheduler/admin success path, trigger a successful import, stage excluded files, push, create PRs, or merge.
@@ -434,6 +447,7 @@ Evidence required:
 - For CLI entrypoint package smoke mode: package `bin` metadata, executable wrapper check, local CLI help/routes/package-readiness/release-preflight results, package readiness with `--expect-cli`, release preflight CLI mode, `npm pack --dry-run` contents, clean-temp local tarball install result, installed CLI help/routes/validate results, temp cleanup proof, route audit, skill-cleaner, validate-skills, and explicit commands not run.
 - For first version tag mode: repository state, GitHub auth, npm name read-only status if checked, package/lockfile version `0.1.0`, changelog entry, release notes, local validation, clean-temp tarball smoke, exact release commit hash, push result, exact-commit CI success, annotated tag creation, tag push, remote tag dereference, post-tag bookkeeping commit, final validation, and explicit commands not run.
 - For pre-commit validation hook mode: helper contract, fast/full/staged mode result, staged secret-shaped marker scan without values, hook template marker, installer dry-run or local install result, unmanaged hook overwrite refusal behaviour, CLI delegation, package contents, exact commit and exact-commit CI, and explicit commands not run.
+- For migration-review helper mode: helper contract, source-only risk model, no-SQL/no-Supabase boundary, secret-shaped SQL reporting without values, schema, synthetic migration fixtures, CLI delegation, package contents, exact commit and exact-commit CI, and explicit commands not run.
 - For vendor skill intake: isolated intake path, install command/result, installed skill names, files inspected, useful guidance found, differences from local gates, local library updates made, and confirmation that no target repo or external service was mutated.
 - Ledger and run-log update status.
 
