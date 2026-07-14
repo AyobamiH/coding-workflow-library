@@ -1480,3 +1480,16 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: No Opstruth repo video work, HyperFrames render, private marketing pack mutation, production call, deploy, npm publish, tag, push, force push, reset, clean, or destructive action occurred.
 * Follow-up skill needed: github-handoff-skill if remote publication is granted; otherwise opstruth-runtime-truth-skill before any future product-video work.
 * Upgrade idea: Add a bounded route executor for product-video truth review only if future repeated work proves it is needed.
+
+## 2026-07-14 - Opstruth Product Video Truth Portability Completion
+
+* Skill used: skill-creator with opstruth-runtime-truth-skill.
+* Goal: Complete the separately committed product-video truth guardrails while keeping the public skill portable and the objective isolated from migration-review publication.
+* Starting state: Local commit `69e9deb` already contained the bounded Opstruth guardrails and was one commit ahead of remote main; migration-review commit `f999307` was already published with successful exact-commit CI.
+* Commands/tools used: `git status`; `git log`; `git show`; `git reflog`; `rg`; `sed`; `npm test`; `scripts/pre-commit-check --full`; `npm pack --dry-run --json`.
+* Files inspected: `AGENTS.md`; `skill-files/opstruth-runtime-truth-skill.md`; `routes/skill-routes.json`; `skills-index.md`; `work-ledger.md`; `runs/skill-runs.md`.
+* Files changed: `skill-files/opstruth-runtime-truth-skill.md`; `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: the Opstruth objective was cleanly separated from migration-review; the route and index already covered product-video truth; hardcoded local HyperFrames paths were the only portability defect and were replaced with active skill-catalog names and an explicit missing-capability stop.
+* Result: Opstruth product-video truth guardrails are complete and committed locally; remote publication remains a separate boundary.
+* Failure/recovery notes: No push, npm publish, tag, release, product repo mutation, render, deploy, external call, reset, stash, clean, or secret access occurred.
+* Follow-up skill needed: github-handoff-skill only after explicit Opstruth remote-publication authority.

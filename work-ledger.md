@@ -1394,3 +1394,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: github-handoff-skill if John grants remote publication; otherwise opstruth-runtime-truth-skill before future product-video work.
 * Exact next action: commit exact local files, then hold before push.
 * Whether John is needed: Yes for remote publication.
+
+## 2026-07-14 - Opstruth Product Video Truth Guardrails Completed Locally
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Complete the separate Opstruth product-video truth guardrail objective without publishing it remotely.
+* Current permission level: local_execution and exact local commit. No Opstruth remote publication, product mutation, render, deploy, package publication, tag, release, or destructive action.
+* Current status: Opstruth product-video truth guardrails committed locally; remote publication not granted.
+* Selected skill: opstruth-runtime-truth-skill, updated using skill-creator guidance.
+* Last commands run: repository status/diff inspection; migration-review remote verification; `npm test`; `scripts/pre-commit-check --full`; package dry-run; route and skill validation.
+* Files changed in the portability follow-up: `skill-files/opstruth-runtime-truth-skill.md`; `work-ledger.md`; `runs/skill-runs.md`.
+* Validation evidence: migration-review remote main and exact-commit CI remain green; Opstruth guardrails are isolated in local commit `69e9deb`; host-specific HyperFrames skill paths were replaced with portable skill-catalog names.
+* Blockers: remote publication is granted for migration-review only; it is not granted for the Opstruth guardrail commits.
+* Next recommended skill: github-handoff-skill if remote publication is later granted for Opstruth guardrails.
+* Exact next action: keep the Opstruth commits local pending a separate remote-publication decision.
+* Whether John is needed: Yes for Opstruth remote publication only.

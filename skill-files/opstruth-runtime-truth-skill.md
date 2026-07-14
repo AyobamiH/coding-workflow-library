@@ -1,6 +1,6 @@
 ---
 name: opstruth-runtime-truth-skill
-description: Classify runtime evidence with an Opstruth-style proof model before release or handoff claims.
+description: Classify runtime, release, handoff, and Opstruth product-video evidence with a proof model that separates verified facts from warnings, failures, skipped checks, and unverified claims.
 category: verification
 routing_triggers:
   - Opstruth
@@ -70,7 +70,7 @@ Do not call external Opstruth services from this skill. If an `opstruth` CLI exi
 
 ## Product Video Truth Protocol
 
-For Opstruth product-video, demo, or HyperFrames work, the project repository is the source of truth. Do not create or continue a standalone private marketing pack as the authoritative deliverable unless John explicitly asks for an external scratch pack. The default workflow is to update the project-owned video sources, website assets, evidence docs, and render outputs.
+For Opstruth product-video, demo, or HyperFrames work, the project repository is the source of truth. Do not create or continue a standalone private marketing pack as the authoritative deliverable unless the user explicitly asks for an external scratch pack. The default workflow is to update the project-owned video sources, website assets, evidence docs, and render outputs.
 
 Before planning or editing any video:
 
@@ -82,12 +82,14 @@ Before planning or editing any video:
 
 Required HyperFrames skill stack for product-video work:
 
-- read `/home/johnh/.claude/skills/hyperframes/SKILL.md` first for routing;
-- read `/home/johnh/.agents/skills/hyperframes-core/SKILL.md` before writing or editing composition HTML;
-- read `/home/johnh/.agents/skills/hyperframes-creative/SKILL.md` before choosing palette, typography, pacing, narrative, or visual density;
-- read `/home/johnh/.agents/skills/hyperframes-animation/SKILL.md` before motion design, timeline work, transitions, or animation runtime choices;
-- read `/home/johnh/.agents/skills/hyperframes-cli/SKILL.md` before lint, validate, inspect, snapshot, preview, render, doctor, or troubleshooting;
-- read `/home/johnh/.agents/skills/hyperframes-registry/SKILL.md` only when installing or wiring registry blocks/components.
+- use `hyperframes` first for routing;
+- use `hyperframes-core` before writing or editing composition HTML;
+- use `hyperframes-creative` before choosing palette, typography, pacing, narrative, or visual density;
+- use `hyperframes-animation` before motion design, timeline work, transitions, or animation runtime choices;
+- use `hyperframes-cli` before lint, validate, inspect, snapshot, preview, render, doctor, or troubleshooting;
+- use `hyperframes-registry` only when installing or wiring registry blocks/components.
+
+Resolve these skills through the active agent's skill catalog. If a required skill is unavailable, report the missing capability and stop before authoring or rendering; do not hardcode a host-specific skill path into project or library files.
 
 For non-trivial product videos, also follow `hyperframes-creative` references for house style and video composition before authoring a fresh visual system. The video must feel produced for the product, not like a generic SaaS promo or detached poster system.
 
