@@ -41,6 +41,7 @@ Use this checklist after creating, updating, or reorganizing the coding workflow
 
 - [ ] No obvious placeholder text remains
 - [ ] No obvious secret-looking values are present
+- [ ] No maintainer-specific absolute user-home paths are present
 - [ ] `build-queue.md` lists missing or weak skills
 - [ ] `skills-index.md` links to every skill file
 - [ ] `RUNBOOK.md` includes the Skill Selection Flow
@@ -51,6 +52,7 @@ Use this checklist after creating, updating, or reorganizing the coding workflow
 
 ```bash
 ./scripts/validate-skills
+./scripts/check-public-paths
 ./scripts/docs-list --validate
 ./scripts/repo-map --repo . --validate
 ./scripts/project-kb --repo . --validate

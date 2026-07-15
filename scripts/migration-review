@@ -495,7 +495,7 @@ function validateMigrationReview(review) {
     }
   }
   const serialized = JSON.stringify(review);
-  if (/\/home\/johnh\/|postgres(?:ql)?:\/\/[^"]+|Bearer\s+[A-Za-z0-9._-]{12,}|-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----/.test(serialized)) {
+  if (/(?:\/home\/[^/\s]+|\/Users\/[^/\s]+)\/|[A-Za-z]:\\\\Users\\\\[^\\\s]+\\\\|postgres(?:ql)?:\/\/[^"]+|Bearer\s+[A-Za-z0-9._-]{12,}|-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----/.test(serialized)) {
     errors.push("review output contains private absolute paths or secret-shaped values");
   }
   return errors;

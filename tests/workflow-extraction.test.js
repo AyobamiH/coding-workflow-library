@@ -65,9 +65,10 @@ async function main() {
     }
   ]);
 
+  const syntheticHome = ["", "home", "example", "private"].join("/");
   writeJsonl("codex.jsonl", [
-    { type: "session_meta", timestamp: "2026-01-02T00:00:00.000Z", payload: { cwd: "/home/example/private" } },
-    { type: "response_item", timestamp: "2026-01-02T00:00:01.000Z", payload: { type: "function_call", name: "functions.exec_command", call_id: "c1", arguments: { cmd: "rg foo /home/example/private && sed -n '1,5p' file" } } },
+    { type: "session_meta", timestamp: "2026-01-02T00:00:00.000Z", payload: { cwd: syntheticHome } },
+    { type: "response_item", timestamp: "2026-01-02T00:00:01.000Z", payload: { type: "function_call", name: "functions.exec_command", call_id: "c1", arguments: { cmd: `rg foo ${syntheticHome} && sed -n '1,5p' file` } } },
     { type: "response_item", timestamp: "2026-01-02T00:00:02.000Z", payload: { type: "function_call_output", call_id: "c1", output: "done" } }
   ]);
 
@@ -101,7 +102,7 @@ async function main() {
   assert.ok(events.some((event) => event.evidence_tags.includes("EXTRACTION_META_SESSION")));
   assert.ok(events.some((event) => event.skill_mentions.includes("repo-map-skill")));
   assert.ok(events.some((event) => event.helper_mentions.includes("scripts/docs-list")));
-  assert.ok(events.every((event) => !JSON.stringify(event).includes("/home/example")));
+  assert.ok(events.every((event) => !JSON.stringify(event).includes(syntheticHome)));
   assert.ok(events.some((event) => JSON.stringify(event).includes("<SECRET_REDACTED>")));
 
   const proposed = events.find((event) => event.primary_class === "SHELL_COMMAND_PROPOSED" && event.command_chain_redacted.includes("node -e"));

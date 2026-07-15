@@ -31,9 +31,9 @@ Use when the user asks for momentum, volume expansion, watchlist, or next-sessio
 Finviz confirmed commands:
 
 ```bash
-cd /home/johnh/.openclaw/workspace && curl -s 'https://finviz.com/screener.ashx?v=111&f=sh_avgvol_o1000,sh_price_o5,sh_price_u150,ta_pattern_cta&ft=4'
-cd /home/johnh/.openclaw/workspace && curl -s 'https://finviz.com/screener.ashx?v=111&o=-change&f=sh_avgvol_o1000,sh_price_o5,sh_price_u150,ta_pattern_flag,ta_sma20_pa,ta_sma50_pa'
-cd /home/johnh/.openclaw/workspace-researcher && curl -s 'https://finviz.com/screener.ashx?v=111&f=sh_price_o5,sh_price_u150,sh_avgvol_o1000,sh_relvol_o1.5,ta_perf_dup,exch_nyse,exch_nasdaq'
+cd <OPENCLAW_WORKSPACE> && curl -s 'https://finviz.com/screener.ashx?v=111&f=sh_avgvol_o1000,sh_price_o5,sh_price_u150,ta_pattern_cta&ft=4'
+cd <OPENCLAW_WORKSPACE> && curl -s 'https://finviz.com/screener.ashx?v=111&o=-change&f=sh_avgvol_o1000,sh_price_o5,sh_price_u150,ta_pattern_flag,ta_sma20_pa,ta_sma50_pa'
+cd <RESEARCH_WORKSPACE> && curl -s 'https://finviz.com/screener.ashx?v=111&f=sh_price_o5,sh_price_u150,sh_avgvol_o1000,sh_relvol_o1.5,ta_perf_dup,exch_nyse,exch_nasdaq'
 ```
 
 Stooq Node pattern confirmed:

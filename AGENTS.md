@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This is the first file agents must read before working with the local coding workflow library at `/home/johnh/.openclaw/skills/coding-workflow-library`.
+This is the first file agents must read before working with the local coding workflow library at `<LIBRARY_REPO>`.
 
 It defines hard rules. Use `RUNBOOK.md` for operating guidance after these rules are understood.
 
@@ -48,6 +48,7 @@ Preserve safety gates. Failed tests, failed validation, unsafe package contents,
 - Preserve unrelated user changes.
 - Prefer exact-file diffs and exact-file commits.
 - Before local commits in this library, run `scripts/pre-commit-check` or rely on the installed managed hook.
+- Never commit maintainer-specific absolute user-home paths. Use semantic placeholders and run `scripts/check-public-paths` before public packaging or publication.
 
 ## Package Manager Safety
 

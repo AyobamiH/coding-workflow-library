@@ -32,12 +32,12 @@ Use for OpenClaw host hardening, firewall review, bot identity, mTLS, Vault PKI,
 Read-only baseline:
 
 ```bash
-cd /home/johnh/.openclaw/workspace && uname -a
-cd /home/johnh/.openclaw/workspace && cat /etc/os-release
-cd /home/johnh/.openclaw/workspace && ss -ltnup
-cd /home/johnh/.openclaw/workspace && ufw status
-cd /home/johnh/.openclaw/workspace && openclaw security audit --deep
-cd /home/johnh/.openclaw/workspace && openclaw update status
+cd <OPENCLAW_WORKSPACE> && uname -a
+cd <OPENCLAW_WORKSPACE> && cat /etc/os-release
+cd <OPENCLAW_WORKSPACE> && ss -ltnup
+cd <OPENCLAW_WORKSPACE> && ufw status
+cd <OPENCLAW_WORKSPACE> && openclaw security audit --deep
+cd <OPENCLAW_WORKSPACE> && openclaw update status
 ```
 
 Windows evidence request:

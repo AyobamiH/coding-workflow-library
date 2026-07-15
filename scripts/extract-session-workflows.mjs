@@ -180,8 +180,10 @@ export class Redactor {
     });
     replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "emails", "EMAIL");
     replace(/\bhttps?:\/\/[^\s"'<>`]+/gi, "urls", "URL");
-    replace(/\/home\/[A-Za-z0-9._-]+(?:\/[^\s"'<>`]*)?/g, "paths", "LOCAL_PATH");
-    replace(/\bjohnh\b/gi, "users", "USER");
+    replace(/(?:\/home\/[A-Za-z0-9._-]+|\/Users\/[A-Za-z0-9._-]+)(?:\/[^\s"'<>`]*)?/g, "paths", "LOCAL_PATH");
+    replace(/[A-Za-z]:\\\\Users\\\\[A-Za-z0-9._-]+(?:\\\\[^\s"'<>`]*)?/g, "paths", "LOCAL_PATH");
+    const localUser = path.basename(os.homedir());
+    if (localUser) replace(new RegExp(`\\b${escapeRegExp(localUser)}\\b`, "gi"), "users", "USER");
 
     return { text, count };
   }
@@ -202,6 +204,10 @@ export class Redactor {
     }
     return result;
   }
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export function splitCommandChain(command) {

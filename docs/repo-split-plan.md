@@ -17,7 +17,7 @@ Wagging Web Wins is a real website/app and validation target. It should contain 
 ## Source Directory
 
 ```text
-/home/johnh/.openclaw/skills/coding-workflow-library
+<LIBRARY_REPO>
 ```
 
 ## Proposed Repo Name

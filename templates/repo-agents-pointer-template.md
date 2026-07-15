@@ -1,6 +1,6 @@
 # Repo AGENTS Pointer Template
 
-READ `/home/johnh/.openclaw/skills/coding-workflow-library/AGENTS.md` BEFORE ANYTHING.
+READ `<LIBRARY_REPO>/AGENTS.md` BEFORE ANYTHING.
 
 This repo may add local rules below this line.
 

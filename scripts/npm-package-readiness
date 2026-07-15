@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
@@ -84,8 +85,10 @@ function run(command, args, cwd) {
 }
 
 function npmPackEnv() {
-  const preferred = "/home/johnh/.openclaw/tmp/npm-cache";
-  const fallback = "/tmp/coding-workflow-library-npm-cache";
+  const preferred = process.env.CODING_WORKFLOW_NPM_CACHE
+    ? path.resolve(process.env.CODING_WORKFLOW_NPM_CACHE)
+    : path.join(os.tmpdir(), "coding-workflow-library-npm-cache");
+  const fallback = path.join(os.tmpdir(), "coding-workflow-library-npm-cache-fallback");
   let cache = preferred;
   try {
     fs.mkdirSync(preferred, { recursive: true, mode: 0o700 });

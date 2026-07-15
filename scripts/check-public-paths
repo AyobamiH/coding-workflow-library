@@ -1,0 +1,162 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+const { spawnSync } = require("child_process");
+
+const EXCLUDED_DIRECTORIES = new Set([
+  ".git",
+  ".npm",
+  ".run-next",
+  "coverage",
+  "node_modules",
+  "tmp",
+]);
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/check-public-paths [--repo <path>] [--json]
+
+Reject maintainer-specific absolute home-directory paths in tracked or packaged files.
+The report names only the file, line, and path category; it never repeats the private path.`);
+}
+
+function parseArgs(argv) {
+  const args = { repo: process.cwd(), json: false, help: false };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--repo") {
+      args.repo = argv[++index];
+      if (!args.repo) throw new Error("--repo requires a path");
+    } else if (arg === "--json") args.json = true;
+    else if (arg === "--help" || arg === "-h") args.help = true;
+    else throw new Error(`unknown argument: ${arg}`);
+  }
+  return args;
+}
+
+function trackedFiles(repo) {
+  const result = spawnSync("git", ["-C", repo, "ls-files", "-z"], {
+    encoding: "buffer",
+    maxBuffer: 1024 * 1024 * 16,
+  });
+  if (result.status !== 0) return null;
+  return result.stdout
+    .toString("utf8")
+    .split("\0")
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+function walkedFiles(repo) {
+  const files = [];
+  const visit = (relative) => {
+    const absolute = path.join(repo, relative);
+    for (const entry of fs.readdirSync(absolute, { withFileTypes: true })) {
+      if (entry.isDirectory() && EXCLUDED_DIRECTORIES.has(entry.name)) continue;
+      const child = path.join(relative, entry.name);
+      if (entry.isDirectory()) visit(child);
+      else if (entry.isFile()) files.push(child.split(path.sep).join("/"));
+    }
+  };
+  visit("");
+  return files.sort((a, b) => a.localeCompare(b));
+}
+
+function publicFiles(repo) {
+  return trackedFiles(repo) || walkedFiles(repo);
+}
+
+function isTextFile(buffer) {
+  return !buffer.subarray(0, 8192).includes(0);
+}
+
+function scanText(text, file) {
+  const findings = [];
+  const patterns = [
+    {
+      category: "posix-user-home",
+      regex: /\/(?:home|Users)\/[A-Za-z0-9._-]+(?:\/[^\s"'`<>]*)?/g,
+    },
+    {
+      category: "windows-user-home",
+      regex: /[A-Za-z]:\\Users\\[^\\\s"'`<>]+(?:\\[^\s"'`<>]*)?/g,
+    },
+  ];
+
+  for (const pattern of patterns) {
+    pattern.regex.lastIndex = 0;
+    for (const match of text.matchAll(pattern.regex)) {
+      const line = text.slice(0, match.index).split("\n").length;
+      findings.push({ file, line, category: pattern.category });
+    }
+  }
+  return findings;
+}
+
+function scanRepo(repo) {
+  const root = path.resolve(repo);
+  const files = publicFiles(root);
+  const findings = [];
+  let scanned = 0;
+
+  for (const file of files) {
+    const absolute = path.join(root, file);
+    if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) continue;
+    const buffer = fs.readFileSync(absolute);
+    if (!isTextFile(buffer)) continue;
+    scanned += 1;
+    findings.push(...scanText(buffer.toString("utf8"), file));
+  }
+
+  findings.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.category.localeCompare(b.category));
+  return {
+    status: findings.length ? "FAIL" : "PASS",
+    source: trackedFiles(root) ? "git-tracked-files" : "filesystem",
+    files_scanned: scanned,
+    findings,
+  };
+}
+
+function printHuman(report) {
+  console.log("# Public Path Check\n");
+  console.log(`Status: ${report.status}`);
+  console.log(`Source: ${report.source}`);
+  console.log(`Files scanned: ${report.files_scanned}`);
+  console.log(`Findings: ${report.findings.length}`);
+  if (report.findings.length) {
+    console.log("\n## Findings");
+    for (const finding of report.findings) {
+      console.log(`- ${finding.file}:${finding.line} - ${finding.category}`);
+    }
+  }
+}
+
+function main() {
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    usage();
+    process.exit(2);
+  }
+  if (args.help) {
+    usage();
+    return;
+  }
+
+  const report = scanRepo(args.repo);
+  if (args.json) console.log(JSON.stringify(report, null, 2));
+  else printHuman(report);
+  if (report.findings.length) process.exitCode = 1;
+}
+
+if (require.main === module) main();
+
+module.exports = {
+  parseArgs,
+  publicFiles,
+  scanRepo,
+  scanText,
+};

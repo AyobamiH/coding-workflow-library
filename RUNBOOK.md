@@ -23,6 +23,7 @@ Read `AGENTS.md` first. Its hard rules and permission gates override individual 
 15. Before publication-oriented git work, use `github-handoff-skill`.
 16. If committing locally is approved, prefer `scripts/committer`.
 17. Commit permission does not imply push permission.
+18. Keep public source portable: use semantic path placeholders and reject absolute user-home paths with `scripts/check-public-paths`.
 
 ## Execution Order
 
@@ -44,6 +45,8 @@ Objective authority in `AGENTS.md` overrides individual skill convenience. Local
 Use `github-handoff-skill` before publication-oriented git work, use `scripts/committer` for exact-file local commits, and treat push, PR mutation, merge, tag push, GitHub Release, and npm publication as `remote_publication` consequences under the active objective rather than separate repeated prompts.
 
 Use `scripts/pre-commit-check` before local commits in this library. Default mode is fast and local; `--staged` adds staged diff safety and secret-shaped marker scanning without values; `--full` adds `npm test` and `skill-cleaner`. `scripts/install-git-hooks` can install the optional managed `.git/hooks/pre-commit` template, but it must preserve unmanaged hooks unless `--force` is explicitly chosen. The hook does not grant commit, push, publish, deploy, or release authority.
+
+Use `<LIBRARY_REPO>`, `<TARGET_REPO>`, `<LOCAL_ENV_FILE>`, and `<TEMP_ROOT>` in tracked documentation and evidence. `scripts/run-next` defaults `--repo` to the current working directory and supports `CODING_WORKFLOW_HOME`, `CODING_WORKFLOW_ENV_FILE`, `CODING_WORKFLOW_TMPDIR`, and `CODING_WORKFLOW_NPM_CACHE` for local runtime placement. `scripts/check-public-paths` is deterministic and reports path categories without echoing matched private paths.
 
 `scripts/run-next` is the default executable path when the next step is represented in lane state or `work-ledger.md`. In lane mode it reads the selected objective authority and can continue through multiple safe/local stages until a structured blocker appears. Legacy `--allow <route>` flags remain compatible; new work should prefer objective grants. Use `--explain`, `--explain-next`, or `--dry-run` when the selected job should be reported without mutating lane state, ledger, run log, target repo, or external services.
 
@@ -67,7 +70,7 @@ When John explicitly approves Supabase execution preflight and the ledger status
 
 When John explicitly approves Supabase tooling/auth setup and the ledger status is `Supabase execution preflight ready, not executed`, `scripts/run-next --allow supabase-tooling-auth` may check Node/npm/npx, run `npx supabase --version`, inspect local runtime env variable names/presence without printing values, and use `SUPABASE_ACCESS_TOKEN` only for read-only project listing. It must not install the Supabase CLI as a dependency, run interactive login, link, set secrets, deploy, run migrations, execute SQL, mutate schedulers, invoke functions, call production endpoints, push, create PRs, or merge. It must stop at either a clear tooling/auth credential boundary or `Supabase tooling/auth ready, not linked`.
 
-When John explicitly approves Supabase link/local secret readiness and the ledger status is `Supabase tooling/auth ready, not linked`, `scripts/run-next --allow supabase-link-secret-readiness` may run `npx supabase link --project-ref <approved-ref>` and ensure `IMPORT_REDDIT_TIPS_SECRET` exists only in `/home/johnh/.openclaw/.env`. If missing, it may generate a strong local secret and write it only to that local runtime env file without printing the value. It must stop before remote secret setup, deploy, migrations, SQL, scheduler mutation, Edge Function invocation, runtime endpoint calls, push, create PRs, or merge.
+When John explicitly approves Supabase link/local secret readiness and the ledger status is `Supabase tooling/auth ready, not linked`, `scripts/run-next --allow supabase-link-secret-readiness` may run `npx supabase link --project-ref <approved-ref>` and ensure `IMPORT_REDDIT_TIPS_SECRET` exists only in `<LOCAL_ENV_FILE>`. If missing, it may generate a strong local secret and write it only to that local runtime env file without printing the value. It must stop before remote secret setup, deploy, migrations, SQL, scheduler mutation, Edge Function invocation, runtime endpoint calls, push, create PRs, or merge.
 
 When John explicitly approves the combined scheduler draft and PR gate and the ledger status is `Supabase linked and local secret ready, not deployed`, `scripts/run-next --allow scheduler-draft-pr` may draft a guarded local scheduler migration, update local docs, run local checks, create an exact-file commit, push the feature branch, and open or confirm a PR. It must stop at `Scheduler migration PR opened, not merged` and must not set remote Supabase secrets, deploy functions, run `db push`, apply migrations, execute SQL, mutate schedulers, invoke Edge Functions, call production endpoints, push `main`, force-push, or merge the PR.
 
@@ -91,11 +94,11 @@ When John explicitly approves the scheduler Vault apply retry gate and the ledge
 
 When John explicitly approves verification bundle self-test and the ledger status is `Local verification and release evidence bundle built`, `scripts/run-next --allow verification-bundle-self-test` may run `scripts/npm-package-readiness`, `scripts/release-preflight`, `scripts/evidence-pack --dry-run`, helper syntax checks, `scripts/skill-cleaner`, and `scripts/validate-skills` against the selected repo. It must stop at `Verification bundle self-test complete` or a precise blocked state. `scripts/evidence-pack` must stay dry-run unless John also supplies `--allow evidence-pack-write`; that second flag allows only local evidence file creation under the selected repo and is not staging, commit, publish, tag, push, PR, deploy, registry, secret, external service, or production endpoint permission.
 
-When John explicitly approves the local skill workpack and the ledger status is `Verification bundle self-test complete`, `scripts/run-next --allow local-skill-workpack --allow evidence-pack-write` may run only the local skills-library workpack against `/home/johnh/.openclaw/skills/coding-workflow-library`. It may run verification classification helpers, create exactly one local evidence pack under the library `evidence/` folder, run failure evidence classification, run helper syntax checks, run skill cleanup, and run skill validation. It must stop at `Local skill workpack complete` and must not touch product repos, publish npm, run `npm version`, tag, push, create PRs, deploy, run Supabase or Cloudflare commands, read secret values, mutate remote services, or call production endpoints.
+When John explicitly approves the local skill workpack and the ledger status is `Verification bundle self-test complete`, `scripts/run-next --allow local-skill-workpack --allow evidence-pack-write` may run only the local skills-library workpack against `<LIBRARY_REPO>`. It may run verification classification helpers, create exactly one local evidence pack under the library `evidence/` folder, run failure evidence classification, run helper syntax checks, run skill cleanup, and run skill validation. It must stop at `Local skill workpack complete` and must not touch product repos, publish npm, run `npm version`, tag, push, create PRs, deploy, run Supabase or Cloudflare commands, read secret values, mutate remote services, or call production endpoints.
 
-When John explicitly approves the Cloudflare/Opstruth/packaging extraction bundle and the ledger status is `Embedded production lanes extracted into reusable routes`, `scripts/run-next --allow cloudflare-opstruth-packaging-bundle` may run only local route audit, library packaging readiness, release preflight in local mode, helper syntax checks, skill cleanup, and skill validation against `/home/johnh/.openclaw/skills/coding-workflow-library`. It must stop at `Cloudflare Opstruth packaging routes extracted` and must not touch product repos, deploy Cloudflare, run Wrangler deploy, publish npm, run `npm version`, tag, push, create PRs, set/read secrets, run Supabase commands, call production endpoints, or mutate remote services.
+When John explicitly approves the Cloudflare/Opstruth/packaging extraction bundle and the ledger status is `Embedded production lanes extracted into reusable routes`, `scripts/run-next --allow cloudflare-opstruth-packaging-bundle` may run only local route audit, library packaging readiness, release preflight in local mode, helper syntax checks, skill cleanup, and skill validation against `<LIBRARY_REPO>`. It must stop at `Cloudflare Opstruth packaging routes extracted` and must not touch product repos, deploy Cloudflare, run Wrangler deploy, publish npm, run `npm version`, tag, push, create PRs, set/read secrets, run Supabase commands, call production endpoints, or mutate remote services.
 
-When John explicitly approves the clean-temp readiness smoke and the ledger status is `Cloudflare Opstruth packaging routes extracted`, `scripts/run-next --allow clean-temp-readiness-smoke` may create a clean temporary copy under `/home/johnh/.openclaw/tmp/`, exclude `.git`, `.env`, evidence, dependency caches, and credential-shaped files, run route audit, route listing, packaging readiness, open-source readiness classification, release preflight local mode, skill cleanup, and validation from the copied library, then remove the temp copy. It must stop at `Clean-temp readiness smoke complete` and must not choose a license, create `package.json`, publish, run `npm version`, tag, push, create PRs, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, mutate remote services, or touch product repos.
+When John explicitly approves the clean-temp readiness smoke and the ledger status is `Cloudflare Opstruth packaging routes extracted`, `scripts/run-next --allow clean-temp-readiness-smoke` may create a clean temporary copy under `<TEMP_ROOT>/`, exclude `.git`, `.env`, evidence, dependency caches, and credential-shaped files, run route audit, route listing, packaging readiness, open-source readiness classification, release preflight local mode, skill cleanup, and validation from the copied library, then remove the temp copy. It must stop at `Clean-temp readiness smoke complete` and must not choose a license, create `package.json`, publish, run `npm version`, tag, push, create PRs, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, mutate remote services, or touch product repos.
 
 When John explicitly approves the MIT licence and package candidate gate and the ledger status is `Clean-temp readiness smoke complete`, `scripts/run-next --allow license-package-candidate` may verify the approved MIT `LICENSE`, `LICENSE-DECISION.md`, `package.json` candidate scaffold, open-source readiness, npm package readiness, and local release preflight. It must stop at `MIT licence and package candidate scaffold complete` and must not publish, run `npm version`, run `npm pack`, tag, push, create PRs, create GitHub releases, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, mutate remote services, or touch product repos. Final registry availability and ownership remain a separate John-required decision before any publish path.
 
@@ -233,57 +236,57 @@ Autonomous sequence when the ledger status is `Local verification and release ev
 
 Autonomous local skill workpack sequence when the ledger status is `Verification bundle self-test complete`:
 
-1. Run `scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow local-skill-workpack --allow evidence-pack-write`.
-2. Run `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow local-skill-workpack --allow evidence-pack-write`.
+1. Run `scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow local-skill-workpack --allow evidence-pack-write`.
+2. Run `scripts/run-next --repo <LIBRARY_REPO> --allow local-skill-workpack --allow evidence-pack-write`.
 3. Confirm exactly one local evidence pack was created.
 4. Stop at `Local skill workpack complete`; do not route into product repos, release, GitHub, deploy, Supabase, Cloudflare, secrets, or production work in the same loop.
 
 Autonomous Cloudflare/Opstruth/packaging bundle sequence when the ledger status is `Embedded production lanes extracted into reusable routes`:
 
-1. Run `scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cloudflare-opstruth-packaging-bundle`.
-2. Run `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cloudflare-opstruth-packaging-bundle`.
+1. Run `scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow cloudflare-opstruth-packaging-bundle`.
+2. Run `scripts/run-next --repo <LIBRARY_REPO> --allow cloudflare-opstruth-packaging-bundle`.
 3. Confirm route audit, library packaging readiness, release preflight local mode, skill cleanup, and skill validation ran.
 4. Stop at `Cloudflare Opstruth packaging routes extracted`; do not route into product repos, release, GitHub mutation, deploy, Supabase, Cloudflare, secrets, or production work in the same loop.
 
 Autonomous clean-temp readiness smoke sequence when the ledger status is `Cloudflare Opstruth packaging routes extracted`:
 
-1. Run `scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow clean-temp-readiness-smoke`.
-2. Run `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow clean-temp-readiness-smoke`.
-3. Confirm the temp copy was created under `/home/johnh/.openclaw/tmp/`, local checks ran from that copy, route audit and validation passed, open-source/package blockers were classified, and the temp copy was removed.
+1. Run `scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow clean-temp-readiness-smoke`.
+2. Run `scripts/run-next --repo <LIBRARY_REPO> --allow clean-temp-readiness-smoke`.
+3. Confirm the temp copy was created under `<TEMP_ROOT>/`, local checks ran from that copy, route audit and validation passed, open-source/package blockers were classified, and the temp copy was removed.
 4. Stop at `Clean-temp readiness smoke complete`; do not route into release, npm, GitHub mutation, deploy, Supabase, Cloudflare, secrets, production work, or license selection in the same loop.
 
 Autonomous MIT/package candidate sequence when the ledger status is `Clean-temp readiness smoke complete`:
 
-1. Run `scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow license-package-candidate`.
-2. Run `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow license-package-candidate`.
+1. Run `scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow license-package-candidate`.
+2. Run `scripts/run-next --repo <LIBRARY_REPO> --allow license-package-candidate`.
 3. Confirm `LICENSE`, `LICENSE-DECISION.md`, `package.json`, open-source readiness, npm package readiness, and release preflight evidence.
 4. Stop at `MIT licence and package candidate scaffold complete`; do not publish, version, tag, push, create PRs, create GitHub releases, deploy, read secrets, call production endpoints, or mutate remote services.
 
 Autonomous package candidate dry-run sequence when the ledger status is `MIT licence and package candidate scaffold complete`:
 
-1. Run `scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow package-candidate-dry-run`.
-2. Run `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow package-candidate-dry-run`.
+1. Run `scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow package-candidate-dry-run`.
+2. Run `scripts/run-next --repo <LIBRARY_REPO> --allow package-candidate-dry-run`.
 3. Confirm `package.json` uses candidate name `autonomous-coding-workflow-library`, version `0.0.0`, MIT license, repository identity `AyobamiH/coding-workflow-library`, a tight files allowlist, and no CLI `bin`.
 4. Confirm package readiness, release preflight npm mode, `npm pack --dry-run`, package contents inspection, clean-temp package smoke, route audit, and validation evidence.
 5. Stop at `Package candidate dry-run complete`; do not publish, version, tag, push, create PRs, create GitHub releases, deploy, call registries except for separately approved read-only name checks, read secrets, call production endpoints, or mutate remote services.
 
 Autonomous CLI entrypoint package smoke sequence when the ledger status is `Package candidate dry-run complete`:
 
-1. Run `scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cli-package-smoke`.
-2. Run `scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cli-package-smoke`.
+1. Run `scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow cli-package-smoke`.
+2. Run `scripts/run-next --repo <LIBRARY_REPO> --allow cli-package-smoke`.
 3. Confirm `package.json` maps `coding-workflow` to `bin/coding-workflow.js`, the bin file is executable, package readiness passes or warns clearly with `--expect-cli`, `npm pack --dry-run` includes the bin and excludes private/local files, and the clean-temp installed CLI runs `--help`, `routes`, and `validate`.
 4. Stop at `CLI entrypoint package smoke complete`; do not publish, version, tag, push, create PRs, create GitHub releases, deploy, install remote dependencies, read secrets, call production endpoints, mutate registries, or mutate remote services.
 
 GitHub open-source handoff sequence when the ledger status is `CLI entrypoint package smoke complete`:
 
-1. Run `scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow github-open-source-handoff`.
+1. Run `scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow github-open-source-handoff`.
 2. Harden public repo files, verify package quality scripts, run local validation, and perform a read-only npm name check if approved.
 3. Confirm GitHub auth is `AyobamiH`, verify or create `AyobamiH/coding-workflow-library`, exact-file commit only, push `main` once, and verify local HEAD equals remote `main`.
 4. Stop at `GitHub open-source handoff complete`; do not publish to npm, run `npm version`, create tags, create GitHub releases, deploy, run Supabase/Cloudflare commands, print secrets, force-push, or stage broad/excluded paths.
 
 First version tag sequence when the ledger status is `GitHub open-source handoff complete`:
 
-1. Run `scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow first-version-tag`.
+1. Run `scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow first-version-tag`.
 2. Prepare package version `0.1.0`, `CHANGELOG.md`, and `docs/releases/v0.1.0.md` without running `npm version`.
 3. Run local validation, package readiness, release preflight, `npm pack --dry-run`, and clean-temp tarball install smoke.
 4. Exact-file commit the release files, push `main` non-force, and wait for GitHub Actions `validate.yml` to pass for that release commit.

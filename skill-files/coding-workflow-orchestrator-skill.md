@@ -158,7 +158,7 @@ When John separately approves Supabase execution preflight and the ledger status
 
 When John separately approves Supabase tooling/auth setup and the ledger status is `Supabase execution preflight ready, not executed`, `scripts/run-next --allow supabase-tooling-auth` may check Node/npm/npx, run `npx supabase --version`, inspect local env names/presence without printing values, and use `SUPABASE_ACCESS_TOKEN` only for read-only project listing. It must stop before `supabase login`, `supabase link`, secrets, deploy, migrations, SQL, scheduler mutation, Edge Function invocation, runtime endpoint calls, push, PR, or merge.
 
-When John separately approves Supabase link/local secret readiness and the ledger status is `Supabase tooling/auth ready, not linked`, `scripts/run-next --allow supabase-link-secret-readiness` may run local Supabase link and ensure `IMPORT_REDDIT_TIPS_SECRET` exists only in `/home/johnh/.openclaw/.env`. It must stop before remote secret setup, deploy, migrations, SQL, scheduler mutation, Edge Function invocation, runtime endpoint calls, push, PR, or merge.
+When John separately approves Supabase link/local secret readiness and the ledger status is `Supabase tooling/auth ready, not linked`, `scripts/run-next --allow supabase-link-secret-readiness` may run local Supabase link and ensure `IMPORT_REDDIT_TIPS_SECRET` exists only in `<LOCAL_ENV_FILE>`. It must stop before remote secret setup, deploy, migrations, SQL, scheduler mutation, Edge Function invocation, runtime endpoint calls, push, PR, or merge.
 
 When John separately approves the combined scheduler draft and PR gate and the ledger status is `Supabase linked and local secret ready, not deployed`, `scripts/run-next --allow scheduler-draft-pr` may draft a guarded local scheduler migration, update docs, run local checks, create an exact-file commit, push the feature branch, and open or confirm a PR. It must stop at `Scheduler migration PR opened, not merged` and must not set remote secrets, deploy functions, run `db push`, apply migrations, execute SQL, mutate schedulers, invoke Edge Functions, call production endpoints, push `main`, force-push, or merge.
 
@@ -182,13 +182,13 @@ When John separately approves scheduler Vault apply retry work and the ledger st
 
 When John separately approves verification bundle self-test work and the ledger status is `Local verification and release evidence bundle built`, `scripts/run-next --allow verification-bundle-self-test` may run npm package readiness, release preflight, evidence-pack dry-run, helper syntax checks, skill cleanup, and skill validation against the selected repo. It must stop at `Verification bundle self-test complete` or a precise blocked state. Evidence-pack file writing requires the additional `--allow evidence-pack-write` flag and remains local-only under the selected repo `evidence/`; it is not permission to stage, commit, publish, tag, push, create PRs, deploy, mutate registries, read secret values, call external services, or call production endpoints.
 
-When John separately approves the local skill workpack and the ledger status is `Verification bundle self-test complete`, `scripts/run-next --allow local-skill-workpack --allow evidence-pack-write` may run the local-only skills-library workpack against `/home/johnh/.openclaw/skills/coding-workflow-library`. It may harden verification classification, prove exactly one local evidence-pack write, run failure evidence classification, validate runtime verification extraction, validate GitHub lifecycle hardening, run helper syntax checks, run skill cleanup, and run skill validation. It must stop at `Local skill workpack complete` and must not touch product repos, publish npm, run `npm version`, tag, push, create PRs, deploy, run Supabase or Cloudflare commands, read secret values, mutate remote services, or call production endpoints.
+When John separately approves the local skill workpack and the ledger status is `Verification bundle self-test complete`, `scripts/run-next --allow local-skill-workpack --allow evidence-pack-write` may run the local-only skills-library workpack against `<LIBRARY_REPO>`. It may harden verification classification, prove exactly one local evidence-pack write, run failure evidence classification, validate runtime verification extraction, validate GitHub lifecycle hardening, run helper syntax checks, run skill cleanup, and run skill validation. It must stop at `Local skill workpack complete` and must not touch product repos, publish npm, run `npm version`, tag, push, create PRs, deploy, run Supabase or Cloudflare commands, read secret values, mutate remote services, or call production endpoints.
 
 When local route extraction is approved and the ledger status is `Local skill workpack complete`, add durable skill files and route metadata for proven embedded routes, validate with `scripts/route-audit` and `scripts/validate-skills`, and stop at `Embedded production lanes extracted into reusable routes`. This is local skills-library work only and is not permission for product repos, Supabase, Cloudflare, GitHub remote mutation, npm publish, release tags, secret reads, or production endpoint calls.
 
 When John separately approves the Cloudflare/Opstruth/packaging bundle and the ledger status is `Embedded production lanes extracted into reusable routes`, `scripts/run-next --allow cloudflare-opstruth-packaging-bundle` may run only local route audit, library packaging readiness, release preflight local mode, helper syntax checks, skill cleanup, and skill validation against the skills library. It must stop at `Cloudflare Opstruth packaging routes extracted`. It must not touch product repos, deploy Cloudflare, run Wrangler deploy, publish npm, run `npm version`, tag, push, create PRs, set/read secrets, run Supabase commands, call production endpoints, or mutate remote services.
 
-When John separately approves clean-temp readiness smoke and the ledger status is `Cloudflare Opstruth packaging routes extracted`, `scripts/run-next --allow clean-temp-readiness-smoke` may create a local temp copy under `/home/johnh/.openclaw/tmp/`, exclude `.git`, `.env`, `evidence/`, dependency caches, and credential-shaped files, run route audit, route listing, packaging readiness, open-source readiness classification, release preflight local mode, skill cleanup, and validation from the copied library, then remove the temp copy. It must stop at `Clean-temp readiness smoke complete`. It must not choose a license, create `package.json`, publish, run `npm version`, tag, push, create PRs, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, mutate remote services, or touch product repos.
+When John separately approves clean-temp readiness smoke and the ledger status is `Cloudflare Opstruth packaging routes extracted`, `scripts/run-next --allow clean-temp-readiness-smoke` may create a local temp copy under `<TEMP_ROOT>/`, exclude `.git`, `.env`, `evidence/`, dependency caches, and credential-shaped files, run route audit, route listing, packaging readiness, open-source readiness classification, release preflight local mode, skill cleanup, and validation from the copied library, then remove the temp copy. It must stop at `Clean-temp readiness smoke complete`. It must not choose a license, create `package.json`, publish, run `npm version`, tag, push, create PRs, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, mutate remote services, or touch product repos.
 
 When John separately approves MIT licence/package candidate verification and the ledger status is `Clean-temp readiness smoke complete`, `scripts/run-next --allow license-package-candidate` may verify the approved MIT `LICENSE`, `LICENSE-DECISION.md`, `package.json`, open-source readiness, npm package readiness, and release preflight local mode. It must stop at `MIT licence and package candidate scaffold complete` and must not publish, run `npm version`, run `npm pack`, tag, push, create PRs, create GitHub releases, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, mutate remote services, or touch product repos.
 
@@ -225,7 +225,7 @@ Do not use this as a replacement for specialist skills. Use it to choose and coo
 ## Inputs Required
 
 - `TARGET_REPO`: absolute path to the repo or workspace being worked on.
-- `SKILLS_LIBRARY`: absolute path to this library, usually `/home/johnh/.openclaw/skills/coding-workflow-library`.
+- `SKILLS_LIBRARY`: absolute path to this library, usually `<LIBRARY_REPO>`.
 - Current objective or queue item.
 - Current permission level granted by John.
 - Known constraints, such as no deploys, no production mutation, no external API calls, or no target repo edits.
@@ -387,7 +387,7 @@ If no skill fits:
 The persistent work ledger lives at:
 
 ```text
-/home/johnh/.openclaw/skills/coding-workflow-library/work-ledger.md
+<LIBRARY_REPO>/work-ledger.md
 ```
 
 The orchestrator owns this file. Create it if it does not exist.
@@ -492,7 +492,7 @@ Decision-ready prompts must include:
 ## Safety Rules
 
 - Do not touch repos outside the target scope.
-- Do not edit `/home/johnh/wagging-web-wins` unless John explicitly asks.
+- Do not edit `<TARGET_REPO>` unless John explicitly asks.
 - Do not perform deep implementation unless the selected downstream skill authorizes it.
 - Do not prompt randomly when evidence can decide the next safe step.
 - Do not combine permission gates.

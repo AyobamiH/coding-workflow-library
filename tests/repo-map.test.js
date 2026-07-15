@@ -110,7 +110,7 @@ try {
   const dbUrlKey = ["DATABASE", "URL"].join("_");
   const dbUrlScript = `${dbUrlKey}=${["postgres", "://"].join("")}user:pass@example/db node x`;
   assert.equal(safeScriptCommand(dbUrlScript), `${dbUrlKey}=<redacted> node x`);
-  const localCache = ["", "home", "johnh", ".openclaw", "tmp", "npm-cache"].join("/");
+  const localCache = ["", "home", "maintainer", ".local", "tmp", "npm-cache"].join("/");
   assert.equal(safeScriptCommand(`npm pack --cache ${localCache}`), "npm pack --cache <local-path>");
   assert.ok(validateRepoMap({}).length > 0, "malformed output should fail internal validation");
 

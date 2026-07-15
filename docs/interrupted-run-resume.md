@@ -83,9 +83,9 @@ Tests scan simulated checkpoint state for common token-shaped strings.
 ## Examples
 
 ```bash
-./scripts/run-next --repo /home/johnh/wagging-web-wins --status
-./scripts/run-next --repo /home/johnh/wagging-web-wins --resume --dry-run
-./scripts/run-next --repo /home/johnh/wagging-web-wins --resume --allow scheduled-run-monitoring-handoff
+./scripts/run-next --repo <TARGET_REPO> --status
+./scripts/run-next --repo <TARGET_REPO> --resume --dry-run
+./scripts/run-next --repo <TARGET_REPO> --resume --allow scheduled-run-monitoring-handoff
 ```
 
 ## Failure And Stop Conditions

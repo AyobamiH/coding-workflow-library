@@ -25,7 +25,7 @@ Use when a job succeeds operationally but produces zero business output, especia
 
 ## Inputs Required
 
-- OpenClaw root, usually `/home/johnh/.openclaw`.
+- OpenClaw root, usually `<OPENCLAW_HOME>`.
 - Expected agent IDs, such as `researcher`, `trader`, `banker`, `executioner`.
 - Current config file path, usually `openclaw.json`.
 - User approval before widening agent permissions.
@@ -34,19 +34,19 @@ Use when a job succeeds operationally but produces zero business output, especia
 ## Commands
 
 ```bash
-cd /home/johnh/.openclaw && grep -R "allowAgents" -n
-cd /home/johnh/.npm-global/lib/node_modules/openclaw && rg -n "allowAgents"
-cd /home/johnh/.npm-global/lib/node_modules/openclaw && grep -R "allowAgents" -n docs
-cd /home/johnh/.openclaw/workspace && openclaw config --help
-cd /home/johnh/.openclaw/workspace && openclaw gateway --help
-cd /home/johnh/.openclaw/workspace && openclaw gateway config --help
-cd /home/johnh/.openclaw/workspace && openclaw subagents list
+cd <OPENCLAW_HOME> && grep -R "allowAgents" -n
+cd <OPENCLAW_INSTALL_ROOT> && rg -n "allowAgents"
+cd <OPENCLAW_INSTALL_ROOT> && grep -R "allowAgents" -n docs
+cd <OPENCLAW_WORKSPACE> && openclaw config --help
+cd <OPENCLAW_WORKSPACE> && openclaw gateway --help
+cd <OPENCLAW_WORKSPACE> && openclaw gateway config --help
+cd <OPENCLAW_WORKSPACE> && openclaw subagents list
 ```
 
 Patch command confirmed in extraction:
 
 ```bash
-cd /home/johnh/.openclaw/workspace && openclaw config patch '{"agents":{"list":[{"id":"main","subagents":{"allowAgents":["researcher","trader","banker","executioner"]}}]}}'
+cd <OPENCLAW_WORKSPACE> && openclaw config patch '{"agents":{"list":[{"id":"main","subagents":{"allowAgents":["researcher","trader","banker","executioner"]}}]}}'
 ```
 
 Tool-call templates:

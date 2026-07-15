@@ -1,12 +1,25 @@
 # Coding Workflow Skills Library
 
-This library converts the workflow extraction in `/home/johnh/.openclaw/workflow-extraction.md` into local, operational Markdown skill files.
+This library converts the workflow extraction in `<WORKFLOW_EXTRACTION_SOURCE>` into local, operational Markdown skill files.
 
 Use this library when another LLM needs reusable instructions for repo mapping, session-log extraction, OpenClaw route tracing, environment audits, security hardening review, verification, and error triage.
 
 `AGENTS.md` is the first file an agent must read. It contains the hard rules for permissions, repo safety, secrets, evidence, source-only proof, and skill routing.
 
 `RUNBOOK.md` is operational guidance after the hard rules are understood. `coding-workflow-orchestrator-skill` decides the next safe work item when the path is not obvious.
+
+## Portable Paths
+
+Public documentation and evidence use semantic placeholders such as `<LIBRARY_REPO>`, `<TARGET_REPO>`, `<LOCAL_ENV_FILE>`, and `<TEMP_ROOT>`. Replace them locally; never commit a maintainer-specific absolute home-directory path.
+
+`scripts/run-next` uses the caller's current working directory when `--repo` is omitted. Runtime locations can be overridden without editing tracked files:
+
+- `CODING_WORKFLOW_HOME`: local runtime root; the compatibility default is `$HOME/.openclaw`.
+- `CODING_WORKFLOW_ENV_FILE`: local env file; the default is `$CODING_WORKFLOW_HOME/.env`.
+- `CODING_WORKFLOW_TMPDIR`: temporary work root; the default is under the operating system temp directory.
+- `CODING_WORKFLOW_NPM_CACHE`: npm cache used by package smoke helpers; the default is under the workflow temp root.
+
+Run `npm run check:paths` before public commits or packaging. It scans tracked or packaged text files for Linux, macOS, and Windows user-home paths and reports only file, line, and category.
 
 ## Layout
 
@@ -61,6 +74,7 @@ skills/coding-workflow-library/
     repo-map
     project-kb
     pre-commit-check
+    check-public-paths
     migration-review
     install-git-hooks
     run-next
@@ -84,6 +98,7 @@ skills/coding-workflow-library/
     project-kb.test.js
     pre-commit-check.test.js
     migration-review.test.js
+    public-paths.test.js
     library-validation-checklist.md
   skill-files/
     coding-workflow-orchestrator-skill.md
@@ -303,7 +318,7 @@ That route validates local aggregate telemetry only. Commit, PR, deploy, and aut
 This manifest does not grant permission and does not call external services. It exists so proven runner paths do not stay trapped inside `scripts/run-next` as undocumented production logic.
 
 ```bash
-cd /home/johnh/.openclaw/skills/coding-workflow-library
+cd <LIBRARY_REPO>
 ./scripts/run-next --list-routes
 ./scripts/route-audit
 ./scripts/route-audit --json
@@ -316,7 +331,7 @@ A reusable skill is incomplete until it has route metadata or an explicit hold r
 Run the validator before handoff after any skill or library routing edit:
 
 ```bash
-cd /home/johnh/.openclaw/skills/coding-workflow-library
+cd <LIBRARY_REPO>
 ./scripts/validate-skills
 ```
 
@@ -337,7 +352,7 @@ The orchestrator and skills should consult `tools.md` before tool-heavy work, es
 `./scripts/validate-skills` is pass/fail validation. `./scripts/skill-cleaner` is advisory cleanup intelligence for duplicates, bloat, stale skills, weak routing, and overlap.
 
 ```bash
-cd /home/johnh/.openclaw/skills/coding-workflow-library
+cd <LIBRARY_REPO>
 ./scripts/skill-cleaner
 ./scripts/validate-skills
 ```
@@ -349,7 +364,7 @@ cd /home/johnh/.openclaw/skills/coding-workflow-library
 Use it after `github-handoff-skill` is selected and local commit preparation is approved. Dry-run mode is safe for read-only evidence:
 
 ```bash
-cd /home/johnh/.openclaw/skills/coding-workflow-library
+cd <LIBRARY_REPO>
 ./scripts/committer --repo /path/to/repo --message "Describe the exact scoped change" --files path/to/file --dry-run
 ```
 
@@ -385,19 +400,19 @@ The local verification bundle supports evidence-pack generation, npm package rea
 Use these helpers only inside an approved local workflow:
 
 ```bash
-cd /home/johnh/.openclaw/skills/coding-workflow-library
+cd <LIBRARY_REPO>
 ./scripts/evidence-pack --repo /path/to/repo --title "Short title" --dry-run
 ./scripts/npm-package-readiness --repo /path/to/repo
 ./scripts/npm-package-readiness --repo /path/to/repo --expect-package
 ./scripts/npm-package-readiness --repo /path/to/repo --expect-cli
-./scripts/library-packaging-readiness --repo /home/johnh/.openclaw/skills/coding-workflow-library
-./scripts/library-packaging-readiness --repo /home/johnh/.openclaw/skills/coding-workflow-library --expect-open-source
+./scripts/library-packaging-readiness --repo <LIBRARY_REPO>
+./scripts/library-packaging-readiness --repo <LIBRARY_REPO> --expect-open-source
 ./scripts/release-preflight --repo /path/to/repo --mode local
 ./scripts/release-preflight --repo /path/to/repo --mode npm
 ./scripts/release-preflight --repo /path/to/repo --mode cli
 ```
 
-`scripts/evidence-pack` writes under the target repo's `evidence/` folder only when not in dry-run mode. Evidence files are never staged or committed automatically. `scripts/npm-package-readiness` distinguishes `PASS`, `WARN`, `FAIL`, `NOT_VERIFIED`, and `NOT_APPLICABLE`; non-package repos are not failures unless `--expect-package` is supplied. `scripts/npm-package-readiness` does not run `npm pack --dry-run` unless `--allow-pack-dry-run` is present. `scripts/library-packaging-readiness` separates local library readiness, reusable template readiness, open-source readiness, npm package readiness, and CLI readiness. MIT is selected for the initial open-source/package-readiness path and `package.json` is a local package candidate scaffold. The package candidate name is `autonomous-coding-workflow-library`, the CLI command candidate is `coding-workflow`, and the GitHub repository identity is `AyobamiH/coding-workflow-library`; this remains a candidate, not publish approval. The remaining pre-publish blocker is `NEEDS JOHN: confirm final npm package name availability and ownership before publish`. `scripts/release-preflight --mode local` is the default and must not fail merely because a repo is not an npm package; `--mode npm` expects package readiness; `--mode cli` expects package and bin readiness. No readiness or preflight mode publishes, tags, pushes, deploys, creates GitHub releases, reads secrets, or mutates registries.
+`scripts/evidence-pack` writes under the target repo's `evidence/` folder only when not in dry-run mode. Evidence files are never staged or committed automatically. `scripts/npm-package-readiness` distinguishes `PASS`, `WARN`, `FAIL`, `NOT_VERIFIED`, and `NOT_APPLICABLE`; non-package repos are not failures unless `--expect-package` is supplied. `scripts/npm-package-readiness` does not run `npm pack --dry-run` unless `--allow-pack-dry-run` is present. `scripts/library-packaging-readiness` separates local library readiness, reusable template readiness, open-source readiness, npm package readiness, and CLI readiness. MIT is selected, the published package name is `autonomous-coding-workflow-library`, the CLI command is `coding-workflow`, and the GitHub repository identity is `AyobamiH/coding-workflow-library`. Each future publication remains an explicit `remote_publication` consequence. `scripts/release-preflight --mode local` is the default and must not fail merely because a repo is not an npm package; `--mode npm` expects package readiness; `--mode cli` expects package and bin readiness. No readiness or preflight mode publishes, tags, pushes, deploys, creates GitHub releases, reads secrets, or mutates registries.
 
 When the ledger status is `Local verification and release evidence bundle built`, `scripts/run-next --allow verification-bundle-self-test` can run the bundle against the selected repo. The route runs npm package readiness, release preflight, evidence-pack dry-run, helper syntax checks, skill cleanup, and skill validation. Evidence pack writing is still separate: it defaults to `scripts/evidence-pack --dry-run` and writes local `evidence/` files only when `--allow evidence-pack-write` is also present. This route is not publish, tag, push, PR, deploy, secret, external service, or production endpoint permission.
 
@@ -405,7 +420,7 @@ When the ledger status is `Verification bundle self-test complete`, `scripts/run
 
 When the ledger status is `Embedded production lanes extracted into reusable routes`, `scripts/run-next --allow cloudflare-opstruth-packaging-bundle` can run the next local-only extraction bundle. It validates Cloudflare deploy planning, Opstruth/runtime truth, skills-library packaging, npm/CLI route metadata, route audit, packaging readiness, release preflight local mode, and skill validation. It stops at `Cloudflare Opstruth packaging routes extracted`. It is not permission to deploy Cloudflare, run Wrangler deploy, publish npm packages, change versions, tag, push, create PRs, set/read secrets, run Supabase commands, call production endpoints, or mutate remote services.
 
-When the ledger status is `Cloudflare Opstruth packaging routes extracted`, `scripts/run-next --allow clean-temp-readiness-smoke` can create a clean local copy under `/home/johnh/.openclaw/tmp/`, exclude `.git`, `.env`, evidence, dependency caches, and credential-shaped files, run route audit, route listing, packaging readiness, open-source readiness classification, release preflight local mode, skill cleanup, and validation from the copied folder, then remove the temp copy. It stops at `Clean-temp readiness smoke complete`. This is a portability check, not an open-source release, npm package, CLI package, publish, version, tag, push, PR, deploy, Supabase, Cloudflare, secret, or production endpoint permission.
+When the ledger status is `Cloudflare Opstruth packaging routes extracted`, `scripts/run-next --allow clean-temp-readiness-smoke` can create a clean local copy under `<TEMP_ROOT>/`, exclude `.git`, `.env`, evidence, dependency caches, and credential-shaped files, run route audit, route listing, packaging readiness, open-source readiness classification, release preflight local mode, skill cleanup, and validation from the copied folder, then remove the temp copy. It stops at `Clean-temp readiness smoke complete`. This is a portability check, not an open-source release, npm package, CLI package, publish, version, tag, push, PR, deploy, Supabase, Cloudflare, secret, or production endpoint permission.
 
 When the ledger status is `Clean-temp readiness smoke complete`, `scripts/run-next --allow license-package-candidate` can verify the approved MIT `LICENSE`, the `LICENSE-DECISION.md` record, the local `package.json` candidate scaffold, open-source/package readiness, npm package readiness, and local release preflight. It stops at `MIT licence and package candidate scaffold complete`. This is still not permission to publish, version, tag, push, create a PR, create a GitHub release, deploy, read secrets, call production endpoints, or mutate remote services.
 
@@ -436,7 +451,7 @@ Use `--explain` when John needs the selected job, required permission, stop reas
 
 Use `--list-routes` to inspect local route metadata without reading credentials, updating the ledger, touching target repos, or calling external services.
 
-Current automation supports the `Auth pass for GitHub handoff` path for `/home/johnh/wagging-web-wins`: it isolates `GH_TOKEN`, verifies `AyobamiH/wagging-web-wins` access, checks local repo safety, creates/switches the feature branch, pushes that branch only, and creates or confirms the PR.
+Current automation supports the `Auth pass for GitHub handoff` path for `<TARGET_REPO>`: it isolates `GH_TOKEN`, verifies `AyobamiH/wagging-web-wins` access, checks local repo safety, creates/switches the feature branch, pushes that branch only, and creates or confirms the PR.
 
 It also supports `PR opened, not merged` as a PR readiness inspection path. With `--allow pr-readiness` or inherited `remote_publication`, the runner inspects PR metadata, changed files, commits, checks, mergeability, review decision, reviewed head SHA, and local repo state, then records one of: `PR_CHECKS_PENDING`, `PR_READY`, `PR blocked by checks`, `PR blocked by unexpected files`, `PR blocked by mergeability`, or `PR readiness unknown`. It may proceed to normal merge only when the automatic merge policy in `docs/autonomous-decision-boundaries.md` passes.
 
@@ -446,9 +461,9 @@ When the ledger status is `Merged, not deployed`, `scripts/run-next --allow depl
 
 When the ledger status is `Deployment plan ready, not deployed`, `scripts/run-next --allow supabase-preflight` can inspect local/source execution prerequisites and draft the exact Supabase execution sequence. This is preflight only: it does not install the Supabase CLI, run `npx supabase`, log in, link, set secrets, deploy, run migrations, execute SQL, update schedulers, call runtime endpoints, push, create PRs, or merge. After a successful preflight it records `Supabase execution preflight ready, not executed`.
 
-When the ledger status is `Supabase execution preflight ready, not executed`, `scripts/run-next --allow supabase-tooling-auth` can verify Node/npm/npx availability, run `npx supabase --version`, inspect local `/home/johnh/.openclaw/.env` variable names/presence without printing values, and use `SUPABASE_ACCESS_TOKEN` only as runtime auth for read-only Supabase project listing. This is not permission to run `supabase login`, `supabase link`, set secrets, deploy, run migrations, execute SQL, mutate schedulers, invoke functions, call production endpoints, push, create PRs, or merge. After auth passes it records `Supabase tooling/auth ready, not linked`.
+When the ledger status is `Supabase execution preflight ready, not executed`, `scripts/run-next --allow supabase-tooling-auth` can verify Node/npm/npx availability, run `npx supabase --version`, inspect local `<LOCAL_ENV_FILE>` variable names/presence without printing values, and use `SUPABASE_ACCESS_TOKEN` only as runtime auth for read-only Supabase project listing. This is not permission to run `supabase login`, `supabase link`, set secrets, deploy, run migrations, execute SQL, mutate schedulers, invoke functions, call production endpoints, push, create PRs, or merge. After auth passes it records `Supabase tooling/auth ready, not linked`.
 
-When the ledger status is `Supabase tooling/auth ready, not linked`, `scripts/run-next --allow supabase-link-secret-readiness` can link the local repo to the approved Supabase project and ensure `IMPORT_REDDIT_TIPS_SECRET` exists only in `/home/johnh/.openclaw/.env`. If the secret is missing, the runner may generate a strong local value and store it there without printing it. This is not permission to set remote Supabase secrets, deploy functions, run migrations, execute SQL, mutate schedulers, invoke functions, call production endpoints, push, create PRs, or merge. After link and local secret readiness pass it records `Supabase linked and local secret ready, not deployed`.
+When the ledger status is `Supabase tooling/auth ready, not linked`, `scripts/run-next --allow supabase-link-secret-readiness` can link the local repo to the approved Supabase project and ensure `IMPORT_REDDIT_TIPS_SECRET` exists only in `<LOCAL_ENV_FILE>`. If the secret is missing, the runner may generate a strong local value and store it there without printing it. This is not permission to set remote Supabase secrets, deploy functions, run migrations, execute SQL, mutate schedulers, invoke functions, call production endpoints, push, create PRs, or merge. After link and local secret readiness pass it records `Supabase linked and local secret ready, not deployed`.
 
 When the ledger status is `Supabase linked and local secret ready, not deployed`, `scripts/run-next --allow scheduler-draft-pr` can run the combined local handoff gate: draft a guarded local scheduler migration, update scheduler docs, run local checks, create an exact-file commit, push the feature branch, and open or confirm a PR. This is not permission to set remote Supabase secrets, deploy functions, run or apply migrations, execute SQL, mutate schedulers, invoke Edge Functions, call production endpoints, push `main`, force-push, or merge a PR. After success it records `Scheduler migration PR opened, not merged`.
 
@@ -457,34 +472,34 @@ When the ledger status is `Local verification and release evidence bundle built`
 Official vendor skills may be reviewed only as advisory input under `vendor-intake/`. The Supabase official agent skills intake found useful checks for Data API exposure versus RLS, public-schema RLS, `auth.role()` policy drift, `SECURITY DEFINER` exposure, CLI help discovery, and migration-file creation with Supabase CLI tooling when a migration-draft gate is explicitly approved. Vendor guidance does not override `AGENTS.md`, `tools.md`, permission gates, or `scripts/run-next` ledger routing.
 
 ```bash
-cd /home/johnh/.openclaw/skills/coding-workflow-library
-./scripts/run-next --repo /home/johnh/wagging-web-wins --explain
-./scripts/run-next --dry-run --repo /home/johnh/wagging-web-wins --allow github-handoff
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow github-handoff
-./scripts/run-next --dry-run --repo /home/johnh/wagging-web-wins --allow pr-readiness
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow pr-readiness
-./scripts/run-next --dry-run --repo /home/johnh/wagging-web-wins --allow pr-merge
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow pr-merge
-./scripts/run-next --dry-run --repo /home/johnh/wagging-web-wins --allow deployment-plan
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow deployment-plan
-./scripts/run-next --dry-run --repo /home/johnh/wagging-web-wins --allow supabase-preflight
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow supabase-preflight
-./scripts/run-next --dry-run --repo /home/johnh/wagging-web-wins --allow supabase-tooling-auth
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow supabase-tooling-auth
-./scripts/run-next --dry-run --repo /home/johnh/wagging-web-wins --allow supabase-link-secret-readiness
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow supabase-link-secret-readiness
-./scripts/run-next --dry-run --repo /home/johnh/wagging-web-wins --allow scheduler-draft-pr
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-draft-pr
-./scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow verification-bundle-self-test
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow verification-bundle-self-test
-./scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow local-skill-workpack --allow evidence-pack-write
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow local-skill-workpack --allow evidence-pack-write
-./scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow clean-temp-readiness-smoke
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow clean-temp-readiness-smoke
-./scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow package-candidate-dry-run
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow package-candidate-dry-run
-./scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cli-package-smoke
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cli-package-smoke
+cd <LIBRARY_REPO>
+./scripts/run-next --repo <TARGET_REPO> --explain
+./scripts/run-next --dry-run --repo <TARGET_REPO> --allow github-handoff
+./scripts/run-next --repo <TARGET_REPO> --allow github-handoff
+./scripts/run-next --dry-run --repo <TARGET_REPO> --allow pr-readiness
+./scripts/run-next --repo <TARGET_REPO> --allow pr-readiness
+./scripts/run-next --dry-run --repo <TARGET_REPO> --allow pr-merge
+./scripts/run-next --repo <TARGET_REPO> --allow pr-merge
+./scripts/run-next --dry-run --repo <TARGET_REPO> --allow deployment-plan
+./scripts/run-next --repo <TARGET_REPO> --allow deployment-plan
+./scripts/run-next --dry-run --repo <TARGET_REPO> --allow supabase-preflight
+./scripts/run-next --repo <TARGET_REPO> --allow supabase-preflight
+./scripts/run-next --dry-run --repo <TARGET_REPO> --allow supabase-tooling-auth
+./scripts/run-next --repo <TARGET_REPO> --allow supabase-tooling-auth
+./scripts/run-next --dry-run --repo <TARGET_REPO> --allow supabase-link-secret-readiness
+./scripts/run-next --repo <TARGET_REPO> --allow supabase-link-secret-readiness
+./scripts/run-next --dry-run --repo <TARGET_REPO> --allow scheduler-draft-pr
+./scripts/run-next --repo <TARGET_REPO> --allow scheduler-draft-pr
+./scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow verification-bundle-self-test
+./scripts/run-next --repo <LIBRARY_REPO> --allow verification-bundle-self-test
+./scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow local-skill-workpack --allow evidence-pack-write
+./scripts/run-next --repo <LIBRARY_REPO> --allow local-skill-workpack --allow evidence-pack-write
+./scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow clean-temp-readiness-smoke
+./scripts/run-next --repo <LIBRARY_REPO> --allow clean-temp-readiness-smoke
+./scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow package-candidate-dry-run
+./scripts/run-next --repo <LIBRARY_REPO> --allow package-candidate-dry-run
+./scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow cli-package-smoke
+./scripts/run-next --repo <LIBRARY_REPO> --allow cli-package-smoke
 ```
 
 Manual prompts are now fallback control, not the default handoff mechanism.
@@ -493,14 +508,15 @@ Manual prompts are now fallback control, not the default handoff mechanism.
 
 Repository identity: `AyobamiH/coding-workflow-library`.
 
-Package candidate: `autonomous-coding-workflow-library`.
+Published package: `autonomous-coding-workflow-library`.
 
-CLI candidate: `coding-workflow`.
+CLI command: `coding-workflow`.
 
-This library is prepared as a public source/package candidate, but npm publication, package versioning, git tags, GitHub releases, deployment, and production endpoint checks are not approved by default. The local validation path is:
+The package is public, but future npm publication, package versioning, git tags, GitHub releases, deployment, and production endpoint checks are not approved by default. The local validation path is:
 
 ```bash
 npm test
+npm run check:paths
 npm run package:readiness
 npm run release:preflight
 npm pack --dry-run --json
@@ -515,8 +531,8 @@ node scripts/validate-skills
 The first source tag route is `first-version-tag`.
 
 ```bash
-./scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow first-version-tag
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow first-version-tag
+./scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow first-version-tag
+./scripts/run-next --repo <LIBRARY_REPO> --allow first-version-tag
 ```
 
 This gate prepares and verifies package version `0.1.0`, `CHANGELOG.md`, `docs/releases/v0.1.0.md`, local validation, package smoke, exact-file release commit, non-force `main` push, GitHub Actions success for the release commit, annotated tag `v0.1.0`, remote tag verification, and post-tag bookkeeping.
@@ -528,7 +544,7 @@ It is not npm publication, `npm version`, GitHub release creation, deployment, p
 - Cloudflare, Supabase, migration, and GitHub CLI workflows were not confirmed in the extracted chat logs. Their skill files are inspection-first and forbid invented deployment/database/PR commands.
 - Supabase execution preflight is not deployment. Supabase CLI install/auth/link, secret writes, function deploys, migrations, scheduler mutations, SQL execution, and runtime endpoint calls remain separate permission gates.
 - Supabase tooling/auth setup is not link, secrets, deploy, scheduler mutation, or runtime verification. `SUPABASE_ACCESS_TOKEN` is runtime/local env only and agents must never print token values. `npx supabase --version` is allowed only under the tooling/auth gate; `npx supabase` mutation commands require separate permission.
-- Supabase link/local secret readiness is not remote secret setup. Generated local secrets may only be stored in `/home/johnh/.openclaw/.env`, and agents must never print secret values or partial values.
+- Supabase link/local secret readiness is not remote secret setup. Generated local secrets may only be stored in `<LOCAL_ENV_FILE>`, and agents must never print secret values or partial values.
 - Vendor skill intake is not active-skill installation for a target repo. Keep vendor files isolated under `vendor-intake/`, read them as advisory evidence, and adapt only the local library rules that improve safety.
 - `AGENTS.md` permission gates override any convenience implied by a skill file.
 - Read-only mapping and evidence gathering should happen before edits.
@@ -542,6 +558,6 @@ It is not npm publication, `npm version`, GitHub release creation, deployment, p
 
 Built from:
 
-- `/home/johnh/.openclaw/workflow-extraction.md`
+- `<WORKFLOW_EXTRACTION_SOURCE>`
 - Local OpenClaw session logs under `agents/main/sessions` and `agents/researcher/sessions`
 - `evidence/opstruth-report.md`

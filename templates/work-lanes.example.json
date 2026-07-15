@@ -4,7 +4,7 @@
     {
       "lane_id": "example-project",
       "display_name": "Example Project",
-      "repo_path": "/home/example/projects/example-project",
+      "repo_path": "/path/to/example-project",
       "repository": "example/example-project",
       "current_state": "Ready for read-only inspection",
       "next_permission": "approve read-only inspection",

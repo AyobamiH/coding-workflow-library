@@ -33,7 +33,7 @@ Use this skill:
 
 ## Inputs Required
 
-- `SKILLS_LIBRARY`, usually `/home/johnh/.openclaw/skills/coding-workflow-library`.
+- `SKILLS_LIBRARY`, usually `<LIBRARY_REPO>`.
 - Current `skill-files/*.md`.
 - Current `skills-index.md`.
 - Current `scripts/validate-skills`.
@@ -90,7 +90,7 @@ Run from the library root:
 - Never rename or deprecate skills without explicit approval.
 - Prefer improving routing and boundaries before creating new skills.
 - Detect overlap between skills but do not assume overlap is bad.
-- Do not edit `/home/johnh/wagging-web-wins` while cleaning this library.
+- Do not edit `<TARGET_REPO>` while cleaning this library.
 - Do not print secrets.
 - Do not add real secrets.
 - Do not treat cleaner output as pass/fail validation.

@@ -404,7 +404,9 @@ function validateProjectKb(kb) {
   }
 
   const json = JSON.stringify(kb);
-  if (/\/home\/johnh/.test(json)) failures.push("private absolute path found in project KB output");
+  if (/(?:\/home\/[^/\s]+|\/Users\/[^/\s]+)(?:\/|$)|[A-Za-z]:\\\\Users\\\\[^\\\s]+(?:\\\\|$)/.test(json)) {
+    failures.push("private absolute path found in project KB output");
+  }
   if (SECRET_PATTERNS.some((pattern) => pattern.test(json))) failures.push("secret-shaped value found in project KB output");
   if (Array.isArray(kb.known_local_only_state?.env_files) && kb.known_local_only_state.env_files.some((entry) => "value" in entry)) {
     failures.push("env file value field is forbidden");

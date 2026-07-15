@@ -298,7 +298,8 @@ function safeScriptCommand(command) {
     .replace(/(postgres(?:ql)?:\/\/)([^\s]+)/gi, "$1<redacted>")
     .replace(/(gh[pousr]_[A-Za-z0-9_]+)/g, "<redacted-token>")
     .replace(/(sk-[A-Za-z0-9_-]{12,})/g, "<redacted-token>")
-    .replace(/\/home\/johnh\/[^\s"'`]+/g, "<local-path>");
+    .replace(/(?:\/home\/[^/\s]+|\/Users\/[^/\s]+)\/[^\s"'`]+/g, "<local-path>")
+    .replace(/[A-Za-z]:\\\\Users\\\\[^\\\s]+\\\\[^\s"'`]+/g, "<local-path>");
 }
 
 function packageScripts(repo, files) {
@@ -436,7 +437,9 @@ function validateRepoMap(map) {
     /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/,
   ];
   if (secretPatterns.some((pattern) => pattern.test(json))) failures.push("secret-shaped value found in map output");
-  if (/\/home\/johnh/.test(json)) failures.push("private absolute path found in map output");
+  if (/(?:\/home\/[^/\s]+|\/Users\/[^/\s]+)(?:\/|$)|[A-Za-z]:\\\\Users\\\\[^\\\s]+(?:\\\\|$)/.test(json)) {
+    failures.push("private absolute path found in map output");
+  }
   if (Array.isArray(map.env_files) && map.env_files.some((entry) => "value" in entry)) {
     failures.push("env file value field is forbidden");
   }

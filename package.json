@@ -1,6 +1,6 @@
 {
   "name": "autonomous-coding-workflow-library",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Autonomous coding workflow skills library for local agent orchestration.",
   "license": "MIT",
   "private": false,
@@ -23,7 +23,8 @@
   ],
   "scripts": {
     "check:js": "node scripts/check-js",
-    "test": "npm run check:js && node tests/lane-state.test.js && node tests/objective-authority.test.js && node tests/autonomous-boundaries.test.js && node tests/pipeline-diagnostics.test.js && node tests/run-next-resume.test.js && node tests/workflow-extraction.test.js && node tests/docs-list.test.js && node tests/repo-map.test.js && node tests/project-kb.test.js && node tests/pre-commit-check.test.js && node tests/migration-review.test.js && node scripts/docs-list --validate && node scripts/repo-map --repo . --validate && node scripts/project-kb --repo . --validate && node scripts/migration-review --repo . --validate && node scripts/route-audit && node scripts/validate-skills",
+    "check:paths": "node scripts/check-public-paths",
+    "test": "npm run check:js && npm run check:paths && node tests/lane-state.test.js && node tests/objective-authority.test.js && node tests/autonomous-boundaries.test.js && node tests/pipeline-diagnostics.test.js && node tests/run-next-resume.test.js && node tests/workflow-extraction.test.js && node tests/docs-list.test.js && node tests/repo-map.test.js && node tests/project-kb.test.js && node tests/pre-commit-check.test.js && node tests/migration-review.test.js && node tests/public-paths.test.js && node scripts/docs-list --validate && node scripts/repo-map --repo . --validate && node scripts/project-kb --repo . --validate && node scripts/migration-review --repo . --validate && node scripts/route-audit && node scripts/validate-skills",
     "validate": "node scripts/validate-skills",
     "cleaner": "node scripts/skill-cleaner",
     "routes": "node scripts/route-audit",
@@ -46,7 +47,7 @@
     "package:readiness": "node scripts/npm-package-readiness --repo . --expect-package --expect-cli",
     "release:preflight": "node scripts/release-preflight --repo . --mode cli",
     "release:preflight:cli": "node scripts/release-preflight --repo . --mode cli --allow-pack-dry-run",
-    "pack:dry-run": "npm pack --dry-run --json --cache /home/johnh/.openclaw/tmp/npm-cache",
+    "pack:dry-run": "npm pack --dry-run --json",
     "check": "npm test && npm run package:readiness && npm run release:preflight",
     "prepack": "npm test"
   },

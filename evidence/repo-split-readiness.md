@@ -7,7 +7,7 @@
 ## Source Directory
 
 ```text
-/home/johnh/.openclaw/skills/coding-workflow-library
+<LIBRARY_REPO>
 ```
 
 ## Proposed Repo

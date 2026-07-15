@@ -25,8 +25,8 @@ The runner still refuses missing permissions and preserves gates for secrets, de
 ## Validation Plan
 
 - `./scripts/validate-skills`
-- `./scripts/run-next --repo /home/johnh/wagging-web-wins --dry-run`
-- `./scripts/run-next --repo /home/johnh/opstruth/tempo/opstruth --dry-run`
+- `./scripts/run-next --repo <TARGET_REPO> --dry-run`
+- `./scripts/run-next --repo <OPSTRUTH_REPO> --dry-run`
 - Strict redacted secret scan over the workflow library
 
 ## Result
@@ -34,8 +34,8 @@ The runner still refuses missing permissions and preserves gates for secrets, de
 Validation passed after implementation:
 
 - `./scripts/validate-skills`
-- `./scripts/run-next --repo /home/johnh/wagging-web-wins --dry-run`
-- `./scripts/run-next --repo /home/johnh/wagging-web-wins --explain`
-- `./scripts/run-next --repo /home/johnh/opstruth/tempo/opstruth --dry-run`
+- `./scripts/run-next --repo <TARGET_REPO> --dry-run`
+- `./scripts/run-next --repo <TARGET_REPO> --explain`
+- `./scripts/run-next --repo <OPSTRUTH_REPO> --dry-run`
 
 Dry-run and explain modes did not update the ledger or run log during validation.

@@ -29,19 +29,19 @@ Use when OpenClaw behavior changes after hardening, upgrades, config edits, or a
 ## Commands
 
 ```bash
-cd /home/johnh/.openclaw && ls -l --full-time openclaw.json*
-cd /home/johnh/.openclaw && diff -u openclaw.json.bak.4 openclaw.json
-cd /home/johnh/.openclaw && diff -u openclaw.json.bak.3 openclaw.json.bak.2
-cd /home/johnh/.openclaw && diff -u openclaw.json.bak.2 openclaw.json.bak.1
-cd /home/johnh/.openclaw && diff -u openclaw.json.bak.1 openclaw.json
-cd /home/johnh/.openclaw && diff -u openclaw.json.bak openclaw.json
-cd /home/johnh/.openclaw && diff -u -w openclaw.json.bak openclaw.json
+cd <OPENCLAW_HOME> && ls -l --full-time openclaw.json*
+cd <OPENCLAW_HOME> && diff -u openclaw.json.bak.4 openclaw.json
+cd <OPENCLAW_HOME> && diff -u openclaw.json.bak.3 openclaw.json.bak.2
+cd <OPENCLAW_HOME> && diff -u openclaw.json.bak.2 openclaw.json.bak.1
+cd <OPENCLAW_HOME> && diff -u openclaw.json.bak.1 openclaw.json
+cd <OPENCLAW_HOME> && diff -u openclaw.json.bak openclaw.json
+cd <OPENCLAW_HOME> && diff -u -w openclaw.json.bak openclaw.json
 ```
 
 Suggested rollback commands, only after explicit approval:
 
 ```bash
-cd /home/johnh/.openclaw
+cd <OPENCLAW_HOME>
 cp openclaw.json.bak.N openclaw.json
 openclaw gateway restart
 ```

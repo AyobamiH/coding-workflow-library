@@ -33,7 +33,7 @@ Confirmed tool-call patterns:
 read {"path":"SOUL.md"}
 read {"file_path":"RUNBOOK.md"}
 write {"file_path":"memory/2026-02-12.md","content":"# 2026-02-12\n"}
-edit {"path":"/home/johnh/.openclaw/openclaw.json","oldText":"...","newText":"..."}
+edit {"path":"<OPENCLAW_CONFIG>","oldText":"...","newText":"..."}
 process {"action":"log","sessionId":"briny-lagoon","offset":0,"limit":200}
 process {"action":"list"}
 agents_list {}

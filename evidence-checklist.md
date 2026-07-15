@@ -56,7 +56,7 @@ Use this before final response or before saying a workflow is complete.
 - Cloudflare/Opstruth/packaging bundle ran local route audit, library packaging readiness, release preflight local mode, skill cleanup, and skill validation only.
 - Cloudflare/Opstruth/packaging bundle did not touch product repos, deploy Cloudflare, run Wrangler deploy, publish npm, run version changes, tag, push, create PRs, set/read secrets, run Supabase commands, call production endpoints, or mutate remote services.
 - Clean-temp readiness smoke used `--allow clean-temp-readiness-smoke` only when the active ledger status was `Cloudflare Opstruth packaging routes extracted`.
-- Clean-temp readiness smoke created a temp copy under `/home/johnh/.openclaw/tmp/`, excluded `.git`, `.env`, evidence, dependency caches, and credential-shaped files, and removed the temp copy after checks.
+- Clean-temp readiness smoke created a temp copy under `<TEMP_ROOT>/`, excluded `.git`, `.env`, evidence, dependency caches, and credential-shaped files, and removed the temp copy after checks.
 - Clean-temp readiness smoke ran route audit, route listing, packaging readiness, open-source readiness classification, release preflight local mode, skill cleanup, and validation from the temp copy.
 - Clean-temp readiness smoke did not touch product repos, choose a license, create a package, publish, tag, push, create PRs, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, or mutate remote services.
 - MIT licence and package candidate verification used `--allow license-package-candidate` only when the active ledger status was `Clean-temp readiness smoke complete`.
@@ -91,7 +91,7 @@ Use this before final response or before saying a workflow is complete.
 - After successful Supabase tooling/auth, ledger status is `Supabase tooling/auth ready, not linked`; otherwise the exact credential/tooling boundary is recorded.
 - Supabase link/local secret readiness ran only with explicit `--allow supabase-link-secret-readiness`.
 - Supabase link/local secret readiness checked repo state before and after link, reconfirmed auth/project access, ran local link only, and recorded any local Supabase files created by link without staging them.
-- Supabase link/local secret readiness generated `IMPORT_REDDIT_TIPS_SECRET` only if missing and stored it only in `/home/johnh/.openclaw/.env`; no value, prefix, suffix, or length was printed.
+- Supabase link/local secret readiness generated `IMPORT_REDDIT_TIPS_SECRET` only if missing and stored it only in `<LOCAL_ENV_FILE>`; no value, prefix, suffix, or length was printed.
 - Supabase link/local secret readiness did not set remote secrets, deploy functions, run migrations, execute SQL, mutate schedulers, invoke Edge Functions, call production endpoints, push, create PRs, merge, or include `evidence/`.
 - Official vendor skill intake, when approved, installed only under `vendor-intake/<vendor-name>/`.
 - Vendor intake evidence includes installed skill names, files inspected, useful guidance, local workflow differences, local adaptations, and validator results.

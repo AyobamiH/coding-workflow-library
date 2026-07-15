@@ -322,35 +322,35 @@ Examples:
 ./scripts/run-next --dry-run
 ./scripts/run-next --explain
 ./scripts/run-next --list-routes
-./scripts/run-next --repo /home/johnh/wagging-web-wins
-./scripts/run-next --repo /home/johnh/wagging-web-wins --explain
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow github-handoff
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow github-handoff --dry-run
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow pr-readiness
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow pr-merge
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow deployment-plan
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow supabase-preflight
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow supabase-tooling-auth
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow supabase-link-secret-readiness
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-draft-pr
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-pr-merge
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow supabase-secret-function-deploy
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow runtime-negative-verification
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow function-secret-deploy-negative-runtime
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow controlled-success-invocation
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduled-run-monitoring-handoff
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-application-decision
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-vault-design-apply
-./scripts/run-next --repo /home/johnh/wagging-web-wins --allow scheduler-vault-apply-retry
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow verification-bundle-self-test
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow verification-bundle-self-test --allow evidence-pack-write
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cloudflare-opstruth-packaging-bundle
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow clean-temp-readiness-smoke
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow license-package-candidate
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow package-candidate-dry-run
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cli-package-smoke
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow pre-commit-validation-hook
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow migration-review-helper
+./scripts/run-next --repo <TARGET_REPO>
+./scripts/run-next --repo <TARGET_REPO> --explain
+./scripts/run-next --repo <TARGET_REPO> --allow github-handoff
+./scripts/run-next --repo <TARGET_REPO> --allow github-handoff --dry-run
+./scripts/run-next --repo <TARGET_REPO> --allow pr-readiness
+./scripts/run-next --repo <TARGET_REPO> --allow pr-merge
+./scripts/run-next --repo <TARGET_REPO> --allow deployment-plan
+./scripts/run-next --repo <TARGET_REPO> --allow supabase-preflight
+./scripts/run-next --repo <TARGET_REPO> --allow supabase-tooling-auth
+./scripts/run-next --repo <TARGET_REPO> --allow supabase-link-secret-readiness
+./scripts/run-next --repo <TARGET_REPO> --allow scheduler-draft-pr
+./scripts/run-next --repo <TARGET_REPO> --allow scheduler-pr-merge
+./scripts/run-next --repo <TARGET_REPO> --allow supabase-secret-function-deploy
+./scripts/run-next --repo <TARGET_REPO> --allow runtime-negative-verification
+./scripts/run-next --repo <TARGET_REPO> --allow function-secret-deploy-negative-runtime
+./scripts/run-next --repo <TARGET_REPO> --allow controlled-success-invocation
+./scripts/run-next --repo <TARGET_REPO> --allow scheduled-run-monitoring-handoff
+./scripts/run-next --repo <TARGET_REPO> --allow scheduler-application-decision
+./scripts/run-next --repo <TARGET_REPO> --allow scheduler-vault-design-apply
+./scripts/run-next --repo <TARGET_REPO> --allow scheduler-vault-apply-retry
+./scripts/run-next --repo <LIBRARY_REPO> --allow verification-bundle-self-test
+./scripts/run-next --repo <LIBRARY_REPO> --allow verification-bundle-self-test --allow evidence-pack-write
+./scripts/run-next --repo <LIBRARY_REPO> --allow cloudflare-opstruth-packaging-bundle
+./scripts/run-next --repo <LIBRARY_REPO> --allow clean-temp-readiness-smoke
+./scripts/run-next --repo <LIBRARY_REPO> --allow license-package-candidate
+./scripts/run-next --repo <LIBRARY_REPO> --allow package-candidate-dry-run
+./scripts/run-next --repo <LIBRARY_REPO> --allow cli-package-smoke
+./scripts/run-next --repo <LIBRARY_REPO> --allow pre-commit-validation-hook
+./scripts/run-next --repo <LIBRARY_REPO> --allow migration-review-helper
 ```
 
 Supported permission flags:
@@ -400,7 +400,7 @@ Rules:
 - Deployment planning mode must only inspect local/source evidence and draft future-gated commands. It must not set secrets, deploy, run migrations, mutate Supabase, update schedulers, call production endpoints, push, create PRs, merge, or print secrets.
 - Supabase execution preflight mode must only inspect local/source execution prerequisites and draft future-gated commands. It must not install the Supabase CLI, run `npx supabase`, log in, link a project, set secrets, deploy functions, run migrations, execute SQL, mutate schedulers, call runtime endpoints, push, create PRs, merge, or print secrets.
 - Supabase tooling/auth setup mode may run `npx supabase --version` and read-only project listing with `SUPABASE_ACCESS_TOKEN` as a runtime environment value. It must not install Supabase CLI as a dependency, run `supabase login`, run `supabase link`, set secrets, deploy functions, run migrations, execute SQL, mutate schedulers, invoke Edge Functions, call production endpoints, push, create PRs, merge, or print secrets.
-- Supabase link/local secret readiness mode may run local `npx supabase link --project-ref <approved-ref>` after auth/project checks pass and may generate/store `IMPORT_REDDIT_TIPS_SECRET` only in `/home/johnh/.openclaw/.env`. It must not set remote secrets, deploy functions, run migrations, execute SQL, mutate schedulers, invoke Edge Functions, call production endpoints, push, create PRs, merge, stage target repo files, include `evidence/`, or print secrets.
+- Supabase link/local secret readiness mode may run local `npx supabase link --project-ref <approved-ref>` after auth/project checks pass and may generate/store `IMPORT_REDDIT_TIPS_SECRET` only in `<LOCAL_ENV_FILE>`. It must not set remote secrets, deploy functions, run migrations, execute SQL, mutate schedulers, invoke Edge Functions, call production endpoints, push, create PRs, merge, stage target repo files, include `evidence/`, or print secrets.
 - Scheduler draft/PR mode may draft a guarded local scheduler migration, update docs, run local checks, create an exact-file commit, push a feature branch, and open or confirm a PR when John grants `--allow scheduler-draft-pr`. It must not set remote secrets, deploy functions, run `db push`, apply migrations, execute SQL, mutate schedulers remotely, invoke Edge Functions, call production endpoints, push `main`, force-push, merge, include `evidence/`, include `supabase/.temp/`, or print secrets.
 - Scheduler PR merge mode may inspect and merge PR #12 only when John grants `--allow scheduler-pr-merge`. It must verify exact scheduler files, expected commits, checks, mergeability when still open, and a no-hardcoded-secret migration scan before merge; if PR #12 is already merged, it may verify the same evidence and stop. It must not delete the branch, set remote secrets, deploy functions, run migrations, execute SQL, mutate schedulers, invoke Edge Functions, call production endpoints, push `main`, force-push, include `evidence/`, include `supabase/.temp/`, or print secrets.
 - Supabase secret/function deploy mode may set remote `IMPORT_REDDIT_TIPS_SECRET` and deploy only `import-reddit-tips` when John grants `--allow supabase-secret-function-deploy`. It must use a temporary env file outside the target repo if `--env-file` is supported, delete that file immediately, block staged or tracked target repo changes, report untracked local artifacts as excluded, and stop before scheduler mutation, `db push`, migration application, SQL execution, Edge Function invocation, runtime verification, production endpoint calls, push, PR, merge, `evidence/` staging, `supabase/.temp/` staging, or secret printing.
@@ -412,14 +412,14 @@ Rules:
 - Package candidate dry-run mode may run after `MIT licence and package candidate scaffold complete` when John grants `--allow package-candidate-dry-run`. It may run package readiness, release preflight npm mode, `npm pack --dry-run`, package content inspection, clean-temp package smoke, route audit, skill cleanup, and validation for candidate `autonomous-coding-workflow-library`. It must not publish, version, tag, push, create PRs, create GitHub releases, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, mutate registries, mutate remote services, or choose a CLI entrypoint.
 - CLI entrypoint package smoke may run after `Package candidate dry-run complete` when John grants `--allow cli-package-smoke`. It may verify `coding-workflow` local CLI metadata, run local CLI helper commands, run package readiness with `--expect-cli`, run release preflight CLI mode, run `npm pack --dry-run`, create a local temp tarball, install that local tarball into a clean temp consumer with lifecycle scripts disabled, run the installed CLI, remove temp files, and validate. It must not publish, version, tag, push, create PRs, create GitHub releases, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, mutate registries, install remote dependencies, or mutate remote services.
 - First version tag mode may run after `GitHub open-source handoff complete` when John grants `--allow first-version-tag`. It may update package version `0.1.0`, changelog, release notes, route metadata, and local docs; run local validation and clean-temp package smoke; exact-file commit; push `main` non-force; inspect GitHub Actions for the exact release commit; create/push annotated tag `v0.1.0`; verify the remote tag; and record post-tag bookkeeping. It must not publish, run `npm version`, create a GitHub release, deploy, run Supabase or Cloudflare commands, call production endpoints, print secrets, force-push, rewrite history, or stage broad/excluded paths.
-- Pre-commit validation hook mode may run after `project-KB compiler complete` when John grants `--allow pre-commit-validation-hook`. It may verify `scripts/pre-commit-check`, `scripts/install-git-hooks`, the hook template, staged secret-shaped marker scanning, CLI delegation, tests, package contents, exact-file commit, non-force push, and exact-commit CI. It must not publish, version, tag, create GitHub releases, force-push, broad-stage, deploy, install packages, touch product repos, print secrets, or overwrite unmanaged local hooks without explicit `--force`.
+- Pre-commit validation hook mode may run after `project-KB compiler complete` when John grants `--allow pre-commit-validation-hook`. It may verify `scripts/pre-commit-check`, `scripts/check-public-paths`, `scripts/install-git-hooks`, the hook template, staged secret-shaped marker scanning, CLI delegation, tests, package contents, exact-file commit, non-force push, and exact-commit CI. It must not publish, version, tag, create GitHub releases, force-push, broad-stage, deploy, install packages, touch product repos, print secrets, or overwrite unmanaged local hooks without explicit `--force`.
 - Migration-review helper mode may run after `pre-commit validation hook complete` when John grants `--allow migration-review-helper`. It may verify `scripts/migration-review`, schema, synthetic SQL fixture tests, CLI delegation, package contents, exact-file commit, non-force push, and exact-commit CI. It must not execute SQL, call Supabase, connect to databases, apply migrations, deploy, publish, version, tag, create GitHub releases, force-push, broad-stage, touch product repos, or print secrets.
 - Scheduler application decision mode may inspect source/docs/env presence, Supabase CLI help, read-only project access, and read-only database capability evidence when John grants `--allow scheduler-application-decision`. It must prove a non-hardcoded `pg_cron` secret path before any scheduler mutation; otherwise it must stop at `Scheduler blocked: safe secret storage path not proven`. It must not deploy functions, run `supabase db push`, apply migrations, execute unrelated SQL, write app tables or `pet_tips`, invoke a valid scheduler/admin success path, trigger a successful import, stage excluded files, push, create PRs, merge, or print tokens/secrets.
 - Scheduler Vault design/apply mode may use `psql` and a local DB URL when John grants `--allow scheduler-vault-design-apply`. It may inspect Vault/pg_cron/pg_net/current-job metadata, create or update one Vault secret outside the repo using a temporary deleted SQL file, and replace only `import-reddit-tips-daily` with a Vault-backed header. It must not print DB URLs or secrets, deploy functions, run `supabase db push`, apply migrations, run unrelated SQL, write app tables or `pet_tips`, invoke a valid scheduler/admin success path, trigger a successful import, stage excluded files, push, create PRs, or merge.
 - Scheduler Vault apply retry mode may use `psql` and a corrected local DB URL when John grants `--allow scheduler-vault-apply-retry` for `Scheduler blocked: Vault/pg_cron/pg_net capability not proven`. It may retry DB connectivity, capability discovery, one Vault secret create/update, and replacement of only `import-reddit-tips-daily`. It must stop before runtime verification and must not print DB URLs or secrets, deploy functions, run `supabase db push`, apply migrations, run unrelated SQL, write app tables or `pet_tips`, invoke a valid scheduler/admin success path, trigger a successful import, stage excluded files, push, create PRs, or merge.
 - Verification bundle self-test mode may run after `Local verification and release evidence bundle built` when John grants `--allow verification-bundle-self-test`. It may run npm package readiness, release preflight, evidence-pack dry-run, helper syntax checks, `skill-cleaner`, and `validate-skills` against the selected repo. Evidence pack writing requires the extra `--allow evidence-pack-write` flag and is limited to local `evidence/` files; it must not stage, commit, publish, tag, push, create PRs, deploy, mutate registries, read secret values, call external services, or call production endpoints.
 - Vendor skill intake is a dependency-install/local-edit workflow and must be isolated under `vendor-intake/<vendor-name>/`. It must not install into a target repo, override `AGENTS.md` or `tools.md`, copy secrets, mutate Supabase, deploy, run migrations, or mark a repo deployment-ready. Official Supabase guidance is advisory until adapted into local library files.
-- Clean-temp readiness smoke mode may create and remove a local temp copy under `/home/johnh/.openclaw/tmp/`, run only local route/readiness/preflight/validation checks from that copy, and classify open-source/package blockers. It must not choose a license, create an npm package, publish, version, tag, push, create PRs, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, or touch product repos.
+- Clean-temp readiness smoke mode may create and remove a local temp copy under `<TEMP_ROOT>/`, run only local route/readiness/preflight/validation checks from that copy, and classify open-source/package blockers. It must not choose a license, create an npm package, publish, version, tag, push, create PRs, deploy, run Supabase or Cloudflare commands, read secrets, call production endpoints, or touch product repos.
 
 Evidence required:
 

@@ -57,14 +57,14 @@ Use when:
 Read-only packaging readiness:
 
 ```bash
-cd /home/johnh/.openclaw/skills/coding-workflow-library
-./scripts/library-packaging-readiness --repo /home/johnh/.openclaw/skills/coding-workflow-library
-./scripts/library-packaging-readiness --repo /home/johnh/.openclaw/skills/coding-workflow-library --json
-./scripts/library-packaging-readiness --repo /home/johnh/.openclaw/skills/coding-workflow-library --expect-open-source
-./scripts/library-packaging-readiness --repo /home/johnh/.openclaw/skills/coding-workflow-library --expect-npm
-./scripts/library-packaging-readiness --repo /home/johnh/.openclaw/skills/coding-workflow-library --expect-cli
-./scripts/npm-package-readiness --repo /home/johnh/.openclaw/skills/coding-workflow-library
-./scripts/release-preflight --repo /home/johnh/.openclaw/skills/coding-workflow-library --mode local
+cd <LIBRARY_REPO>
+./scripts/library-packaging-readiness --repo <LIBRARY_REPO>
+./scripts/library-packaging-readiness --repo <LIBRARY_REPO> --json
+./scripts/library-packaging-readiness --repo <LIBRARY_REPO> --expect-open-source
+./scripts/library-packaging-readiness --repo <LIBRARY_REPO> --expect-npm
+./scripts/library-packaging-readiness --repo <LIBRARY_REPO> --expect-cli
+./scripts/npm-package-readiness --repo <LIBRARY_REPO>
+./scripts/release-preflight --repo <LIBRARY_REPO> --mode local
 ./scripts/route-audit
 ./scripts/validate-skills
 ```
@@ -72,22 +72,22 @@ cd /home/johnh/.openclaw/skills/coding-workflow-library
 Clean-temp checks require separate permission:
 
 ```bash
-./scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow clean-temp-readiness-smoke
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow clean-temp-readiness-smoke
-./scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow license-package-candidate
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow license-package-candidate
-./scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow package-candidate-dry-run
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow package-candidate-dry-run
-./scripts/run-next --dry-run --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cli-package-smoke
-./scripts/run-next --repo /home/johnh/.openclaw/skills/coding-workflow-library --allow cli-package-smoke
+./scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow clean-temp-readiness-smoke
+./scripts/run-next --repo <LIBRARY_REPO> --allow clean-temp-readiness-smoke
+./scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow license-package-candidate
+./scripts/run-next --repo <LIBRARY_REPO> --allow license-package-candidate
+./scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow package-candidate-dry-run
+./scripts/run-next --repo <LIBRARY_REPO> --allow package-candidate-dry-run
+./scripts/run-next --dry-run --repo <LIBRARY_REPO> --allow cli-package-smoke
+./scripts/run-next --repo <LIBRARY_REPO> --allow cli-package-smoke
 ```
 
 Package dry-run commands requiring explicit local package-candidate permission:
 
 ```bash
 npm pack --dry-run
-./scripts/npm-package-readiness --repo /home/johnh/.openclaw/skills/coding-workflow-library --expect-package --allow-pack-dry-run
-./scripts/release-preflight --repo /home/johnh/.openclaw/skills/coding-workflow-library --mode npm --allow-pack-dry-run
+./scripts/npm-package-readiness --repo <LIBRARY_REPO> --expect-package --allow-pack-dry-run
+./scripts/release-preflight --repo <LIBRARY_REPO> --mode npm --allow-pack-dry-run
 ```
 
 Commands requiring separate release permission:

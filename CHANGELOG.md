@@ -4,6 +4,14 @@
 
 - Nothing yet.
 
+## 0.2.2 - 2026-07-14
+
+- Removed maintainer-specific absolute home-directory paths from current packaged source, documentation, templates, and historical evidence, replacing them with semantic placeholders.
+- Made `run-next` default to the caller's current working directory and derive runtime env, temp, and npm cache locations portably with explicit environment overrides.
+- Generalized source-output path redaction for Linux, macOS, and Windows user-home paths.
+- Added `scripts/check-public-paths`, `npm run check:paths`, pre-commit integration, and deterministic tests that reject absolute user-home paths without repeating private path contents.
+- Kept `0.2.1` and existing Git history immutable; consumers should use `0.2.2` or later for the sanitized current package surface.
+
 ## 0.2.1 - 2026-07-14
 
 - Added reproducible, privacy-safe workflow-corpus extraction and rebuilt the engineering roadmap from validated aggregate evidence.
@@ -11,7 +19,7 @@
 - Hardened interrupted-run recovery, autonomous decision boundaries, exact route auditing, and validation behavior.
 - Added Opstruth product-video truth guardrails that require project-owned source evidence and portable HyperFrames skill resolution before creative or render claims.
 - Preserved explicit authority boundaries for remote publication, production mutation, secret mutation, and destructive actions.
-- Prepared the first npm registry publication of `autonomous-coding-workflow-library`; registry publication remains contingent on authenticated npm access.
+- Published the first npm registry version of `autonomous-coding-workflow-library` after authenticated release verification.
 
 ## 0.2.0 - 2026-06-26
 
