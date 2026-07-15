@@ -1530,3 +1530,15 @@ This file records every real use of the coding workflow skills library.
 * Result: COMPLETE: v0.2.1 published to npm and GitHub.
 * Failure/recovery notes: Two expired browser authorization links caused no publication or package mutation. The successful attempt used a fresh live authorization session. No secret value or npm configuration was read or printed; no new version, tag, GitHub Release, force push, product deploy, or production mutation occurred.
 * Follow-up skill needed: coding-workflow-orchestrator-skill to select the next verified roadmap objective.
+
+## 2026-07-15 - v0.2.2 Public Path Portability Release
+
+* Skill used: skills-library-packaging-skill / npm-package-readiness-skill / release-preflight-skill / github-handoff-skill.
+* Goal: Remove maintainer-specific absolute user-home paths from current public source and package contents, add a regression gate, and publish the bounded `v0.2.2` patch.
+* Starting state: `v0.2.1` was public on npm and GitHub; current source and packaged historical evidence still contained maintainer-home paths; local and remote `main` matched before remediation.
+* Commands/tools used: source and package path scans; focused and full tests; pre-commit staged validation; npm pack inspection; exact-file commit; non-force main push; exact-commit GitHub Actions watch; annotated tag create/push; official npm browser authorization; npm publish; read-only npm and GitHub release verification.
+* Files changed: portable runtime helpers; public docs, templates, and historical evidence; `package.json`; `package-lock.json`; `CHANGELOG.md`; `docs/releases/v0.2.2.md`; public-path checker and tests; release bookkeeping.
+* Evidence collected: release commit `5270723270aeb4cae46f5a3451bbc86aa4ef0641`; CI run `29428919107` succeeded; remote `v0.2.2` tag dereferences to the release commit; package contained 114 entries and zero public-path findings; npm registry reports `0.2.2` as `latest`; GitHub Release URL is `https://github.com/AyobamiH/coding-workflow-library/releases/tag/v0.2.2`.
+* Result: COMPLETE: current source, package, npm latest, and GitHub release are sanitized at v0.2.2.
+* Failure/recovery notes: existing Git history and the immutable `0.2.1` package were not rewritten or unpublished. Authentication used npm's official browser flow; no token, credential, auth URL, private path, or secret value was committed.
+* Follow-up skill needed: coding-workflow-orchestrator-skill to select the next verified roadmap objective.

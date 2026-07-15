@@ -1455,3 +1455,19 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: coding-workflow-orchestrator-skill to select the next verified roadmap item.
 * Exact next action: run scheduled maintenance or select the next evidence-backed roadmap objective.
 * Whether John is needed: No for publication verification; yes when the next objective crosses a new permission boundary.
+
+## 2026-07-15 - v0.2.2 Public Path Portability Patch Complete
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Remove maintainer-specific absolute user-home paths from the public source and package surface, then publish the validated portability patch.
+* Current permission level: remote_publication for the exact `v0.2.2` commit, annotated tag, GitHub Release, and npm package. No history rewrite, unpublish, force push, product deployment, production mutation, or secret disclosure.
+* Current status: v0.2.2 published to npm and GitHub.
+* Selected skill: skills-library-packaging-skill / npm-package-readiness-skill / release-preflight-skill / github-handoff-skill.
+* Release evidence: exact release commit `5270723270aeb4cae46f5a3451bbc86aa4ef0641`; GitHub Actions run `29428919107` passed; annotated tag `v0.2.2` dereferences to the release commit; GitHub Release published at `https://github.com/AyobamiH/coding-workflow-library/releases/tag/v0.2.2`.
+* Package evidence: prepack validation passed; npm returned `+ autonomous-coding-workflow-library@0.2.2`; registry metadata reports version `0.2.2`, `latest` at `0.2.2`, and repository `AyobamiH/coding-workflow-library`; the 114-entry package passed the public-path scanner with zero findings.
+* Privacy evidence: public examples use semantic placeholders; `run-next` derives repo, env, temp, and npm-cache locations portably; Linux, macOS, and Windows user-home path checks are deterministic and report no matched values.
+* Historical boundary: previously published package versions and existing Git history remain immutable. Consumers should use `0.2.2` or later for the sanitized current package surface.
+* Commands deliberately not run: history rewrite; package unpublish; force push; product deploy; Supabase or Cloudflare mutation; production endpoint call.
+* Next recommended skill: coding-workflow-orchestrator-skill to select the next verified roadmap item.
+* Exact next action: run scheduled maintenance or select the next evidence-backed roadmap objective.
+* Whether John is needed: No for release verification; yes when the next objective crosses a new permission boundary.
