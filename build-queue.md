@@ -78,7 +78,7 @@ No active P1 gaps are currently evidence-backed. The entries below remain in thi
 - Dependency: existing route and objective-authority contracts.
 - Authority required: `local_execution`.
 - Done definition: the entrypoint owns only composition and dispatch; domain logic, reports, checkpoints, and runtime support live in focused modules; recursive syntax checks cover nested code; a deterministic hard line budget prevents another monolith.
-- Status: implemented, hardened, and pending publication of the latest refactor. Eight oversized domain modules now use thin compatibility facades over twenty focused parts, and workflow extraction uses a thin CLI over core, corpus, and snapshot modules. Every checked source file is below the new 1,000-line hard maximum; 750-line review candidates remain explicit in `docs/modularity-audit.md`.
+- Status: implemented, hardened, and published. Eight oversized domain modules now use thin compatibility facades over twenty focused parts, and workflow extraction uses a thin CLI over core, corpus, and snapshot modules. Every checked source file is below the new 1,000-line hard maximum; 750-line review candidates remain explicit in `docs/modularity-audit.md`. Exact commit `12a640e` passed validation plus Ubuntu, macOS, and Windows portability in Actions run `29541205197`.
 
 ## Safe skill-gap recorder
 
