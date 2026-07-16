@@ -1,23 +1,6 @@
 const path = require("path");
-const { spawnSync } = require("child_process");
 const { namesFingerprint, readDotEnv, sortedNames } = require("./dotenv");
-
-const RG_EXCLUDES = [
-  "!.git/**",
-  "!node_modules/**",
-  "!.env",
-  "!.env.*",
-  "!state/**",
-  "!evidence/**",
-  "!tmp/**",
-  "!.tmp/**",
-  "!coverage/**",
-  "!dist/**",
-  "!build/**",
-  "!*.tgz",
-  "!.run-next/**",
-  "!.codex/**",
-];
+const { findReferences } = require("./reference-scan");
 
 function mappedSources(manifest) {
   return manifest.bundles.flatMap((bundle) => bundle.variables.map((variable) => variable.source)).sort();
@@ -48,20 +31,8 @@ function coverage(sourceNames, manifest) {
 function referencesFor(name, repositories) {
   const references = {};
   for (const repository of repositories) {
-    const args = ["-l", "--hidden", "--fixed-strings"];
-    for (const glob of RG_EXCLUDES) args.push("-g", glob);
-    args.push(name, ".");
-    const result = spawnSync("rg", args, {
-      cwd: repository.path,
-      encoding: "utf8",
-      maxBuffer: 8 * 1024 * 1024,
-    });
-    const files = (result.stdout || "")
-      .split(/\r?\n/)
-      .filter(Boolean)
-      .map((file) => file.replace(/^\.\//, ""))
-      .filter((file) => !path.isAbsolute(file))
-      .sort();
+    const files = findReferences(repository.path, name)
+      .filter((file) => !path.isAbsolute(file));
     if (files.length) references[repository.alias] = files;
   }
   return references;
