@@ -16,6 +16,20 @@ This file records every real use of the coding workflow skills library.
 * Follow-up skill needed:
 * Upgrade idea:
 
+## 2026-07-16 - v0.2.3 Semver Publication Preparation
+
+* Skill used: release-preflight-skill, skills-library-packaging-skill, github-auth-gate-skill, and github-handoff-skill through lane-scoped `run-next`.
+* Goal: Convert the hard-coded v0.2.0 preparation route into a reusable semver release route and prepare v0.2.3 for authorized publication.
+* Starting state: `main` was eight clean commits ahead of remote `main`; npm and GitHub already contained v0.2.2; the lane held a stale v0.2.0 objective that could not route the new release.
+* Commands/tools used: lane objective set/approve/show, `run-next` dry-run, npm/GitHub auth and version checks, `npm ci`, full and portable tests, route audit, skill validation, skill cleaner, package/readiness/preflight helpers, npm pack dry-run, and clean-temp local tarball install.
+* Files inspected: objective/lane controls, runner, route metadata, package and lockfile, changelog, prior release notes, unpushed commit range, package manifest, release/preflight skills, and public docs.
+* Files changed: `package.json`, `package-lock.json`, `CHANGELOG.md`, `docs/releases/v0.2.3.md`, `scripts/run-next`, route metadata, objective-authority regression test, release/orchestrator skills, README, RUNBOOK, build queue, ledger, and this run log.
+* Evidence collected: npm latest and GitHub latest were v0.2.2; v0.2.3 dry-run selected the objective and changed no lane; full tests and portable tests passed; readiness passed; preflight had only the expected dirty-tree warning; clean-temp installed CLI help/routes/validate passed; temporary package files were removed; npm and GitHub authentication were confirmed without printing credentials.
+* Result: READY FOR EXACT RELEASE COMMIT. Remote mutation has not yet occurred in this entry.
+* Failure/recovery notes: The npm session initially lacked authentication and was recovered through the official browser flow. A nested sandbox test could not capture child output, so portable assertions use successful exit, state immutability, and route metadata while the real lane dry-run provides output evidence.
+* Follow-up skill needed: github-handoff-skill for non-force main push and exact-SHA CI, then release-preflight-skill for tag/npm/GitHub Release verification.
+* Upgrade idea: keep later release objectives semver-driven and idempotent; do not add a deploy stage unless the package defines an actual deployment target.
+
 ## 2026-07-16 - Evidence And Portability Maturity Workpack
 
 * Skill used: browser-live-proof-skill, session-log-extraction-skill, skill-cleaner-skill, github-deep-review-skill, and build-verify-skill.

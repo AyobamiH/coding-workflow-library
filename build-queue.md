@@ -138,6 +138,7 @@ Capability adapter evaluation is complete. No generic capability work is active;
 - CLI entrypoint package smoke.
 - v0.1.0 source tag.
 - v0.2.0 local preparation.
+- Generic objective-driven semver release preparation and publication routing.
 - Lane-scoped state and objective authority.
 - Reproducible workflow corpus extraction foundation.
 - Deterministic documentation inventory foundation (`scripts/docs-list`).

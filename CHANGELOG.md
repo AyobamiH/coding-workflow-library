@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.3 - 2026-07-16
+
 - Record the capability-adapter decision: keep providers beneath existing workflow contracts, allow bounded optional GitHub reads, and reject generic brokering, prefetch, automatic installation, and bulk skill/plugin cutover.
 - Add content-derived private workflow-corpus snapshots, safe baseline comparison, and an explicit unchanged gate without publishing corpus data.
 - Add a focused Linux, macOS, and Windows portability suite for paths, managed hooks, corpus snapshots, and read-only evidence contracts.
@@ -10,8 +12,8 @@
 - Harden npm package readiness and release preflight with validated JSON reports, crisp blocker codes, safe pack-manifest inspection, release-note/version baseline checks, and optional aggregate workflow-corpus evidence that never reads raw corpus data.
 - Add a deterministic OpsTruth runtime-truth classifier and built-in self-test covering verified, warning, failure, skipped, and not-verified evidence without collapsing CI into production truth.
 - Add a read-only GitHub deep-review helper, schema, skill, route, CLI command, and synthetic regression suite for thread state, current review decisions, stale approvals, exact patch scope, checks, bounded failed-log categories, and explicit merge/production evidence boundaries.
-
 - Added a bounded, read-only browser live-proof helper with responsive overflow checks, count-only console/network evidence, optional screenshots, CLI delegation, schema validation, tests, and explicit non-proof boundaries.
+- Generalize the objective-authority release route so later semantic versions can validate and publish without impersonating the original `v0.2.0` state, and reset stale checkpoints when an objective is replaced.
 
 ## 0.2.2 - 2026-07-14
 

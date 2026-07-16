@@ -354,6 +354,8 @@ coding-workflow resume --lane example-project --state-file /path/to/lanes.json
 
 Legacy `--allow <route>` flags remain compatible. In lane mode, new work should prefer objective authority classes so one `remote_publication` grant covers the approved push, tag, GitHub Release, and npm publication consequences for that objective.
 
+Library release objectives use `release-coding-workflow-library-vX.Y.Z`. The semver route derives the intended version from that objective, requires matching package and lockfile metadata plus dated changelog/release notes, runs local package gates, and keeps npm/GitHub authentication failures classified as capabilities. After an exact release commit, the same `remote_publication` grant covers a non-force `main` push, exact-SHA CI, one annotated tag, npm publication, and one GitHub Release. A package without a declared deployment target records deploy as `NOT_APPLICABLE`.
+
 ## Interrupted Runs
 
 `run-next` records safe local checkpoint metadata for real runs under `.run-next/`, which is ignored by git.

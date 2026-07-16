@@ -942,12 +942,14 @@
       "provenance": "John-approved first open-source version tag route for v0.1.0"
     },
     {
-      "id": "objective-authority-v0-2-local-prep",
+      "id": "semver-release-publication",
       "skill_file": "skill-files/release-preflight-skill.md",
       "ledger_states_handled": [
-        "v0.1.0 tagged and pushed, npm unpublished"
+        "published package state selected by a release-coding-workflow-library-vX.Y.Z objective",
+        "semver release preparation blocked",
+        "semver release publication blocked"
       ],
-      "permission_flag": "local_execution",
+      "permission_flag": "release-publication",
       "helper_scripts": [
         "scripts/run-next",
         "scripts/objective-authority",
@@ -958,17 +960,21 @@
         "scripts/route-audit",
         "scripts/validate-skills",
         "external:git",
+        "external:gh",
         "external:npm"
       ],
-      "permission_level": "local-edit, local-validation, package-dry-run, exact-file-local-commit",
-      "explicit_permission_required": false,
+      "permission_level": "local-edit, local-validation, package-dry-run, exact-file-local-commit, non-force-main-push, exact-commit-ci, annotated-tag, npm-publish, github-release",
+      "explicit_permission_required": true,
       "requires_authority": [
-        "local_execution"
+        "local_execution",
+        "remote_publication"
       ],
       "requires_capabilities": [
         "node_available",
         "npm_available",
-        "git_available"
+        "git_available",
+        "npm_authenticated",
+        "gh_authenticated"
       ],
       "stage_dependencies": [
         "repository_audit",
@@ -977,7 +983,13 @@
         "release_notes",
         "local_validation",
         "package_smoke",
-        "local_release_commit"
+        "local_release_commit",
+        "main_push",
+        "exact_commit_ci",
+        "annotated_tag",
+        "npm_publication",
+        "github_release",
+        "remote_verification"
       ],
       "safety_gates": [
         "npm_test",
@@ -986,38 +998,44 @@
         "package_contents_scan",
         "git_diff_check"
       ],
-      "checkpoint": "v0_2_local_prep",
-      "blocked_checkpoint": "v0_2_local_prep_blocked",
+      "checkpoint": "semver_release_publication",
+      "blocked_checkpoint": "semver_release_publication_blocked",
       "idempotency_evidence": [
-        "version files already at 0.2.0 are verified",
+        "objective semver must match package and lockfile versions",
         "existing local release commit is verified before creating another",
+        "existing remote main, tag, npm version, and GitHub Release are verified rather than recreated",
         "npm authentication absence is recorded as capability, not permission"
       ],
       "continue_after_blocker": true,
       "forbidden_actions": [
-        "npm publish",
         "npm version",
-        "git push",
-        "git tag",
-        "GitHub release creation",
-        "deploy",
-        "remote mutation",
+        "force push",
+        "history rewrite",
+        "broad staging",
+        "unrelated remote mutation",
+        "production deploy without a declared package deployment target",
         "secret value printing"
       ],
-      "success_ledger_state": "v0.2.0 locally prepared and validated; remote publication awaiting one objective-level approval",
-      "blocked_ledger_state": "v0.2.0 local preparation blocked",
-      "next_permission": "grant remote_publication once for push, tag, GitHub Release, and npm publication",
+      "success_ledger_state": "selected semver published to npm and GitHub",
+      "blocked_ledger_state": "semver release publication blocked",
+      "next_permission": "run scheduled maintenance or select the next evidence-backed objective",
       "evidence_required": [
         "objective authority envelope",
-        "version 0.2.0 in package files",
+        "objective semver in package files",
         "changelog entry",
         "release notes",
         "local validation",
         "package smoke",
-        "npm auth capability classification",
-        "consolidated remote publication plan"
+        "GitHub and npm auth capability classification",
+        "exact release commit",
+        "non-force main push",
+        "exact-commit CI success",
+        "annotated tag and remote dereference",
+        "npm package version verification",
+        "GitHub Release verification",
+        "deployment target or NOT_APPLICABLE classification"
       ],
-      "provenance": "objective-level autonomy correction workpack"
+      "provenance": "generalized from the objective-level v0.2.0 preparation route after a later semver objective exposed hard-coded release routing"
     },
     {
       "id": "cloudflare-deploy-proof-planning",

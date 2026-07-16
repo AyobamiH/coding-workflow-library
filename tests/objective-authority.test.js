@@ -174,10 +174,38 @@ try {
   assert.equal(laneState.getLane(initial, "lane-a").objective.authority.remote_publication, true);
   assert.equal(laneState.getLane(initial, "lane-b").objective.authority.remote_publication, false, "objective grant leaked between lanes");
 
+  const previousObjective = laneState.getLane(initial, "lane-a").objective;
+  previousObjective.checkpoints.old_release = "complete";
+  previousObjective.blockers.push({ state: "BLOCKED_CAPABILITY", reason: "old blocker" });
+  laneState.setObjective(initial, "lane-a", { "objective-id": "replacement-objective", description: "fresh objective" });
+  const replacementObjective = laneState.getLane(initial, "lane-a").objective;
+  assert.deepEqual(replacementObjective.checkpoints, {}, "replacement objective inherited stale checkpoints");
+  assert.deepEqual(replacementObjective.blockers, [], "replacement objective inherited stale blockers");
+  assert.equal(replacementObjective.authority.remote_publication, false, "replacement objective inherited a prior remote grant");
+
   const beforeDryRun = fs.readFileSync(stateFile, "utf8");
   const dryRun = runNext(["--lane", "lane-a", "--state-file", stateFile, "--dry-run"]);
   assert.notEqual(dryRun.status, null, "dry-run did not return");
   assert.equal(fs.readFileSync(stateFile, "utf8"), beforeDryRun, "dry-run mutated lane state");
+
+  const releaseState = JSON.parse(beforeDryRun);
+  releaseState.lanes[0].current_state = "v9.8.6 published to npm and GitHub";
+  releaseState.lanes[0].objective = objective("release-coding-workflow-library-v9.8.7", { remote_publication: true });
+  laneState.atomicWrite(stateFile, releaseState);
+  const releaseBefore = fs.readFileSync(stateFile, "utf8");
+  const releaseDryRun = runNext([
+    "--lane", "lane-a",
+    "--state-file", stateFile,
+    "--repo", ROOT,
+    "--dry-run",
+  ]);
+  assert.equal(releaseDryRun.status, 0, releaseDryRun.stderr || releaseDryRun.stdout);
+  assert.equal(fs.readFileSync(stateFile, "utf8"), releaseBefore, "semver release dry-run mutated lane state");
+  const routeManifest = JSON.parse(fs.readFileSync(path.join(ROOT, "routes", "skill-routes.json"), "utf8"));
+  const releaseRoute = routeManifest.routes.find((route) => route.id === "semver-release-publication");
+  assert(releaseRoute, "semver release route metadata is missing");
+  assert(releaseRoute.requires_authority.includes("remote_publication"));
+  assert(releaseRoute.evidence_required.includes("exact-commit CI success"));
 
   const prohibited = JSON.parse(beforeDryRun);
   prohibited.lanes[0].objective.npm_token = "not-a-real-value";

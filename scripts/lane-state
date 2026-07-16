@@ -24,6 +24,7 @@ function parseArgs(argv) {
     const arg = argv[i];
     if (arg === "--state-file") parsed.stateFile = requireValue(argv, ++i, arg);
     else if (arg === "--json") parsed.json = true;
+    else if (arg === "--reset") parsed.options.reset = true;
     else if (["--repo", "--repository", "--display-name", "--state", "--permission", "--status", "--hold-reason", "--notes", "--monitoring-baseline", "--grant", "--objective-id", "--description"].includes(arg)) {
       parsed.options[arg.slice(2)] = requireValue(argv, ++i, arg);
     } else if (arg === "--lane") {
@@ -164,16 +165,19 @@ function updateLane(state, laneId, changes) {
 function setObjective(state, laneId, options) {
   const lane = getLane(state, laneId);
   const current = lane.objective ? objectiveAuthority.normalizeObjective(lane.objective) : objectiveAuthority.createObjective();
+  const nextId = options["objective-id"] || current.id;
+  const replacing = Boolean(options.reset) || nextId !== current.id;
+  const now = new Date().toISOString();
   lane.objective = objectiveAuthority.createObjective({
-    ...current,
-    id: options["objective-id"] || current.id,
+    ...(replacing ? {} : current),
+    id: nextId,
     description: options.description || current.description,
     status: options.status || current.status,
-    authority: current.authority,
-    checkpoints: current.checkpoints,
-    blockers: current.blockers,
-    created_at: current.created_at,
-    updated_at: new Date().toISOString(),
+    authority: replacing ? objectiveAuthority.defaultAuthority() : current.authority,
+    checkpoints: replacing ? {} : current.checkpoints,
+    blockers: replacing ? [] : current.blockers,
+    created_at: replacing ? now : current.created_at,
+    updated_at: now,
   });
   lane.last_updated = new Date().toISOString();
   validateState(state);
@@ -213,7 +217,7 @@ function usage() {
   ./scripts/lane-state [--state-file <path>] set-state <lane-id> --state <state>
   ./scripts/lane-state [--state-file <path>] set-next <lane-id> --permission <permission>
   ./scripts/lane-state [--state-file <path>] objective-show <lane-id> [--json]
-  ./scripts/lane-state [--state-file <path>] objective-set <lane-id> --objective-id <id> [--description <text>]
+  ./scripts/lane-state [--state-file <path>] objective-set <lane-id> --objective-id <id> [--description <text>] [--reset]
   ./scripts/lane-state [--state-file <path>] objective-approve <lane-id> --grant <authority-class>`);
 }
 

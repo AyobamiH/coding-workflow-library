@@ -4,6 +4,19 @@ This is the persistent control-plane ledger for `coding-workflow-orchestrator-sk
 
 Each entry records the active repo, objective, permission boundary, selected skill, evidence, blockers, and exact next action. The ledger is operational state, not a polished report.
 
+## 2026-07-16 - v0.2.3 Semver Publication Preparation
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Publish the eight validated local maturity commits plus the generic semver release route as `v0.2.3`.
+* Current permission level: `local_execution`, `remote_publication`, and unused `production_mutation` are granted for objective `release-coding-workflow-library-v0.2.3`; destructive and secret mutation remain ungranted.
+* Current status: `v0.2.3` release files are locally prepared and validated; exact release commit, push, exact-SHA CI, tag, npm publish, and GitHub Release remain pending.
+* Selected skills: `release-preflight-skill`, `skills-library-packaging-skill`, and `github-handoff-skill` through the lane-scoped semver publication route.
+* Evidence: package and lockfile are `0.2.3`; dated changelog and release notes exist; full tests and portable tests pass; library/package readiness passes; release preflight has no blocker or unverified check and warns only for the intentional dirty release tree; route audit and skill validation pass; clean-temp tarball install and installed CLI help/routes/validation pass; npm and GitHub authentication are available; package manifest contains 134 controlled files.
+* Files changed: version metadata, `v0.2.3` release notes, generic semver route implementation/metadata/test, and directly related release documentation.
+* Blockers: None for release preparation. Exact-commit GitHub CI must pass before tag, npm publication, or GitHub Release creation.
+* Exact next action: Create the exact release commit, run the real semver route, push `main` non-force, wait for exact-SHA CI success, then create/verify the annotated tag, npm package, and GitHub Release.
+* Whether John is needed: No; the selected objective already carries the required remote-publication authority. This package declares no deploy target, so application/infrastructure deploy is `NOT_APPLICABLE`.
+
 ## 2026-07-16 - Evidence And Portability Maturity Workpack
 
 * Active repo: `<LIBRARY_REPO>`.

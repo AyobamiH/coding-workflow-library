@@ -119,6 +119,7 @@ const ALLOWED_FLAGS = new Set([
   "project-kb-compiler",
   "pre-commit-validation-hook",
   "migration-review-helper",
+  "release-publication",
   "local_execution",
   "remote_publication",
   "production_mutation",
@@ -275,8 +276,8 @@ function main() {
       result = runGithubOpenSourceHandoff(active);
     } else if (route.kind === "first-version-tag") {
       result = runFirstVersionTag(active);
-    } else if (route.kind === "v0-2-local-prep") {
-      result = runV020LocalPrep(active);
+    } else if (route.kind === "semver-release-prep") {
+      result = runSemverReleasePrep(active);
     } else if (route.kind === "workflow-corpus-recovery") {
       result = runWorkflowCorpusRecovery(active);
     } else if (route.kind === "docs-list-foundation") {
@@ -751,16 +752,15 @@ function routeStatus(status, active = {}) {
   const normalized = status.toLowerCase();
   const activeObjective = active.rawLane?.objective ? objectiveAuthority.normalizeObjective(active.rawLane.objective) : null;
 
-  if (
-    activeObjective?.id === "release-coding-workflow-library-v0-2-0" ||
-    activeObjective?.id === "release-coding-workflow-library-v0.2.0"
-  ) {
+  const releaseVersion = releaseVersionFromObjective(activeObjective?.id);
+  if (releaseVersion && path.resolve(targetRepo) === LIBRARY_ROOT) {
     return {
       skill: "release-preflight-skill / skills-library-packaging-skill / github-handoff-skill",
-      permission: null,
-      requiresAuthority: ["local_execution"],
-      kind: "v0-2-local-prep",
-      nextAction: "prepare and verify every local/read-only v0.2.0 stage, then stop before remote publication",
+      permission: "release-publication",
+      requiresAuthority: ["remote_publication"],
+      kind: "semver-release-prep",
+      releaseVersion,
+      nextAction: `prepare and verify v${releaseVersion}, then execute the authorized exact-commit publication sequence`,
     };
   }
 
@@ -3140,23 +3140,32 @@ function inspectNpmPackDryRun(repo) {
   return { result, files, risks };
 }
 
-function runV020LocalPrep() {
+function releaseVersionFromObjective(objectiveId) {
+  const match = String(objectiveId || "").match(/^release-coding-workflow-library-v(\d+\.\d+\.\d+)$/);
+  return match ? match[1] : null;
+}
+
+function runSemverReleasePrep(active) {
   const expectedRepo = LIBRARY_ROOT;
-  const releaseNotesPath = path.join(LIBRARY_ROOT, SECOND_VERSION_RELEASE_NOTES);
+  const version = releaseVersionFromObjective(active.rawLane?.objective?.id);
+  const tag = version ? `v${version}` : "";
+  const releaseNotesRelative = version ? `docs/releases/${tag}.md` : "";
+  const releaseNotesPath = path.join(LIBRARY_ROOT, releaseNotesRelative);
 
   if (dryRun) {
-    actions.push("would verify the selected lane objective release-coding-workflow-library-v0.2.0");
-    actions.push("would verify package.json and package-lock.json version 0.2.0");
-    actions.push(`would require CHANGELOG.md and ${SECOND_VERSION_RELEASE_NOTES}`);
+    actions.push(`would verify the selected lane objective release-coding-workflow-library-${tag || "vX.Y.Z"}`);
+    actions.push(`would verify package.json and package-lock.json version ${version || "X.Y.Z"}`);
+    actions.push(`would require CHANGELOG.md and ${releaseNotesRelative || "docs/releases/vX.Y.Z.md"}`);
     actions.push("would run local validation, package readiness, release preflight, npm pack dry-run, and clean package smoke when invoked outside dry-run");
-    actions.push("would record npm authentication as BLOCKED_CAPABILITY if unavailable, while continuing independent local/read-only work");
-    actions.push("would stop before push, tag, GitHub Release, and npm publish because remote_publication is not granted");
+    actions.push("would require npm and GitHub authentication as capabilities, while keeping credentials out of reports");
+    actions.push("after a clean exact-file release commit, the granted remote_publication authority covers non-force main push, exact-SHA CI, one annotated tag, npm publish, and one GitHub Release");
+    actions.push("would classify deploy as NOT_APPLICABLE when the package defines no deployment target");
     evidence.push("dry-run made no lane, repo, package, git, npm, or remote changes");
     return {
       finalStatus: "DRY RUN PASSED",
-      ledgerStatus: "v0.1.0 tagged and pushed, npm unpublished",
-      summary: "v0.2.0 objective would complete local/read-only preparation and consolidate remote publication at one boundary",
-      nextPermission: "remote_publication",
+      ledgerStatus: active.currentStatus,
+      summary: `${tag || "semver release"} objective would validate the package and execute the already-authorized publication sequence only after all gates pass`,
+      nextPermission: "none; remote_publication is inherited from the selected lane objective",
       nextSkill: "release-preflight-skill / github-handoff-skill",
       exitCode: 0,
     };
@@ -3165,8 +3174,8 @@ function runV020LocalPrep() {
   if (path.resolve(targetRepo) !== expectedRepo) {
     return {
       finalStatus: "BLOCKED_SAFETY",
-      ledgerStatus: "v0.2.0 local preparation blocked",
-      summary: `v0.2.0 local prep may only run against ${expectedRepo}`,
+      ledgerStatus: `${tag || "Release"} preparation blocked`,
+      summary: `semver release preparation may only run against ${expectedRepo}`,
       nextPermission: "select the coding-workflow-library lane and repo",
       nextSkill: "coding-workflow-orchestrator-skill",
       exitCode: 1,
@@ -3192,11 +3201,12 @@ function runV020LocalPrep() {
   const changelog = fs.existsSync(changelogPath) ? fs.readFileSync(changelogPath, "utf8") : "";
   const releaseNotes = fs.existsSync(releaseNotesPath) ? fs.readFileSync(releaseNotesPath, "utf8") : "";
 
-  if (pkg?.version !== SECOND_VERSION) blockers.push(`package.json version is ${pkg?.version || "missing"}, expected ${SECOND_VERSION}`);
-  if (lock?.version !== SECOND_VERSION) blockers.push(`package-lock.json version is ${lock?.version || "missing"}, expected ${SECOND_VERSION}`);
-  if (lock?.packages?.[""]?.version !== SECOND_VERSION) blockers.push(`package-lock root package version is ${lock?.packages?.[""]?.version || "missing"}, expected ${SECOND_VERSION}`);
-  if (!new RegExp(`## \\[?${escapeRegExp(SECOND_VERSION)}\\]? - 2026-06-26`).test(changelog)) blockers.push("CHANGELOG.md lacks dated v0.2.0 entry");
-  if (!releaseNotes.includes(SECOND_VERSION_TAG) || !/npm unpublished/i.test(releaseNotes)) blockers.push(`${SECOND_VERSION_RELEASE_NOTES} missing required npm-unpublished release notes`);
+  if (!version) blockers.push("release objective id does not contain a valid semver version");
+  if (pkg?.version !== version) blockers.push(`package.json version is ${pkg?.version || "missing"}, expected ${version || "objective semver"}`);
+  if (lock?.version !== version) blockers.push(`package-lock.json version is ${lock?.version || "missing"}, expected ${version || "objective semver"}`);
+  if (lock?.packages?.[""]?.version !== version) blockers.push(`package-lock root package version is ${lock?.packages?.[""]?.version || "missing"}, expected ${version || "objective semver"}`);
+  if (version && !new RegExp(`## \\[?${escapeRegExp(version)}\\]? - \\d{4}-\\d{2}-\\d{2}`).test(changelog)) blockers.push(`CHANGELOG.md lacks a dated ${version} entry`);
+  if (!releaseNotes.includes(tag) || !/npm/i.test(releaseNotes) || !/github/i.test(releaseNotes)) blockers.push(`${releaseNotesRelative} lacks tag, npm, or GitHub release status`);
 
   evidence.push(`package version: ${pkg?.version || "unavailable"}`);
   evidence.push(`lockfile version: ${lock?.version || "unavailable"}`);
@@ -3224,11 +3234,16 @@ function runV020LocalPrep() {
   });
   const npmAuthAvailable = npmAuth.code === 0;
   evidence.push(`npm authentication: ${npmAuthAvailable ? "available" : "BLOCKED_CAPABILITY"}`);
+  const ghAuth = run("gh", ["api", "user", "--jq", ".login"], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const ghAuthAvailable = ghAuth.code === 0 && firstNonEmptyLine(ghAuth.stdout) === EXPECTED_GITHUB_USER;
+  evidence.push(`GitHub authentication: ${ghAuthAvailable ? `available as ${EXPECTED_GITHUB_USER}` : "BLOCKED_CAPABILITY"}`);
+  const deployScript = Boolean(pkg?.scripts?.deploy);
+  evidence.push(`deployment target: ${deployScript ? "package deploy script declared" : "NOT_APPLICABLE (no deployment target declared)"}`);
 
   if (blockers.length) {
     return {
       finalStatus: "BLOCKED_SAFETY",
-      ledgerStatus: "v0.2.0 local preparation blocked",
+      ledgerStatus: `${tag || "Release"} preparation blocked`,
       summary: blockers.join("; "),
       nextPermission: "fix failed local safety gate",
       nextSkill: "release-preflight-skill / error-evidence-skill",
@@ -3236,15 +3251,309 @@ function runV020LocalPrep() {
     };
   }
 
+  const capabilityBlockers = [];
+  if (!npmAuthAvailable) capabilityBlockers.push("npm authentication unavailable");
+  if (!ghAuthAvailable) capabilityBlockers.push(`GitHub authentication unavailable as ${EXPECTED_GITHUB_USER}`);
+  if (capabilityBlockers.length) {
+    return {
+      finalStatus: "BLOCKED_CAPABILITY",
+      ledgerStatus: `${tag} publication blocked by external authentication capability`,
+      summary: capabilityBlockers.join("; "),
+      nextPermission: "authenticate the unavailable external service, then resume the same objective",
+      nextSkill: "github-auth-gate-skill / release-preflight-skill",
+      capabilityBlockers,
+      exitCode: 1,
+    };
+  }
+
+  const publication = runSemverPublication({
+    version,
+    tag,
+    packageName: pkg.name,
+    releaseNotesPath,
+  });
+  if (!publication.ok) {
+    return {
+      finalStatus: publication.state,
+      ledgerStatus: `${tag} publication blocked`,
+      summary: publication.summary,
+      nextPermission: publication.next || "resume the same objective after the blocking condition is resolved",
+      nextSkill: "github-handoff-skill / release-preflight-skill / error-evidence-skill",
+      capabilityBlockers: publication.state === "BLOCKED_CAPABILITY" ? [publication.summary] : [],
+      waitingConditions: publication.state === "WAITING_CONDITION" ? [publication.summary] : [],
+      publication,
+      exitCode: 1,
+    };
+  }
+
   return {
-    finalStatus: "READY: v0.2.0 locally prepared; one remote_publication approval will complete push, tag, GitHub Release and npm publication",
-    ledgerStatus: "v0.2.0 locally prepared and validated; remote publication awaiting one objective-level approval",
-    summary: "local/read-only v0.2.0 stages passed; remote publication remains ungranted; npm authentication is recorded as capability evidence, not a permission prompt",
-    nextPermission: "grant remote_publication once for push, tag, GitHub Release, and npm publication",
+    finalStatus: `${tag} published to npm and GitHub`,
+    ledgerStatus: `${tag} published to npm and GitHub`,
+    summary: `${tag} was pushed from the exact release commit, exact-SHA CI passed, the annotated tag resolves to that commit, npm publication is verified, and the GitHub Release is public; deploy is NOT_APPLICABLE`,
+    nextPermission: "run scheduled maintenance or select the next evidence-backed objective",
     nextSkill: "github-handoff-skill / release-preflight-skill",
-    capabilityBlockers: npmAuthAvailable ? [] : ["npm authentication unavailable for eventual npm publication"],
+    capabilityBlockers: [],
+    objectiveStatus: "complete",
+    publication,
     exitCode: 0,
   };
+}
+
+function runSemverPublication({ version, tag, packageName, releaseNotesPath }) {
+  const failure = (state, summary, next = "resume the same objective after resolving the blocker") => ({
+    ok: false,
+    state,
+    summary,
+    next,
+    version,
+    tag,
+  });
+  const ghEnvFile = loadEnvFile(DEFAULT_ENV_FILE);
+  const ghToken = ghEnvFile.GH_TOKEN || process.env.GH_TOKEN || "";
+  const ghEnv = ghToken ? buildGhEnv(ghToken) : process.env;
+
+  const branch = run("git", ["branch", "--show-current"], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const status = run("git", ["status", "--short"], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const origin = run("git", ["remote", "get-url", "origin"], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const branchName = firstNonEmptyLine(branch.stdout);
+  const originUrl = firstNonEmptyLine(origin.stdout);
+  if (branch.code !== 0 || branchName !== "main") return failure("BLOCKED_SAFETY", "release publication requires local branch main");
+  if (status.code !== 0 || status.stdout.trim()) return failure("BLOCKED_SAFETY", "release publication requires a clean working tree");
+  if (!/github\.com[:/]AyobamiH\/coding-workflow-library(?:\.git)?$/i.test(originUrl)) {
+    return failure("BLOCKED_SAFETY", "origin does not point to AyobamiH/coding-workflow-library");
+  }
+
+  const fetch = run("git", ["fetch", "origin", "main", "--tags", "--prune"], {
+    cwd: LIBRARY_ROOT,
+    allowFailure: true,
+    timeout: 120000,
+  });
+  if (fetch.code !== 0) return failure("BLOCKED_CAPABILITY", "unable to fetch origin/main and tags");
+
+  const localHeadRun = run("git", ["rev-parse", "HEAD"], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const remoteHeadRun = run("git", ["rev-parse", "origin/main"], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const localHead = firstNonEmptyLine(localHeadRun.stdout);
+  let remoteHead = firstNonEmptyLine(remoteHeadRun.stdout);
+  if (!localHead || !remoteHead) return failure("BLOCKED_SAFETY", "local or remote main commit could not be resolved");
+
+  if (localHead !== remoteHead) {
+    const fastForward = run("git", ["merge-base", "--is-ancestor", "origin/main", "HEAD"], {
+      cwd: LIBRARY_ROOT,
+      allowFailure: true,
+    });
+    if (fastForward.code !== 0) return failure("BLOCKED_SAFETY", "origin/main is not an ancestor of the exact local release commit; force push is forbidden");
+    const push = run("git", ["push", "origin", "main"], { cwd: LIBRARY_ROOT, allowFailure: true, timeout: 180000 });
+    if (push.code !== 0) return failure("BLOCKED_CAPABILITY", "non-force main push failed");
+  }
+
+  const remoteVerify = run("git", ["ls-remote", "origin", "refs/heads/main"], {
+    cwd: LIBRARY_ROOT,
+    allowFailure: true,
+    timeout: 120000,
+  });
+  remoteHead = firstNonEmptyLine(remoteVerify.stdout).split(/\s+/)[0] || "";
+  if (remoteVerify.code !== 0 || remoteHead !== localHead) return failure("BLOCKED_SAFETY", "remote main does not match the exact release commit after push");
+  evidence.push(`release commit: ${localHead}`);
+  evidence.push(`remote main verification: ${remoteHead}`);
+
+  const ci = waitForExactValidateWorkflow(localHead, ghEnv);
+  if (!ci.ok) return failure(ci.state, ci.summary, ci.next);
+  evidence.push(`exact-commit CI: success (run ${ci.run.databaseId})`);
+
+  const tagResult = ensureAnnotatedReleaseTag(tag, localHead);
+  if (!tagResult.ok) return failure(tagResult.state, tagResult.summary);
+  evidence.push(`${tag} remote tag commit: ${tagResult.commit}`);
+
+  const npmResult = ensureNpmPublication(packageName, version, localHead);
+  if (!npmResult.ok) return failure(npmResult.state, npmResult.summary, npmResult.next);
+  evidence.push(`npm publication: ${packageName}@${version} verified${npmResult.created ? " after publish" : " (already present)"}`);
+
+  const releaseResult = ensureGithubRelease(tag, releaseNotesPath, ghEnv);
+  if (!releaseResult.ok) return failure(releaseResult.state, releaseResult.summary);
+  evidence.push(`GitHub Release: ${releaseResult.url}`);
+  evidence.push("deployment: NOT_APPLICABLE (package.json declares no deploy target)");
+
+  return {
+    ok: true,
+    state: "COMPLETE",
+    version,
+    tag,
+    releaseCommit: localHead,
+    remoteMain: remoteHead,
+    ciRun: ci.run,
+    tagCommit: tagResult.commit,
+    npm: npmResult.metadata,
+    githubRelease: releaseResult,
+    deployment: "NOT_APPLICABLE",
+  };
+}
+
+function waitForExactValidateWorkflow(commit, ghEnv) {
+  const listRuns = () => {
+    const result = run("gh", [
+      "run", "list",
+      "--repo", OPEN_SOURCE_GITHUB_REPO,
+      "--workflow", "validate.yml",
+      "--branch", "main",
+      "--commit", commit,
+      "--limit", "5",
+      "--json", "databaseId,headSha,status,conclusion,url",
+    ], { env: ghEnv, allowFailure: true, timeout: 120000 });
+    if (result.code !== 0) return { result, runs: [] };
+    try {
+      return { result, runs: JSON.parse(result.stdout) };
+    } catch {
+      return { result: { ...result, code: 1 }, runs: [] };
+    }
+  };
+
+  let listed = null;
+  let exact = null;
+  for (let attempt = 0; attempt < 24; attempt += 1) {
+    listed = listRuns();
+    if (listed.result.code !== 0) {
+      return { ok: false, state: "BLOCKED_CAPABILITY", summary: "GitHub Actions run listing failed", next: "restore read-only GitHub Actions access and resume" };
+    }
+    exact = listed.runs.find((item) => item.headSha === commit) || null;
+    if (exact) break;
+    spawnSync("sleep", ["5"], { encoding: "utf8" });
+  }
+  if (!exact) {
+    return { ok: false, state: "WAITING_CONDITION", summary: `no Validate workflow run appeared for exact commit ${commit}`, next: "wait for the exact-commit workflow to start, then resume" };
+  }
+
+  if (exact.status !== "completed") {
+    run("gh", ["run", "watch", String(exact.databaseId), "--repo", OPEN_SOURCE_GITHUB_REPO, "--exit-status"], {
+      env: ghEnv,
+      allowFailure: true,
+      timeout: 900000,
+    });
+    listed = listRuns();
+    exact = listed.runs.find((item) => item.headSha === commit) || exact;
+  }
+  if (exact.status !== "completed") {
+    return { ok: false, state: "WAITING_CONDITION", summary: `Validate workflow ${exact.databaseId} is still ${exact.status}`, next: "wait for exact-commit CI completion, then resume" };
+  }
+  if (exact.conclusion !== "success") {
+    return { ok: false, state: "BLOCKED_SAFETY", summary: `Validate workflow ${exact.databaseId} concluded ${exact.conclusion}; release artifacts were not created`, next: "inspect safe CI failure logs and fix only the release defect" };
+  }
+  return { ok: true, run: exact };
+}
+
+function ensureAnnotatedReleaseTag(tag, commit) {
+  const local = run("git", ["rev-list", "-n", "1", tag], { cwd: LIBRARY_ROOT, allowFailure: true });
+  let localCommit = firstNonEmptyLine(local.stdout);
+  const remoteObject = run("git", ["ls-remote", "origin", `refs/tags/${tag}`], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const remotePeeled = run("git", ["ls-remote", "origin", `refs/tags/${tag}^{}`], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const remoteObjectCommit = firstNonEmptyLine(remoteObject.stdout).split(/\s+/)[0] || "";
+  let remoteCommit = firstNonEmptyLine(remotePeeled.stdout).split(/\s+/)[0] || "";
+
+  if (localCommit && localCommit !== commit) return { ok: false, state: "BLOCKED_SAFETY", summary: `${tag} already exists locally at an unexpected commit` };
+  if (remoteObjectCommit && (!remoteCommit || remoteCommit !== commit)) {
+    return { ok: false, state: "BLOCKED_SAFETY", summary: `${tag} already exists remotely but is not an annotated tag for the exact release commit` };
+  }
+
+  if (!localCommit && !remoteObjectCommit) {
+    const create = run("git", ["tag", "-a", tag, "-m", tag], { cwd: LIBRARY_ROOT, allowFailure: true });
+    if (create.code !== 0) return { ok: false, state: "BLOCKED_SAFETY", summary: `failed to create annotated tag ${tag}` };
+    localCommit = commit;
+  }
+
+  if (localCommit) {
+    const tagType = run("git", ["cat-file", "-t", tag], { cwd: LIBRARY_ROOT, allowFailure: true });
+    if (firstNonEmptyLine(tagType.stdout) !== "tag") return { ok: false, state: "BLOCKED_SAFETY", summary: `${tag} is not an annotated tag` };
+  }
+
+  if (!remoteObjectCommit) {
+    const push = run("git", ["push", "origin", tag], { cwd: LIBRARY_ROOT, allowFailure: true, timeout: 180000 });
+    if (push.code !== 0) return { ok: false, state: "BLOCKED_CAPABILITY", summary: `failed to push ${tag}` };
+  }
+
+  const verify = run("git", ["ls-remote", "origin", `refs/tags/${tag}^{}`], { cwd: LIBRARY_ROOT, allowFailure: true });
+  remoteCommit = firstNonEmptyLine(verify.stdout).split(/\s+/)[0] || "";
+  if (verify.code !== 0 || remoteCommit !== commit) return { ok: false, state: "BLOCKED_SAFETY", summary: `${tag} remote dereference does not match the exact release commit` };
+  return { ok: true, commit: remoteCommit };
+}
+
+function ensureNpmPublication(packageName, version, commit) {
+  const spec = `${packageName}@${version}`;
+  const view = () => run("npm", ["view", spec, "name", "version", "gitHead", "--json", "--cache", DEFAULT_NPM_CACHE], {
+    cwd: LIBRARY_ROOT,
+    env: npmPackDryRunEnv(),
+    allowFailure: true,
+    timeout: 120000,
+  });
+  const parse = (result) => {
+    if (result.code !== 0) return null;
+    try { return JSON.parse(result.stdout); } catch { return null; }
+  };
+
+  let result = view();
+  let metadata = parse(result);
+  let created = false;
+  if (result.code !== 0) {
+    const missing = /E404|404 Not Found|is not in this registry/i.test(`${result.stdout}\n${result.stderr}`);
+    if (!missing) return { ok: false, state: "BLOCKED_CAPABILITY", summary: `npm could not determine whether ${spec} exists`, next: "restore npm registry access and resume" };
+    const publish = run("npm", ["publish", "--access", "public", "--cache", DEFAULT_NPM_CACHE], {
+      cwd: LIBRARY_ROOT,
+      env: npmPackDryRunEnv(),
+      allowFailure: true,
+      timeout: 600000,
+    });
+    if (publish.code !== 0) return { ok: false, state: "BLOCKED_CAPABILITY", summary: `npm publish failed for ${spec}`, next: "resolve npm authentication, ownership, or registry policy and resume" };
+    created = true;
+    for (let attempt = 0; attempt < 18; attempt += 1) {
+      result = view();
+      metadata = parse(result);
+      if (metadata) break;
+      spawnSync("sleep", ["5"], { encoding: "utf8" });
+    }
+  }
+
+  if (!metadata || metadata.name !== packageName || metadata.version !== version) {
+    return { ok: false, state: "WAITING_CONDITION", summary: `${spec} publication is not yet verifiable from npm`, next: "wait for npm registry propagation, then resume" };
+  }
+  if (metadata.gitHead && metadata.gitHead !== commit) {
+    return { ok: false, state: "BLOCKED_SAFETY", summary: `${spec} exists but its gitHead does not match the exact release commit` };
+  }
+  return { ok: true, created, metadata };
+}
+
+function ensureGithubRelease(tag, releaseNotesPath, ghEnv) {
+  const view = () => run("gh", ["release", "view", tag, "--repo", OPEN_SOURCE_GITHUB_REPO, "--json", "tagName,url,isDraft,isPrerelease"], {
+    env: ghEnv,
+    allowFailure: true,
+    timeout: 120000,
+  });
+  const parse = (result) => {
+    if (result.code !== 0) return null;
+    try { return JSON.parse(result.stdout); } catch { return null; }
+  };
+  let result = view();
+  let metadata = parse(result);
+  if (!metadata) {
+    const list = run("gh", ["release", "list", "--repo", OPEN_SOURCE_GITHUB_REPO, "--limit", "100", "--json", "tagName"], {
+      env: ghEnv,
+      allowFailure: true,
+      timeout: 120000,
+    });
+    if (list.code !== 0) return { ok: false, state: "BLOCKED_CAPABILITY", summary: "GitHub Release listing failed" };
+    let releases = [];
+    try { releases = JSON.parse(list.stdout); } catch { return { ok: false, state: "BLOCKED_CAPABILITY", summary: "GitHub Release listing returned invalid JSON" }; }
+    if (releases.some((item) => item.tagName === tag)) return { ok: false, state: "BLOCKED_SAFETY", summary: `${tag} GitHub Release exists but could not be inspected` };
+    const create = run("gh", ["release", "create", tag, "--repo", OPEN_SOURCE_GITHUB_REPO, "--title", tag, "--notes-file", releaseNotesPath, "--verify-tag"], {
+      env: ghEnv,
+      allowFailure: true,
+      timeout: 180000,
+    });
+    if (create.code !== 0) return { ok: false, state: "BLOCKED_CAPABILITY", summary: `GitHub Release creation failed for ${tag}` };
+    result = view();
+    metadata = parse(result);
+  }
+  if (!metadata || metadata.tagName !== tag || metadata.isDraft || metadata.isPrerelease) {
+    return { ok: false, state: "BLOCKED_SAFETY", summary: `${tag} GitHub Release verification failed` };
+  }
+  return { ok: true, ...metadata };
 }
 
 function runWorkflowCorpusRecovery() {
@@ -13542,7 +13851,7 @@ function updateSelectedLane(result, route) {
     const checkpoint = route.kind || route.permission || "run-next";
     changes.objective = {
       ...objective,
-      status: blocked ? "blocked" : "active",
+      status: result.objectiveStatus || (blocked ? "blocked" : "active"),
       updated_at: new Date().toISOString(),
       checkpoints: {
         ...objective.checkpoints,
@@ -14854,6 +15163,9 @@ function formatRunLogFilesChanged(isDryRun) {
 }
 
 function permissionBoundarySummary() {
+  if (releaseVersionFromObjective(selectedLane?.objective?.id)) {
+    return "Semver release publication is limited to the selected library objective: exact local gates, non-force main push, exact-SHA CI, one annotated version tag, npm publication, one GitHub Release, and verification. No force push, history rewrite, secret mutation, unrelated repository mutation, or invented deployment target is permitted";
+  }
   if (args.allow.has("first-version-tag")) {
     return "First-version tag gate permitted only for local version/changelog/release-note edits, local validation/package smoke, exact-file commits, non-force main push, read-only GitHub Actions inspection, annotated tag v0.1.0 creation/push, remote tag verification, and post-tag bookkeeping. No npm publish, npm version, GitHub release, deploy, Supabase, Cloudflare, production endpoint, secret printing, force push, history rewrite, broad staging, or excluded-file staging";
   }
@@ -14906,6 +15218,9 @@ function permissionBoundarySummary() {
 }
 
 function forbiddenActionSummary() {
+  if (releaseVersionFromObjective(selectedLane?.objective?.id)) {
+    return "No forbidden force push, history rewrite, broad staging, secret mutation or output, unrelated repository mutation, npm version command, or product deployment occurred. Package deployment is NOT_APPLICABLE because no deploy target is declared.";
+  }
   if (args.allow.has("first-version-tag")) {
     return "No forbidden npm publish, npm version, GitHub release creation, deploy, Supabase command, Cloudflare command, production endpoint call, secret printing, force push, history rewrite, broad staging, excluded-file staging, or extra repository creation occurred.";
   }

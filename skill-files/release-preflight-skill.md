@@ -22,6 +22,8 @@ For this skills library, `scripts/pre-commit-check --full` is useful local evide
 
 Local release preparation runs under `local_execution`. Git push, tag push, GitHub Release creation, and npm publication are `remote_publication` consequences and should be presented as one consolidated objective boundary. Missing npm authentication is `BLOCKED_CAPABILITY`, not `BLOCKED_PERMISSION`; continue version, changelog, release notes, validation, package smoke, and local commit work when those stages do not depend on publication.
 
+For this library, later release objectives use `release-coding-workflow-library-vX.Y.Z`. `run-next` derives the semver from the objective instead of hard-coding an old release state. The objective version must match `package.json`, `package-lock.json`, a dated changelog entry, and `docs/releases/vX.Y.Z.md`. Remote publication remains ordered: push `main` non-force, verify CI for the exact commit, create and verify one annotated tag, publish and verify npm, then create and verify one GitHub Release.
+
 The helper supports modes: `local`, `npm`, and `cli`. `local` is the default and must not fail only because a repo is not an npm package. `npm` expects package readiness. `cli` expects package readiness and CLI `bin` readiness.
 
 For this skills library, MIT has been selected and `package.json` may exist as a local package candidate scaffold named `autonomous-coding-workflow-library` with repository identity `AyobamiH/coding-workflow-library`. The local CLI command candidate is `coding-workflow`. Release preflight may classify readiness, but publishing remains blocked until John confirms final npm package name availability and ownership and separately approves the publish/tag/push/release gate.
@@ -203,4 +205,4 @@ supabase functions deploy
 - Add optional registry read-only version check after explicit network permission.
 - Add integration with GitHub handoff and evidence-pack reports.
 - Add GitHub source handoff mode that proves public repository files, CI, exact-file commit scope, and remote HEAD parity while still blocking publish/version/tag/release.
-- Add first-version tag mode that requires package version/changelog/release notes, clean local validation, package smoke, exact release commit CI success, annotated tag verification, and explicit exclusion of npm publish and GitHub release creation.
+- Keep the generic semver publication route idempotent across remote main, tag, npm version, and GitHub Release checks; never recreate an already verified artifact.

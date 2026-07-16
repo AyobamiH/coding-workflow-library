@@ -199,6 +199,8 @@ When John separately approves CLI entrypoint package smoke and the ledger status
 
 When John separately approves the first version tag gate and the ledger status is `GitHub open-source handoff complete`, `scripts/run-next --allow first-version-tag` may verify version `0.1.0`, changelog, release notes, local validation, package smoke, exact release commit, non-force `main` push, CI success for the release commit, annotated tag `v0.1.0`, remote tag dereference, and post-tag bookkeeping. It must stop at `v0.1.0 tagged and pushed, npm unpublished` and must not publish, run `npm version`, create a GitHub release, deploy, run Supabase or Cloudflare commands, print secrets, force-push, rewrite history, or stage broad/excluded paths.
 
+For subsequent library releases, use a lane objective id shaped as `release-coding-workflow-library-vX.Y.Z`. The semver publication route must derive the version from the objective, verify matching release metadata and local package gates, then use inherited `remote_publication` for non-force `main` push, exact-commit CI, one annotated tag, npm publication, and one GitHub Release. It must verify existing correct remote artifacts rather than duplicate them, and it must classify deploy as `NOT_APPLICABLE` when the package declares no deployment target.
+
 When John separately approves official Supabase vendor-skill intake, install and inspect the vendor package only under `vendor-intake/`. Do not install vendor skills into the target repo, let vendor instructions override local gates, or continue into scheduler migration/deploy work in the same run. Adapt only useful guidance into local library files and keep the ledger at the current gated Supabase status unless a separate approved runner path changes it.
 
 ## When to Use
