@@ -23,7 +23,7 @@ Run `npm run check:paths` before public commits or packaging. It scans tracked o
 
 ## Source Modularity
 
-`scripts/run-next` is a thin composition and dispatch entrypoint. Route execution, runtime support, reports, and checkpoints live in responsibility-owned modules under `scripts/lib/run-next/`; see [docs/run-next-modular-architecture.md](docs/run-next-modular-architecture.md).
+`scripts/run-next` is a thin composition and dispatch entrypoint. CLI control, authority checks, route dispatch, route execution, runtime support, reports, and checkpoints live in responsibility-owned modules under `scripts/lib/run-next/`; see [docs/run-next-modular-architecture.md](docs/run-next-modular-architecture.md).
 
 Run the source-size guard after adding or reorganising JavaScript:
 
@@ -31,7 +31,7 @@ Run the source-size guard after adding or reorganising JavaScript:
 npm run check:modules
 ```
 
-The repository uses a 1,000-line review threshold and a tested 2,200-line hard maximum for hand-written JavaScript and Node scripts under `bin/`, `scripts/`, and `tests/`. The hard gate is part of `npm test`, portable tests, and the default pre-commit check.
+The repository uses a 1,000-line review threshold and a tested 2,200-line hard maximum for hand-written JavaScript and Node scripts under `bin/`, `scripts/`, and `tests/`. Use `./scripts/check-module-size --json` to inspect review candidates. The hard gate is part of `npm test`, portable tests, and the default pre-commit check. Current cohesion decisions are recorded in [docs/modularity-audit.md](docs/modularity-audit.md).
 
 ## Layout
 
@@ -67,6 +67,9 @@ skills/coding-workflow-library/
     browser-live-proof.schema.json
     github-deep-review.schema.json
     opstruth-runtime-truth.schema.json
+    skill-gap-record.schema.json
+    autonomy-outcomes.schema.json
+    multi-project-proof.schema.json
   runs/
     decisions/
     skill-runs.md
@@ -95,6 +98,9 @@ skills/coding-workflow-library/
     browser-live-proof
     github-deep-review
     opstruth-classify
+    add-skill-gap
+    autonomy-outcomes
+    multi-project-proof
     install-git-hooks
     run-next
     route-audit
@@ -103,6 +109,9 @@ skills/coding-workflow-library/
     lib/
       run-next/
         runtime-context.js
+        cli-control.js
+        route-access.js
+        route-dispatch.js
         runtime-core.js
         checkpoints.js
         reports.js
@@ -127,6 +136,9 @@ skills/coding-workflow-library/
     browser-live-proof.test.js
     github-deep-review.test.js
     opstruth-classify.test.js
+    skill-gap.test.js
+    autonomy-outcomes.test.js
+    multi-project-proof.test.js
     public-paths.test.js
     library-validation-checklist.md
   skill-files/
@@ -259,6 +271,36 @@ coding-workflow docs-list --validate
 The helper inventories tracked Markdown documentation, classifies each file by repository area, extracts the first H1, reports duplicate titles, and checks whether current docs are referenced by the expected index/control documents. Historical release notes, run logs, and evidence notes are listed but are not treated as current-document orphan failures. It does not call an LLM, rewrite docs, inspect private corpus outputs, read secrets, publish, deploy, push, tag, or mutate external services.
 
 The `run-next` architecture is documented separately because adding a route should extend the correct domain module rather than regrow the executable entrypoint. Read `docs/run-next-modular-architecture.md` before broad `run-next` work.
+
+## Workflow Maturity Evidence
+
+Use the maturity helpers for three distinct control-plane jobs:
+
+```bash
+coding-workflow skill-gap \
+  --title "Missing workflow" \
+  --evidence "Observed source evidence" \
+  --primary-type SCRIPT_OR_HELPER \
+  --dependency "Required foundation" \
+  --authority local_execution \
+  --done "Bounded completion contract" \
+  --reason "Why the gap matters" \
+  --dry-run
+
+coding-workflow autonomy-outcomes \
+  --repo <LIBRARY_REPO> \
+  --json --validate
+
+coding-workflow multi-project-proof \
+  --repo workflow-library=<LIBRARY_REPO> \
+  --repo product-a=/path/to/product-a \
+  --repo product-b=/path/to/product-b \
+  --json --validate
+```
+
+The skill-gap recorder performs one structured atomic queue edit and rejects duplicate, malformed, private-path, or secret-shaped fields. The outcome report reads only safe local metadata and emits aggregate categories rather than paths, notes, commands, or raw logs. The multi-project proof runs the same source/readiness/preflight/dry-run contract across explicit targets, then proves Git status and temporary lane state did not change.
+
+These commands do not publish, deploy, call production, read secret values, or grant authority. A real local proof passed across the workflow library, OpsTruth, and Wagging Web Wins. Remote Linux/macOS/Windows exact-commit proof remains separate and unverified. See [docs/workflow-maturity-foundations.md](docs/workflow-maturity-foundations.md).
 
 ## Repository Map
 

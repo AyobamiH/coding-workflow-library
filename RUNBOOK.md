@@ -322,9 +322,27 @@ If a mapped skill file is missing:
 
 1. Do not claim it exists.
 2. List the missing skill name.
-3. Add a "missing skill gap" entry to `build-queue.md`.
-4. Recommend whether it should be created.
-5. Use only generic read-only inspection until the user approves creating the missing skill or selects another skill.
+3. Prepare the structured entry with `scripts/add-skill-gap ... --dry-run`.
+4. Record it with the same explicit fields only after the dry-run is correct; use `--json` when another tool consumes the result.
+5. Run `scripts/add-skill-gap --validate`.
+6. Recommend whether the gap should become a skill, helper, route, validation, or documented hold.
+7. Use only generic read-only inspection until the active objective authorises implementation or selects another skill.
+
+The recorder rejects duplicates, missing or multiline fields, oversized values, private absolute paths, and secret-shaped material. It edits only the P1 queue boundary and performs no remote action.
+
+## Autonomy Outcome Review
+
+Use `scripts/autonomy-outcomes --repo <LIBRARY_REPO> --json --validate` when the question is whether the workflow is completing, blocking, resuming, or stopping more reliably.
+
+The report uses only safe local lane, checkpoint, ledger, and run-log metadata. Missing optional lane state remains `WARN` and `not_verified`. Do not treat aggregate workflow outcomes as CI, deployment, runtime, database, or production evidence.
+
+## Multi-Project Workflow Proof
+
+Use `scripts/multi-project-proof` only with at least three explicit `label=path` targets. Review the labels before execution.
+
+The helper runs repository-map validation, package readiness, local release preflight, and a lane-scoped verification-bundle dry-run for each target. It must leave Git status and temporary lane state unchanged, suppress raw subprocess output, and report labels rather than paths.
+
+Existing target dirt is preserved. A pass proves only that this bounded local contract ran consistently for the selected repositories; it does not grant target-specific authority or prove remote CI or production state.
 
 ## Zero-Output Investigation
 
@@ -355,6 +373,8 @@ Every real use of this library must be logged in `runs/skill-runs.md`.
 `scripts/run-next` updates `work-ledger.md` and appends `runs/skill-runs.md` only for real runs. Dry-run and explain modes must not mutate files or mark ledger work completed.
 
 Lane-aware runs use `--lane <id> --state-file <path>`. They read and update only the selected lane, never append product-specific runtime evidence to the public ledger/run log, and require explicit monitoring baselines rather than deriving production time boundaries from ledger file timestamps.
+
+Run `scripts/check-module-size --json` during broad source work. Review every file above 1,000 lines against `docs/modularity-audit.md`; split a focused responsibility when the current change would weaken cohesion. The 2,200-line maximum is a hard validation failure.
 
 Minimum ledger fields:
 

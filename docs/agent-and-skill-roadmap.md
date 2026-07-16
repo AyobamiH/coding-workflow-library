@@ -23,9 +23,10 @@ corrected workflow corpus
   -> three-OS portability contract (implemented locally)
   -> routing shape review (implemented)
   -> modular run-next architecture and source-size guard (implemented locally)
-  -> safe skill-gap recorder
-  -> autonomy outcome reporting
-  -> real multi-project workflow evidence
+  -> safe skill-gap recorder (implemented locally)
+  -> autonomy outcome reporting (implemented locally)
+  -> real multi-project workflow evidence (observed locally)
+  -> exact-commit remote portability proof
   -> remote three-OS exact-commit proof
   -> Opstruth runtime truth self-test (implemented)
   -> capability adapter evaluation (completed: narrow adapters only)
@@ -154,10 +155,10 @@ The adapter evaluation found no need for a generic broker. Capability Intelligen
 ### P1
 
 4. Keep the modular `run-next` architecture and `scripts/check-module-size` current; do not regrow the entrypoint.
-5. Implement the safe skill-gap recorder required by the existing runbook contract.
-6. Add read-only autonomy outcome reporting from safe lane, checkpoint, ledger, and run metadata.
-7. Collect representative real-run evidence across at least three repositories without leaking lane state.
-8. Verify the existing Linux/macOS/Windows portable matrix against an exact published commit.
+5. Keep the implemented safe skill-gap recorder current as the structured "no skill fits" queue contract.
+6. Keep read-only autonomy outcome reporting current over safe lane, checkpoint, ledger, and run metadata.
+7. Keep the observed multi-project proof contract current; it has passed across the workflow library, OpsTruth, and Wagging Web Wins without Git or lane-state leakage.
+8. Next: verify the existing Linux/macOS/Windows portable matrix against an exact published commit.
 9. Keep `scripts/repo-map` current as the deterministic source-only workspace orientation helper.
 10. Keep `scripts/project-kb` current as the deterministic source-only project memory compiler.
 11. Keep `scripts/pre-commit-check` and `scripts/install-git-hooks` current as the deterministic local commit gate.
@@ -178,4 +179,4 @@ The adapter evaluation found no need for a generic broker. Capability Intelligen
 20. Revisit capability acquisition and prefetch only after at least two real runs prove the same unresolved adapter insufficiency.
 21. Revisit agent-role system only after at least two independent sessions prove a reusable role contract.
 
-The evidence-backed reusable-foundation sequence through capability adapter evaluation is complete locally. The current maturity sequence returns to workflow reliability: keep `run-next` modular, close the skill-gap recording contract, measure autonomy outcomes, gather multi-project evidence, and verify remote portability. The adapter evaluation selected narrow workflow-owned adapters, observed one bounded GitHub metadata read, and rejected a generic broker, prefetch, automatic installation, and skill/plugin hard cutover. Capability Intelligence remains parked as a separate product direction.
+The evidence-backed reusable-foundation sequence through capability adapter evaluation is complete locally. Workflow reliability now has a bounded entrypoint, structured skill-gap recording, privacy-safe outcome reporting, and observed three-repository proof. The next active dependency is exact-commit remote Linux/macOS/Windows evidence; local Linux results must not be substituted for that proof. See `docs/workflow-maturity-foundations.md` and `docs/modularity-audit.md`. The adapter evaluation selected narrow workflow-owned adapters, observed one bounded GitHub metadata read, and rejected a generic broker, prefetch, automatic installation, and skill/plugin hard cutover. Capability Intelligence remains parked as a separate product direction.

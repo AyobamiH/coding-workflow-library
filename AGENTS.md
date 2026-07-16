@@ -128,6 +128,8 @@ Do not ask John for another approval merely because the next skill is ready, a l
 - Do not ask vague "what next?" questions.
 - Prefer `scripts/run-next --explain` when the next safe job should be selected without mutating any files, repos, or external services.
 - Run `scripts/docs-list` before broad documentation reorganization so existing guidance is discovered before new files are created.
+- When no existing skill fits, use `scripts/add-skill-gap --dry-run` before recording one structured queue entry; do not invent an untracked skill contract in prose.
+- Use `scripts/autonomy-outcomes` for aggregate local reliability evidence and `scripts/multi-project-proof` for explicit cross-repository local proof. Neither helper grants target authority or proves remote, deployment, database, or production state.
 - For interrupted work, prefer `scripts/run-next --repo <repo> --status` and `scripts/run-next --repo <repo> --resume --dry-run` before asking John to reconstruct state manually.
 - If local skills, route metadata, git state, or checkpoint state can answer the recovery question, use them; do not request a babysitting prompt.
 - When John is needed, provide a decision brief with options and recommendation.
@@ -141,3 +143,5 @@ Use project-scoped local lane state for active work. The public `work-ledger.md`
 Real repo paths, monitoring baselines, private evidence, and product-specific runtime status belong in a local secret-free state file outside the tracked package. Select one lane explicitly and never advance another lane as a side effect.
 
 Real `run-next` executions also write secret-free local checkpoint metadata under `.run-next/`. This directory is ignored by git and is used only to inspect or resume interrupted bounded runs.
+
+Hand-written JavaScript and Node scripts above 1,000 lines require a cohesion review. Either extract a focused responsibility or record why the file remains cohesive in `docs/modularity-audit.md`. No hand-written file may bypass the 2,200-line hard maximum.

@@ -4,12 +4,15 @@ const fs = require("fs");
 const path = require("path");
 
 const DEFAULT_MAX_LINES = 2200;
+const DEFAULT_REVIEW_LINES = 1000;
 const SOURCE_DIRS = ["bin", "scripts", "tests"];
 
 function parseArgs(argv) {
   const args = {
     repo: process.cwd(),
     maxLines: DEFAULT_MAX_LINES,
+    reviewLines: DEFAULT_REVIEW_LINES,
+    json: false,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -21,16 +24,27 @@ function parseArgs(argv) {
       if (!Number.isInteger(args.maxLines) || args.maxLines < 1) {
         throw new Error("--max-lines requires a positive integer");
       }
+    } else if (arg === "--review-lines") {
+      args.reviewLines = Number(argv[++index]);
+      if (!Number.isInteger(args.reviewLines) || args.reviewLines < 1) {
+        throw new Error("--review-lines requires a positive integer");
+      }
+    } else if (arg === "--json") {
+      args.json = true;
     } else if (arg === "--help" || arg === "-h") {
-      console.log(`Usage: ./scripts/check-module-size [--repo <path>] [--max-lines <count>]
+      console.log(`Usage: ./scripts/check-module-size [--repo <path>] [--review-lines <count>] [--max-lines <count>] [--json]
 
 Fail when a JavaScript or Node-shebang source file under bin/, scripts/, or tests/
-exceeds the configured line budget. Generated, dependency, cache, and private
-runtime directories are excluded.`);
+exceeds the hard line budget. Files above the lower review threshold remain
+visible for cohesion review without failing the command. Generated, dependency,
+cache, and private runtime directories are excluded.`);
       process.exit(0);
     } else {
       throw new Error(`unknown argument: ${arg}`);
     }
+  }
+  if (args.reviewLines > args.maxLines) {
+    throw new Error("--review-lines must not exceed --max-lines");
   }
   return args;
 }
@@ -73,19 +87,22 @@ function inspectRepository(options) {
   const args = {
     repo: path.resolve(options.repo),
     maxLines: options.maxLines,
+    reviewLines: options.reviewLines ?? DEFAULT_REVIEW_LINES,
   };
   const root = path.resolve(args.repo);
   const files = SOURCE_DIRS.flatMap((directory) => walk(root, directory)).sort();
-  const oversized = files
-    .map((relativePath) => ({
+  const measured = files.map((relativePath) => ({
       path: relativePath.split(path.sep).join("/"),
       lines: countLines(path.join(root, relativePath)),
-    }))
-    .filter((item) => item.lines > args.maxLines);
+    }));
+  const oversized = measured.filter((item) => item.lines > args.maxLines);
+  const reviewCandidates = measured.filter((item) => item.lines > args.reviewLines);
 
   return {
     filesChecked: files.length,
+    reviewLines: args.reviewLines,
     maxLines: args.maxLines,
+    reviewCandidates,
     oversized,
   };
 }
@@ -93,7 +110,10 @@ function inspectRepository(options) {
 function render(result) {
   console.log("# Module Size Check");
   console.log(`Files checked: ${result.filesChecked}`);
+  console.log(`Review threshold: ${result.reviewLines}`);
   console.log(`Maximum lines: ${result.maxLines}`);
+  console.log(`Review candidates: ${result.reviewCandidates.length}`);
+  for (const item of result.reviewCandidates) console.log(`- REVIEW ${item.path}: ${item.lines}`);
   console.log(`Oversized files: ${result.oversized.length}`);
   for (const item of result.oversized) console.log(`- ${item.path}: ${item.lines}`);
 }
@@ -101,7 +121,8 @@ function render(result) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const result = inspectRepository(args);
-  render(result);
+  if (args.json) console.log(JSON.stringify(result, null, 2));
+  else render(result);
   if (result.oversized.length) process.exitCode = 1;
 }
 
@@ -109,5 +130,6 @@ if (require.main === module) main();
 
 module.exports = {
   DEFAULT_MAX_LINES,
+  DEFAULT_REVIEW_LINES,
   inspectRepository,
 };

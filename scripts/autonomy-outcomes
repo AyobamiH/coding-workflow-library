@@ -1,0 +1,413 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const laneState = require("./lane-state");
+
+const SCHEMA_VERSION = 1;
+const CHECKPOINT_KEYS = new Set([
+  "run_id",
+  "repo",
+  "branch",
+  "job",
+  "skill",
+  "phase",
+  "status",
+  "checkpoints",
+  "permissions",
+  "required_permission",
+  "last_verified_commit",
+  "stop_reason",
+  "stop_metadata",
+  "active_heading",
+  "current_status",
+  "selected_lane",
+  "created_at",
+  "updated_at",
+]);
+const SECRET_KEY = /(token|secret|password|credential|private[_-]?key|database[_-]?url|db[_-]?url|authorization)/i;
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/autonomy-outcomes [--repo <path>] [--state-file <path>]
+    [--checkpoint-dir <path>] [--ledger <path>] [--run-log <path>]
+    [--json] [--validate]
+
+Build a read-only, count-only autonomy report from local lane, checkpoint,
+ledger, and run metadata.
+
+The report never emits repository paths, raw notes, stop reasons, command
+output, environment values, or credentials. Missing optional sources are
+reported as not verified rather than failed.`);
+}
+
+function parseArgs(argv) {
+  const args = {
+    repo: process.cwd(),
+    stateFile: process.env.CODING_WORKFLOW_STATE_FILE || path.join(os.homedir(), ".coding-workflow", "lanes.json"),
+    checkpointDir: null,
+    ledger: null,
+    runLog: null,
+    json: false,
+    validate: false,
+    help: false,
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--repo") args.repo = requireValue(argv, ++index, arg);
+    else if (arg === "--state-file") args.stateFile = requireValue(argv, ++index, arg);
+    else if (arg === "--checkpoint-dir") args.checkpointDir = requireValue(argv, ++index, arg);
+    else if (arg === "--ledger") args.ledger = requireValue(argv, ++index, arg);
+    else if (arg === "--run-log") args.runLog = requireValue(argv, ++index, arg);
+    else if (arg === "--json") args.json = true;
+    else if (arg === "--validate") args.validate = true;
+    else if (arg === "--help" || arg === "-h") args.help = true;
+    else throw new Error(`unknown argument: ${arg}`);
+  }
+
+  const repo = path.resolve(args.repo);
+  args.repo = repo;
+  args.checkpointDir = path.resolve(args.checkpointDir || path.join(repo, ".run-next"));
+  args.ledger = path.resolve(args.ledger || path.join(repo, "work-ledger.md"));
+  args.runLog = path.resolve(args.runLog || path.join(repo, "runs", "skill-runs.md"));
+  args.stateFile = path.resolve(args.stateFile);
+  return args;
+}
+
+function requireValue(argv, index, flag) {
+  const value = argv[index];
+  if (!value) throw new Error(`${flag} requires a path`);
+  return value;
+}
+
+function increment(target, key, amount = 1) {
+  target[key] = (target[key] || 0) + amount;
+}
+
+function sortedObject(value) {
+  return Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)));
+}
+
+function safeLabel(value) {
+  const normalized = String(value || "").toLowerCase();
+  return /^[a-z0-9][a-z0-9._-]{0,79}$/.test(normalized) ? normalized : "other";
+}
+
+function source(status, records = 0) {
+  return { status, records };
+}
+
+function laneSummary(file) {
+  const summary = {
+    source: source("missing"),
+    lane_statuses: {},
+    objective_statuses: {},
+    objective_checkpoints: {},
+    blocker_states: {},
+  };
+  if (!fs.existsSync(file)) return { summary, errors: [] };
+
+  let state;
+  try {
+    state = laneState.readState(file);
+  } catch {
+    summary.source.status = "invalid";
+    return { summary, errors: ["lane-state-invalid"] };
+  }
+
+  summary.source = source("available", state.lanes.length);
+  for (const lane of state.lanes) {
+    increment(summary.lane_statuses, safeLabel(lane.status));
+    if (!lane.objective) continue;
+    increment(summary.objective_statuses, safeLabel(lane.objective.status));
+    for (const checkpointStatus of Object.values(lane.objective.checkpoints || {})) {
+      increment(summary.objective_checkpoints, safeLabel(checkpointStatus));
+    }
+    for (const blocker of lane.objective.blockers || []) {
+      increment(summary.blocker_states, safeLabel(blocker.state));
+    }
+  }
+
+  for (const key of ["lane_statuses", "objective_statuses", "objective_checkpoints", "blocker_states"]) {
+    summary[key] = sortedObject(summary[key]);
+  }
+  return { summary, errors: [] };
+}
+
+function checkpointFiles(directory) {
+  if (!fs.existsSync(directory)) return [];
+  const files = [];
+  const visit = (current) => {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) visit(full);
+      else if (entry.isFile() && entry.name.endsWith(".json")) files.push(full);
+    }
+  };
+  visit(directory);
+  return files.sort((left, right) => left.localeCompare(right));
+}
+
+function checkpointIsSensitive(value) {
+  if (!value || typeof value !== "object") return false;
+  if (Array.isArray(value)) return value.some(checkpointIsSensitive);
+  return Object.entries(value).some(([key, item]) => SECRET_KEY.test(key) || checkpointIsSensitive(item));
+}
+
+function boundaryClass(reason) {
+  const text = String(reason || "");
+  if (/permission|approval|needs john/i.test(text)) return "permission";
+  if (/capability|unavailable|not found|missing target|missing repo/i.test(text)) return "capability";
+  if (/safety|unsafe|diverg|unexpected tracked|branch changed/i.test(text)) return "safety";
+  if (/waiting|pending|queued|not observed/i.test(text)) return "waiting";
+  if (/decision|choose|manual review/i.test(text)) return "decision";
+  if (!text.trim()) return "unclassified";
+  return "other";
+}
+
+function checkpointSummary(directory) {
+  const files = checkpointFiles(directory);
+  const summary = {
+    source: source(fs.existsSync(directory) ? "available" : "missing", files.length),
+    statuses: {},
+    phases: {},
+    routes: {},
+    stop_boundaries: {},
+    checkpoint_steps: {},
+    resume_events: 0,
+    recovery_candidates: 0,
+    record_only_resume_candidates: 0,
+    invalid_records: 0,
+  };
+  const errors = [];
+
+  for (const file of files) {
+    let run;
+    try {
+      run = JSON.parse(fs.readFileSync(file, "utf8"));
+    } catch {
+      summary.invalid_records += 1;
+      continue;
+    }
+    if (!run || typeof run !== "object" || Array.isArray(run)) {
+      summary.invalid_records += 1;
+      continue;
+    }
+    if (Object.keys(run).some((key) => !CHECKPOINT_KEYS.has(key)) || checkpointIsSensitive(run)) {
+      summary.invalid_records += 1;
+      continue;
+    }
+
+    const status = safeLabel(run.status);
+    const phase = safeLabel(run.phase);
+    const route = safeLabel(run.job);
+    increment(summary.statuses, status);
+    increment(summary.phases, phase);
+    if (!summary.routes[route]) summary.routes[route] = { total: 0, completed: 0, incomplete: 0 };
+    summary.routes[route].total += 1;
+    if (status === "completed") summary.routes[route].completed += 1;
+    else summary.routes[route].incomplete += 1;
+
+    const checkpoints = Array.isArray(run.checkpoints) ? run.checkpoints : [];
+    const next = checkpoints.find((item) => item && item.status !== "completed");
+    for (const item of checkpoints) {
+      if (!item || typeof item !== "object") continue;
+      increment(summary.checkpoint_steps, safeLabel(item.status));
+      if (item.metadata && item.metadata.resumed === true) summary.resume_events += 1;
+    }
+    if (/resume/i.test(String(run.stop_reason || ""))) summary.resume_events += 1;
+    if (status !== "completed") {
+      summary.recovery_candidates += 1;
+      if (next && next.name === "record") summary.record_only_resume_candidates += 1;
+      increment(summary.stop_boundaries, boundaryClass(run.stop_reason));
+    }
+  }
+
+  if (summary.invalid_records) {
+    summary.source.status = "invalid";
+    errors.push("checkpoint-record-invalid");
+  }
+  for (const key of ["statuses", "phases", "stop_boundaries", "checkpoint_steps"]) {
+    summary[key] = sortedObject(summary[key]);
+  }
+  summary.routes = sortedObject(summary.routes);
+  return { summary, errors };
+}
+
+function classifyResult(text) {
+  if (/BLOCKED(?:_|\b)|\bFAIL(?:ED|URE)?\b|NEEDS JOHN/i.test(text)) return "blocked_or_failed";
+  if (/\bWAITING\b|\bPENDING\b|NOT_VERIFIED|NOT VERIFIED/i.test(text)) return "waiting_or_unverified";
+  if (/\bCOMPLETE\b|\bREADY\b|\bPASS(?:ED)?\b|implemented|published|verified|built/i.test(text)) return "completed_or_ready";
+  return "other";
+}
+
+function markdownSummary(file, kind) {
+  const summary = {
+    source: source("missing"),
+    records: 0,
+    result_classifications: {},
+    recovery_records: 0,
+    resume_mentions: 0,
+    boundary_mentions: 0,
+  };
+  if (!fs.existsSync(file)) return { summary, errors: [] };
+
+  let text;
+  try {
+    text = fs.readFileSync(file, "utf8");
+  } catch {
+    summary.source.status = "invalid";
+    return { summary, errors: [`${kind}-invalid`] };
+  }
+  summary.source.status = "available";
+  const headings = [...text.matchAll(/^##\s+\d{4}-\d{2}-\d{2}\b.*$/gm)];
+  summary.records = headings.length;
+  summary.source.records = headings.length;
+
+  const field = kind === "run-log" ? /^\* Result:\s*(.+)$/gm : /^\* Current status:\s*(.+)$/gm;
+  for (const match of text.matchAll(field)) increment(summary.result_classifications, classifyResult(match[1]));
+  summary.recovery_records = [...text.matchAll(/^\* (?:Failure\/recovery notes|Recovery evidence):\s*.+$/gim)].length;
+  summary.resume_mentions = [...text.matchAll(/\bresume(?:d|s|ing)?\b/gi)].length;
+  summary.boundary_mentions = [...text.matchAll(/\b(?:permission|safety|capability|decision|waiting) boundary\b/gi)].length;
+  summary.result_classifications = sortedObject(summary.result_classifications);
+  return { summary, errors: [] };
+}
+
+function buildReport(options) {
+  const lanes = laneSummary(options.stateFile);
+  const checkpoints = checkpointSummary(options.checkpointDir);
+  const ledger = markdownSummary(options.ledger, "ledger");
+  const runLog = markdownSummary(options.runLog, "run-log");
+  const errors = [...lanes.errors, ...checkpoints.errors, ...ledger.errors, ...runLog.errors];
+  const notVerified = [];
+  for (const [name, result] of Object.entries({
+    lane_state: lanes.summary,
+    checkpoints: checkpoints.summary,
+    ledger: ledger.summary,
+    run_log: runLog.summary,
+  })) {
+    if (result.source.status !== "available") notVerified.push(`${name}:${result.source.status}`);
+  }
+
+  return {
+    schema_version: SCHEMA_VERSION,
+    status: errors.length ? "FAIL" : notVerified.length ? "WARN" : "PASS",
+    sources: {
+      lane_state: lanes.summary.source,
+      checkpoints: checkpoints.summary.source,
+      ledger: ledger.summary.source,
+      run_log: runLog.summary.source,
+    },
+    lanes: {
+      lane_statuses: lanes.summary.lane_statuses,
+      objective_statuses: lanes.summary.objective_statuses,
+      objective_checkpoints: lanes.summary.objective_checkpoints,
+      blocker_states: lanes.summary.blocker_states,
+    },
+    checkpoints: {
+      statuses: checkpoints.summary.statuses,
+      phases: checkpoints.summary.phases,
+      routes: checkpoints.summary.routes,
+      stop_boundaries: checkpoints.summary.stop_boundaries,
+      checkpoint_steps: checkpoints.summary.checkpoint_steps,
+      resume_events: checkpoints.summary.resume_events,
+      recovery_candidates: checkpoints.summary.recovery_candidates,
+      record_only_resume_candidates: checkpoints.summary.record_only_resume_candidates,
+      invalid_records: checkpoints.summary.invalid_records,
+    },
+    history: {
+      ledger: {
+        records: ledger.summary.records,
+        result_classifications: ledger.summary.result_classifications,
+        recovery_records: ledger.summary.recovery_records,
+        resume_mentions: ledger.summary.resume_mentions,
+        boundary_mentions: ledger.summary.boundary_mentions,
+      },
+      run_log: {
+        records: runLog.summary.records,
+        result_classifications: runLog.summary.result_classifications,
+        recovery_records: runLog.summary.recovery_records,
+        resume_mentions: runLog.summary.resume_mentions,
+        boundary_mentions: runLog.summary.boundary_mentions,
+      },
+    },
+    not_verified: notVerified.sort(),
+    validation_errors: errors.sort(),
+    boundaries: [
+      "Counts describe local workflow metadata only.",
+      "Checkpoint completion does not prove production success.",
+      "Historical text classifications are aggregate heuristics, not claim verification.",
+      "Missing sources remain not verified.",
+    ],
+  };
+}
+
+function validateReport(report) {
+  const errors = [];
+  if (report.schema_version !== SCHEMA_VERSION) errors.push("schema-version");
+  if (!["PASS", "WARN", "FAIL"].includes(report.status)) errors.push("status");
+  if (!report.sources || !report.checkpoints || !report.history) errors.push("required-sections");
+  const serialized = JSON.stringify(report);
+  if (/\/(?:home|Users)\/[A-Za-z0-9._-]+|[A-Za-z]:\\\\Users\\\\/i.test(serialized)) errors.push("private-path-output");
+  if (/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.|-----BEGIN .*PRIVATE KEY-----/i.test(serialized)) errors.push("secret-shaped-output");
+  return errors;
+}
+
+function printHuman(report) {
+  console.log("# Autonomy Outcomes");
+  console.log(`Status: ${report.status}`);
+  console.log(`Checkpoint runs: ${report.sources.checkpoints.records}`);
+  console.log(`Completed runs: ${report.checkpoints.statuses.completed || 0}`);
+  console.log(`Incomplete runs: ${report.checkpoints.statuses.incomplete || 0}`);
+  console.log(`Recovery candidates: ${report.checkpoints.recovery_candidates}`);
+  console.log(`Record-only resume candidates: ${report.checkpoints.record_only_resume_candidates}`);
+  console.log(`Resume events: ${report.checkpoints.resume_events}`);
+  console.log(`Lane records: ${report.sources.lane_state.records}`);
+  console.log(`Historical run records: ${report.history.run_log.records}`);
+  console.log(`Not verified: ${report.not_verified.length ? report.not_verified.join(", ") : "none"}`);
+  console.log("\n## Stop Boundaries");
+  const boundaries = Object.entries(report.checkpoints.stop_boundaries);
+  if (!boundaries.length) console.log("- none observed");
+  else for (const [name, count] of boundaries) console.log(`- ${name}: ${count}`);
+  console.log("\n## Interpretation Boundaries");
+  for (const boundary of report.boundaries) console.log(`- ${boundary}`);
+}
+
+function main() {
+  try {
+    const args = parseArgs(process.argv.slice(2));
+    if (args.help) {
+      usage();
+      return;
+    }
+    const report = buildReport(args);
+    const validation = validateReport(report);
+    if (validation.length) {
+      report.status = "FAIL";
+      report.validation_errors = [...new Set([...report.validation_errors, ...validation])].sort();
+    }
+    if (args.json) console.log(JSON.stringify(report, null, 2));
+    else printHuman(report);
+    if (args.validate && report.status === "FAIL") process.exitCode = 1;
+  } catch (error) {
+    console.error(`autonomy outcome reporting failed: ${error.message}`);
+    process.exitCode = 2;
+  }
+}
+
+if (require.main === module) main();
+
+module.exports = {
+  boundaryClass,
+  buildReport,
+  checkpointIsSensitive,
+  checkpointSummary,
+  classifyResult,
+  laneSummary,
+  markdownSummary,
+  parseArgs,
+  safeLabel,
+  validateReport,
+};

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AyobamiH/coding-workflow-library/schemas/autonomy-outcomes.schema.json",
+  "title": "Autonomy Outcomes",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "sources",
+    "lanes",
+    "checkpoints",
+    "history",
+    "not_verified",
+    "validation_errors",
+    "boundaries"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "status": { "enum": ["PASS", "WARN", "FAIL"] },
+    "sources": { "type": "object" },
+    "lanes": { "type": "object" },
+    "checkpoints": { "type": "object" },
+    "history": { "type": "object" },
+    "not_verified": { "type": "array", "items": { "type": "string" } },
+    "validation_errors": { "type": "array", "items": { "type": "string" } },
+    "boundaries": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    }
+  }
+}

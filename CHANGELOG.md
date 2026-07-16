@@ -2,9 +2,12 @@
 
 ## Unreleased
 
-- Decompose the 16,116-line `scripts/run-next` monolith into a thin entrypoint and responsibility-owned runtime modules without changing route or authority behaviour.
-- Add a repository-wide source-size gate, modular runtime contract tests, recursive JavaScript syntax coverage, and documented modularity rules.
-- Keep the next maturity gaps explicit: safe skill-gap recording, autonomy outcome reporting, multi-project evidence, and remote cross-platform proof.
+- Decompose the 16,116-line `scripts/run-next` monolith into a 964-line entrypoint and 17 responsibility-owned runtime modules without changing route or authority behaviour.
+- Add a repository-wide 1,000-line review threshold, 2,200-line hard source-size gate, JSON audit output, modular runtime contract tests, recursive JavaScript syntax coverage, and documented responsibility decisions.
+- Add a structured, atomic, secret-safe skill-gap recorder with dry-run, JSON, validation, and duplicate/refusal coverage.
+- Add privacy-safe autonomy outcome reporting over local lane, checkpoint, ledger, and run metadata.
+- Add a read-only multi-project proof harness and observe the same bounded contract across the workflow library, OpsTruth, and Wagging Web Wins without Git or lane-state leakage.
+- Keep exact-commit remote Linux/macOS/Windows proof as the next unverified maturity dependency.
 
 ## 0.2.3 - 2026-07-16
 

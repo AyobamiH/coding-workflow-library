@@ -194,8 +194,14 @@ Use for source-only migration risk review before any apply/deploy step. Run `scr
 - `scripts/pipeline-diagnostics`: dependency-free source tracer for configured inputs, stage boundaries, filters, database tables, inserts, and response counter assignments.
 - `scripts/extract-session-workflows.mjs`: dependency-light private workflow corpus extractor for local OpenClaw/Codex JSONL sessions.
 - `scripts/docs-list`: dependency-free documentation inventory helper for tracked Markdown files, H1 titles, duplicate titles, orphan checks, JSON output, and strict validation.
-- `scripts/check-module-size`: recursive source-size guard for JavaScript and Node scripts under `bin/`, `scripts/`, and `tests/`, with a 2,200-line hard maximum.
-- `scripts/lib/run-next/`: responsibility-owned runtime modules for local foundations, release, GitHub, Supabase, scheduler, observability, reports, checkpoints, and shared runtime support.
+- `scripts/add-skill-gap`: atomic structured recorder for the existing missing-skill queue contract, with dry-run, JSON, validation, duplicate rejection, and secret/private-path refusal.
+- `schemas/skill-gap-record.schema.json`: portable result contract for skill-gap recording and validation.
+- `scripts/autonomy-outcomes`: read-only aggregate reporter over safe lane, checkpoint, ledger, and run-log metadata.
+- `schemas/autonomy-outcomes.schema.json`: portable result contract for autonomy outcome summaries.
+- `scripts/multi-project-proof`: explicit three-or-more-repository harness for repository-map, package-readiness, release-preflight, and lane-scoped dry-run proof without target mutation.
+- `schemas/multi-project-proof.schema.json`: portable result contract for multi-project proof summaries.
+- `scripts/check-module-size`: recursive source-size guard for JavaScript and Node scripts under `bin/`, `scripts/`, and `tests/`, with a 1,000-line review threshold, JSON audit output, and 2,200-line hard maximum.
+- `scripts/lib/run-next/`: responsibility-owned runtime modules for CLI control, route access/dispatch, local foundations, release, GitHub, Supabase, scheduler, observability, reports, checkpoints, and shared runtime support.
 - `scripts/repo-map`: dependency-free source-only repository map helper for Git and non-Git directories, with JSON and validation modes.
 - `schemas/repo-map.schema.json`: portable schema for `scripts/repo-map --json` output.
 - `scripts/project-kb`: dependency-free project knowledge base compiler that synthesizes repo-map, docs-list, package, route, skill, and control-doc metadata without reading secrets or calling services.
@@ -218,6 +224,8 @@ Use for source-only migration risk review before any apply/deploy step. Run `scr
 - `docs/autonomous-decision-boundaries.md`: objective-authority and external-consequence boundary model.
 - `docs/autonomous-loop-model.md`: autonomous operator model for ledger-driven work.
 - `docs/run-next-modular-architecture.md`: module ownership, dependency composition, extension rules, and source-size boundaries for `scripts/run-next`.
+- `docs/modularity-audit.md`: current over-threshold source review, cohesion decisions, and next extraction priorities.
+- `docs/workflow-maturity-foundations.md`: skill-gap, outcome-reporting, and multi-project-proof contracts and truth boundaries.
 - `docs/dirty-tree-triage.md`: dirty working tree handling guidance.
 - `docs/interrupted-run-resume.md`: interrupted run checkpoint/resume guidance.
 - `docs/job-selection-contract.md`: selection and stop contract for `scripts/run-next`.

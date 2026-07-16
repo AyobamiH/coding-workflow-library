@@ -1,0 +1,263 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+
+const SCHEMA_VERSION = 1;
+const P1_HEADING = "# P1 - Current Maturity Gaps";
+const P2_HEADING = "# P2 - Follow-On Autonomy Improvements";
+const FIELD_FLAGS = new Map([
+  ["--title", "title"],
+  ["--evidence", "evidence"],
+  ["--primary-type", "primaryType"],
+  ["--dependency", "dependency"],
+  ["--authority", "authority"],
+  ["--done", "done"],
+  ["--reason", "reason"],
+]);
+const REQUIRED_FIELDS = [...FIELD_FLAGS.values()];
+const MAX_LENGTHS = {
+  title: 120,
+  evidence: 600,
+  primaryType: 120,
+  dependency: 400,
+  authority: 120,
+  done: 600,
+  reason: 600,
+};
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/add-skill-gap --title <text> --evidence <text> --primary-type <type> \\
+    --dependency <text> --authority <class> --done <text> --reason <text> [options]
+  ./scripts/add-skill-gap --validate [--queue <path>] [--json]
+
+Options:
+  --queue <path>     Queue file to inspect or update. Defaults to build-queue.md.
+  --dry-run          Validate and render the bounded record without writing.
+  --validate         Validate the queue or proposed record without writing.
+  --json             Print a deterministic machine-readable result.
+
+The helper inserts one complete record immediately before the P2 boundary. It
+rejects duplicate headings, multiline or oversized fields, secret-shaped text,
+and maintainer-specific absolute home paths. It never edits unrelated queue
+content.`);
+}
+
+function parseArgs(argv) {
+  const args = {
+    queue: "build-queue.md",
+    dryRun: false,
+    validate: false,
+    json: false,
+    help: false,
+    record: {},
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--queue") {
+      args.queue = requireValue(argv, ++index, arg);
+    } else if (FIELD_FLAGS.has(arg)) {
+      args.record[FIELD_FLAGS.get(arg)] = requireValue(argv, ++index, arg);
+    } else if (arg === "--dry-run") {
+      args.dryRun = true;
+    } else if (arg === "--validate") {
+      args.validate = true;
+    } else if (arg === "--json") {
+      args.json = true;
+    } else if (arg === "--help" || arg === "-h") {
+      args.help = true;
+    } else {
+      throw new Error(`unknown argument: ${arg}`);
+    }
+  }
+
+  return args;
+}
+
+function requireValue(argv, index, flag) {
+  const value = argv[index];
+  if (!value) throw new Error(`${flag} requires a value`);
+  return value;
+}
+
+function normalizedTitle(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function safetyCategories(value) {
+  const text = String(value || "");
+  const patterns = [
+    ["posix-user-home", /\/(?:home|Users)\/[A-Za-z0-9._-]+(?:\/[^\s"'`<>]*)?/],
+    ["windows-user-home", /[A-Za-z]:\\Users\\[^\\\s"'`<>]+(?:\\[^\s"'`<>]*)?/],
+    ["jwt-like", /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/],
+    ["private-key", /-----BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----/],
+    ["credential-url", /[a-z][a-z0-9+.-]*:\/\/[^:\s/"']+:[^@\s/"']+@/i],
+    ["secret-assignment", /\b(?:GH_TOKEN|GITHUB_TOKEN|NPM_TOKEN|SUPABASE_ACCESS_TOKEN|SUPABASE_SERVICE_ROLE_KEY|API_KEY|PASSWORD)\s*=/i],
+  ];
+  return patterns.filter(([, pattern]) => pattern.test(text)).map(([category]) => category);
+}
+
+function validateRecord(record) {
+  const issues = [];
+  const supplied = REQUIRED_FIELDS.filter((field) => record[field] !== undefined);
+  if (!supplied.length) return issues;
+
+  for (const field of REQUIRED_FIELDS) {
+    const value = record[field];
+    if (typeof value !== "string" || !value.trim()) {
+      issues.push({ category: "missing-field", field });
+      continue;
+    }
+    if (/[\r\n]/.test(value)) issues.push({ category: "multiline-field", field });
+    if (value.length > MAX_LENGTHS[field]) issues.push({ category: "oversized-field", field });
+    for (const category of safetyCategories(value)) issues.push({ category, field });
+  }
+
+  if (record.title && !normalizedTitle(record.title)) {
+    issues.push({ category: "invalid-title", field: "title" });
+  }
+  if (record.authority && !/^[a-z][a-z0-9_]*(?:\s*,\s*[a-z][a-z0-9_]*)*$/.test(record.authority)) {
+    issues.push({ category: "invalid-authority", field: "authority" });
+  }
+  if (record.primaryType && !/^[A-Z][A-Z0-9_]*(?:\s*,\s*[A-Z][A-Z0-9_]*)*$/.test(record.primaryType)) {
+    issues.push({ category: "invalid-primary-type", field: "primaryType" });
+  }
+
+  return issues;
+}
+
+function sectionHeadings(text, startHeading = P1_HEADING, endHeading = P2_HEADING) {
+  const start = text.indexOf(startHeading);
+  const end = text.indexOf(endHeading);
+  if (start < 0 || end < 0 || end <= start) return [];
+  return [...text.slice(start, end).matchAll(/^##\s+(.+?)\s*$/gm)].map((match) => match[1].trim());
+}
+
+function validateQueue(text) {
+  const issues = [];
+  const p1 = text.indexOf(P1_HEADING);
+  const p2 = text.indexOf(P2_HEADING);
+  if (p1 < 0) issues.push({ category: "missing-boundary", field: "p1" });
+  if (p2 < 0) issues.push({ category: "missing-boundary", field: "p2" });
+  if (p1 >= 0 && p2 >= 0 && p2 <= p1) issues.push({ category: "invalid-boundary-order", field: "queue" });
+
+  const seen = new Set();
+  for (const heading of sectionHeadings(text)) {
+    const normalized = normalizedTitle(heading);
+    if (seen.has(normalized)) issues.push({ category: "duplicate-title", field: "queue" });
+    seen.add(normalized);
+  }
+  return issues;
+}
+
+function duplicateTitle(text, title) {
+  const expected = normalizedTitle(title);
+  return [...text.matchAll(/^##\s+(.+?)\s*$/gm)].some((match) => normalizedTitle(match[1]) === expected);
+}
+
+function renderRecord(record) {
+  return `## ${record.title.trim()}
+
+- Evidence source: ${record.evidence.trim()}
+- Primary type: \`${record.primaryType.trim().replace(/\s*,\s*/g, "`, `")}\`.
+- Dependency: ${record.dependency.trim()}
+- Authority required: \`${record.authority.trim().replace(/\s*,\s*/g, "`, `")}\`.
+- Done definition: ${record.done.trim()}
+- Reason for priority: ${record.reason.trim()}`;
+}
+
+function insertRecord(text, rendered) {
+  const boundary = text.indexOf(P2_HEADING);
+  if (boundary < 0) throw new Error("queue boundary validation failed");
+  return `${text.slice(0, boundary)}${rendered}\n\n${text.slice(boundary)}`;
+}
+
+function atomicWrite(file, text) {
+  const stat = fs.statSync(file);
+  const temporary = `${file}.tmp-${process.pid}-${Date.now()}`;
+  fs.writeFileSync(temporary, text, { mode: stat.mode });
+  fs.renameSync(temporary, file);
+}
+
+function inspect({ queueText, record = {} }) {
+  const issues = [...validateQueue(queueText), ...validateRecord(record)];
+  if (record.title && duplicateTitle(queueText, record.title)) {
+    issues.push({ category: "duplicate-title", field: "title" });
+  }
+  return {
+    schema_version: SCHEMA_VERSION,
+    status: issues.length ? "FAIL" : "PASS",
+    queue: "build-queue.md",
+    candidate_present: Boolean(REQUIRED_FIELDS.some((field) => record[field] !== undefined)),
+    candidate_title: record.title ? record.title.trim() : null,
+    insertion_boundary: "before-p2",
+    issues,
+  };
+}
+
+function printHuman(report, rendered = "") {
+  console.log("# Skill Gap Recorder");
+  console.log(`Status: ${report.status}`);
+  console.log(`Candidate present: ${report.candidate_present ? "yes" : "no"}`);
+  console.log(`Issues: ${report.issues.length}`);
+  for (const issue of report.issues) console.log(`- ${issue.category}: ${issue.field}`);
+  if (rendered) {
+    console.log("\n## Proposed Record\n");
+    console.log(rendered);
+  }
+}
+
+function main() {
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+    if (args.help) {
+      usage();
+      return;
+    }
+
+    const queueFile = path.resolve(args.queue);
+    if (!fs.existsSync(queueFile)) throw new Error("queue file not found");
+    const queueText = fs.readFileSync(queueFile, "utf8");
+    const report = inspect({ queueText, record: args.record });
+    const hasCandidate = report.candidate_present;
+    if (!args.validate && !hasCandidate) throw new Error("record fields are required unless --validate is used");
+    const rendered = hasCandidate && report.status === "PASS" ? renderRecord(args.record) : "";
+
+    report.mode = args.validate ? "validate" : args.dryRun ? "dry-run" : "write";
+    report.written = false;
+    if (report.status === "PASS" && hasCandidate && !args.validate && !args.dryRun) {
+      atomicWrite(queueFile, insertRecord(queueText, rendered));
+      report.written = true;
+    }
+
+    if (args.json) console.log(JSON.stringify(report, null, 2));
+    else printHuman(report, args.dryRun ? rendered : "");
+    if (report.status !== "PASS") process.exitCode = 1;
+  } catch (error) {
+    console.error(`skill-gap recorder failed: ${error.message}`);
+    process.exitCode = 2;
+  }
+}
+
+if (require.main === module) main();
+
+module.exports = {
+  P1_HEADING,
+  P2_HEADING,
+  duplicateTitle,
+  insertRecord,
+  inspect,
+  normalizedTitle,
+  parseArgs,
+  renderRecord,
+  safetyCategories,
+  validateQueue,
+  validateRecord,
+};

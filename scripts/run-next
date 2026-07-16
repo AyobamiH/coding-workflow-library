@@ -8,6 +8,8 @@ const laneState = require("./lane-state");
 const objectiveAuthority = require("./objective-authority");
 const autonomousBoundaries = require("./autonomous-boundaries");
 const runtimeContext = require("./lib/run-next/runtime-context");
+const cliControl = require("./lib/run-next/cli-control");
+const { ALLOWED_FLAGS } = cliControl;
 
 const LIBRARY_ROOT = path.resolve(__dirname, "..");
 const DEFAULT_REPO = process.cwd();
@@ -76,57 +78,6 @@ const SECOND_VERSION_RELEASE_NOTES = `docs/releases/${SECOND_VERSION_TAG}.md`;
 const DEFAULT_RUN_NEXT_DIR = process.env.RUN_NEXT_DIR || path.join(LIBRARY_ROOT, ".run-next");
 const CHECKPOINT_NAMES = ["inspect", "route", "permission", "execute", "verify", "record"];
 
-const ALLOWED_FLAGS = new Set([
-  "auth-check",
-  "github-handoff",
-  "push-pr",
-  "local-validation",
-  "local-edit",
-  "commit",
-  "pr-readiness",
-  "pr-merge",
-  "deployment-plan",
-  "supabase-preflight",
-  "supabase-tooling-auth",
-  "supabase-link-secret-readiness",
-  "scheduler-draft-pr",
-  "scheduler-pr-merge",
-  "supabase-secret-function-deploy",
-  "runtime-negative-verification",
-  "function-secret-deploy-negative-runtime",
-  "controlled-success-invocation",
-  "scheduled-run-monitoring-handoff",
-  "zero-output-investigation",
-  "zero-output-observability-patch",
-  "observability-pr-recovery",
-  "observability-deploy",
-  "observability-run-recheck",
-  "scheduler-application-decision",
-  "scheduler-vault-design-apply",
-  "scheduler-vault-apply-retry",
-  "verification-bundle-self-test",
-  "local-skill-workpack",
-  "evidence-pack-write",
-  "cloudflare-opstruth-packaging-bundle",
-  "clean-temp-readiness-smoke",
-  "license-package-candidate",
-  "package-candidate-dry-run",
-  "cli-package-smoke",
-  "github-open-source-handoff",
-  "first-version-tag",
-  "workflow-corpus-recovery",
-  "docs-list-foundation",
-  "repo-map-helper-automation",
-  "project-kb-compiler",
-  "pre-commit-validation-hook",
-  "migration-review-helper",
-  "release-publication",
-  "local_execution",
-  "remote_publication",
-  "production_mutation",
-  "secret_mutation",
-  "destructive_action",
-]);
 
 
 let loadedRuntimeApi = null;
@@ -198,32 +149,13 @@ function runtimeApi() {
     filesChanged,
     spawnSync,
     main,
-    parseArgs,
-    printHelp,
-    printDoctor,
-    printApprovalRegistry,
-    printBoundaryExplanation,
-    printLaneList,
-    activeWorkItemFromLane,
-    printRouteList,
-    readControlFiles,
-    readText,
-    findActiveWorkItem,
-    extractField,
-    cleanField,
     routeStatus,
-    permissionGranted,
-    hasSchedulerVaultApplyPermission,
-    canRunNow,
-    nextApprovalCommand,
-    modeLabel,
-    needsJohn,
-    stopAtBoundary,
-    notImplemented,
-    releaseVersionFromObjective,
   });
 
   const api = {};
+  Object.assign(api, cliControl);
+  Object.assign(api, require("./lib/run-next/route-access"));
+  Object.assign(api, require("./lib/run-next/route-dispatch"));
   Object.assign(api, require("./lib/run-next/local-foundations"));
   Object.assign(api, require("./lib/run-next/release-routes"));
   Object.assign(api, require("./lib/run-next/github-routes"));
@@ -242,7 +174,7 @@ function runtimeApi() {
   return loadedRuntimeApi;
 }
 
-const args = parseArgs(process.argv.slice(2));
+const args = cliControl.parseArgs(process.argv.slice(2), ALLOWED_FLAGS);
 let targetRepo = args.repo || DEFAULT_REPO;
 const dryRun = args.dryRun || args.explain || args.explainNext;
 let selectedLane = null;
@@ -256,23 +188,28 @@ main();
 
 function main() {
   try {
+    if (args.help) {
+      cliControl.printHelp(ALLOWED_FLAGS);
+      return;
+    }
+
     if (args.status) {
       runtimeApi().printCheckpointStatus(targetRepo);
       return;
     }
 
     if (args.doctor) {
-      printDoctor();
+      cliControl.printDoctor(LIBRARY_ROOT);
       return;
     }
 
     if (args.listApprovals) {
-      printApprovalRegistry();
+      cliControl.printApprovalRegistry(LIBRARY_ROOT);
       return;
     }
 
     if (args.explainBoundary) {
-      printBoundaryExplanation(args.explainBoundary);
+      cliControl.printBoundaryExplanation(args.explainBoundary);
       return;
     }
 
@@ -284,25 +221,25 @@ function main() {
     }
 
     if (args.listRoutes) {
-      printRouteList();
+      cliControl.printRouteList(LIBRARY_ROOT);
       process.exit(0);
     }
 
     if (args.listLanes) {
-      printLaneList();
+      cliControl.printLaneList(args.stateFile);
       process.exit(0);
     }
 
-    readControlFiles();
+    cliControl.readControlFiles(LIBRARY_ROOT, evidence);
     let active;
     if (args.lane) {
       const state = laneState.readState(args.stateFile);
       selectedLane = laneState.getLane(state, args.lane);
       targetRepo = args.repo || selectedLane.repo_path || targetRepo;
-      active = activeWorkItemFromLane(selectedLane);
+      active = cliControl.activeWorkItemFromLane(selectedLane);
     } else {
-      const ledgerText = readText("work-ledger.md");
-      active = findActiveWorkItem(ledgerText, targetRepo);
+      const ledgerText = cliControl.readText(LIBRARY_ROOT, "work-ledger.md");
+      active = cliControl.findActiveWorkItem(ledgerText, targetRepo);
     }
     const status = active.currentStatus || "Unknown";
     const route = routeStatus(status, active);
@@ -318,7 +255,7 @@ function main() {
       runtimeApi().completeCheckpoint(activeCheckpointRun, "route", { status, skill: route.skill, job: route.kind || route.nextAction || "unknown" });
       if (route.kind === "human-boundary" || route.kind === "permission-boundary") {
         runtimeApi().completeCheckpoint(activeCheckpointRun, "permission", { granted: false, reason: "human-boundary" });
-      } else if (!permissionGranted(route)) {
+      } else if (!runtimeApi().permissionGranted(route)) {
         runtimeApi().completeCheckpoint(activeCheckpointRun, "permission", { granted: false, reason: "permission-required" });
       } else {
         runtimeApi().completeCheckpoint(activeCheckpointRun, "permission", { granted: true });
@@ -326,88 +263,7 @@ function main() {
       }
     }
 
-    let result;
-    if (route.kind === "human-boundary" || route.kind === "permission-boundary") {
-      result = stopAtBoundary(route, active);
-    } else if (!permissionGranted(route)) {
-      result = needsJohn(route, active);
-    } else if (route.kind === "github-handoff") {
-      result = runtimeApi().runGithubHandoff(active);
-    } else if (route.kind === "pr-readiness") {
-      result = runtimeApi().runPrReadiness(active);
-    } else if (route.kind === "pr-merge") {
-      result = runtimeApi().runPrMerge(active);
-    } else if (route.kind === "deployment-plan") {
-      result = runtimeApi().runDeploymentPlan(active);
-    } else if (route.kind === "supabase-preflight") {
-      result = runtimeApi().runSupabasePreflight(active);
-    } else if (route.kind === "supabase-tooling-auth") {
-      result = runtimeApi().runSupabaseToolingAuth(active);
-    } else if (route.kind === "supabase-link-secret-readiness") {
-      result = runtimeApi().runSupabaseLinkSecretReadiness(active);
-    } else if (route.kind === "scheduler-draft-pr") {
-      result = runtimeApi().runSchedulerDraftPr(active);
-    } else if (route.kind === "scheduler-pr-merge") {
-      result = runtimeApi().runSchedulerPrMerge(active);
-    } else if (route.kind === "supabase-secret-function-deploy") {
-      result = runtimeApi().runSupabaseSecretFunctionDeploy(active);
-    } else if (route.kind === "runtime-negative-verification") {
-      result = runtimeApi().runRuntimeNegativeVerification(active);
-    } else if (route.kind === "function-secret-deploy-negative-runtime") {
-      result = runtimeApi().runFunctionSecretDeployNegativeRuntime(active);
-    } else if (route.kind === "controlled-success-invocation") {
-      result = runtimeApi().runControlledSuccessInvocation(active);
-    } else if (route.kind === "scheduled-run-monitoring-handoff") {
-      result = runtimeApi().runScheduledRunMonitoringHandoff(active);
-    } else if (route.kind === "zero-output-pipeline-investigation") {
-      result = runtimeApi().runZeroOutputPipelineInvestigation(active);
-    } else if (route.kind === "zero-output-observability-patch") {
-      result = runtimeApi().runZeroOutputObservabilityPatch(active);
-    } else if (route.kind === "observability-pr-recovery") {
-      result = runtimeApi().runObservabilityPrRecovery(active);
-    } else if (route.kind === "zero-output-observability-deploy") {
-      result = runtimeApi().runZeroOutputObservabilityDeploy(active);
-    } else if (route.kind === "observability-run-recheck") {
-      result = runtimeApi().runObservabilityRunRecheck(active);
-    } else if (route.kind === "scheduler-application-decision") {
-      result = runtimeApi().runSchedulerApplicationDecision(active);
-    } else if (route.kind === "scheduler-vault-design-apply") {
-      result = runtimeApi().runSchedulerVaultDesignApply(active);
-    } else if (route.kind === "verification-bundle-self-test") {
-      result = runtimeApi().runVerificationBundleSelfTest(active);
-    } else if (route.kind === "local-skill-workpack") {
-      result = runtimeApi().runLocalSkillWorkpack(active);
-    } else if (route.kind === "cloudflare-opstruth-packaging-bundle") {
-      result = runtimeApi().runCloudflareOpstruthPackagingBundle(active);
-    } else if (route.kind === "clean-temp-readiness-smoke") {
-      result = runtimeApi().runCleanTempReadinessSmoke(active);
-    } else if (route.kind === "license-package-candidate") {
-      result = runtimeApi().runLicensePackageCandidate(active);
-    } else if (route.kind === "package-candidate-dry-run") {
-      result = runtimeApi().runPackageCandidateDryRun(active);
-    } else if (route.kind === "cli-entrypoint-package-smoke") {
-      result = runtimeApi().runCliEntrypointPackageSmoke(active);
-    } else if (route.kind === "github-open-source-handoff") {
-      result = runtimeApi().runGithubOpenSourceHandoff(active);
-    } else if (route.kind === "first-version-tag") {
-      result = runtimeApi().runFirstVersionTag(active);
-    } else if (route.kind === "semver-release-prep") {
-      result = runtimeApi().runSemverReleasePrep(active);
-    } else if (route.kind === "workflow-corpus-recovery") {
-      result = runtimeApi().runWorkflowCorpusRecovery(active);
-    } else if (route.kind === "docs-list-foundation") {
-      result = runtimeApi().runDocsListFoundation(active);
-    } else if (route.kind === "repo-map-helper-automation") {
-      result = runtimeApi().runRepoMapHelperAutomation(active);
-    } else if (route.kind === "project-kb-compiler") {
-      result = runtimeApi().runProjectKbCompiler(active);
-    } else if (route.kind === "pre-commit-validation-hook") {
-      result = runtimeApi().runPreCommitValidationHook(active);
-    } else if (route.kind === "migration-review-helper") {
-      result = runtimeApi().runMigrationReviewHelper(active);
-    } else {
-      result = notImplemented(route, active);
-    }
+    const result = runtimeApi().dispatchRoute(route, active);
 
     if (activeCheckpointRun) runtimeApi().finalizeCheckpointRun(activeCheckpointRun, result);
 
@@ -443,431 +299,11 @@ function main() {
   }
 }
 
-function parseArgs(rawArgs) {
-  const parsed = {
-    allow: new Set(),
-    dryRun: false,
-    doctor: false,
-    explain: false,
-    explainNext: false,
-    explainBoundary: null,
-    resume: false,
-    status: false,
-    listApprovals: false,
-    listRoutes: false,
-    listLanes: false,
-    untilBlocked: false,
-    lane: null,
-    stateFile: laneState.defaultStateFile(),
-    repo: null,
-  };
-
-  for (let index = 0; index < rawArgs.length; index += 1) {
-    const arg = rawArgs[index];
-    if (arg === "--dry-run") {
-      parsed.dryRun = true;
-      continue;
-    }
-    if (arg === "--doctor") {
-      parsed.doctor = true;
-      continue;
-    }
-    if (arg === "--resume") {
-      parsed.resume = true;
-      continue;
-    }
-    if (arg === "--status") {
-      parsed.status = true;
-      continue;
-    }
-    if (arg === "--explain") {
-      parsed.explain = true;
-      continue;
-    }
-    if (arg === "--explain-next") {
-      parsed.explainNext = true;
-      continue;
-    }
-    if (arg === "--explain-boundary") {
-      parsed.explainBoundary = rawArgs[index + 1];
-      index += 1;
-      if (!parsed.explainBoundary) runtimeApi().die("--explain-boundary requires a boundary type");
-      continue;
-    }
-    if (arg === "--list-approvals") {
-      parsed.listApprovals = true;
-      continue;
-    }
-    if (arg === "--list-routes") {
-      parsed.listRoutes = true;
-      continue;
-    }
-    if (arg === "--list-lanes") {
-      parsed.listLanes = true;
-      continue;
-    }
-    if (arg === "--until-blocked") {
-      parsed.untilBlocked = true;
-      continue;
-    }
-    if (arg === "--lane") {
-      parsed.lane = rawArgs[index + 1];
-      index += 1;
-      if (!parsed.lane) runtimeApi().die("--lane requires a lane id");
-      continue;
-    }
-    if (arg === "--state-file") {
-      parsed.stateFile = rawArgs[index + 1];
-      index += 1;
-      if (!parsed.stateFile) runtimeApi().die("--state-file requires a path");
-      continue;
-    }
-    if (arg === "--repo") {
-      parsed.repo = rawArgs[index + 1];
-      index += 1;
-      if (!parsed.repo) runtimeApi().die("--repo requires an absolute path");
-      continue;
-    }
-    if (arg === "--allow") {
-      const value = rawArgs[index + 1];
-      index += 1;
-      if (!value) runtimeApi().die("--allow requires a permission name");
-      if (!ALLOWED_FLAGS.has(value)) {
-        runtimeApi().die(`unsupported permission flag: ${value}`);
-      }
-      parsed.allow.add(value);
-      continue;
-    }
-    if (arg === "--help" || arg === "-h") {
-      printHelp();
-      process.exit(0);
-    }
-    runtimeApi().die(`unknown argument: ${arg}`);
-  }
-
-  return parsed;
-}
-
-function printHelp() {
-  console.log(`Usage:
-  ./scripts/run-next
-  ./scripts/run-next --dry-run
-  ./scripts/run-next --doctor
-  ./scripts/run-next --explain
-  ./scripts/run-next --explain-boundary PRODUCTION_MUTATION_APPROVAL
-  ./scripts/run-next --list-approvals
-  ./scripts/run-next --repo /path/to/repo --status
-  ./scripts/run-next --repo /path/to/repo --resume --dry-run
-  ./scripts/run-next --repo /path/to/repo --resume --allow <permission>
-  ./scripts/run-next --list-routes
-  ./scripts/run-next --list-lanes --state-file /path/to/lanes.json
-  ./scripts/run-next --lane example-project --state-file /path/to/lanes.json --explain-next
-  ./scripts/run-next --lane example-project --state-file /path/to/lanes.json --dry-run --allow <permission>
-  ./scripts/run-next --lane example-project --state-file /path/to/lanes.json --until-blocked
-  ./scripts/run-next --repo /path/to/target-repo
-  ./scripts/run-next --repo /path/to/target-repo --explain
-  ./scripts/run-next --repo /path/to/target-repo --allow github-handoff
-  ./scripts/run-next --repo /path/to/target-repo --allow github-handoff --dry-run
-  ./scripts/run-next --repo /path/to/target-repo --allow pr-readiness
-  ./scripts/run-next --repo /path/to/target-repo --allow pr-readiness --dry-run
-  ./scripts/run-next --repo /path/to/target-repo --allow pr-merge
-  ./scripts/run-next --repo /path/to/target-repo --allow pr-merge --dry-run
-  ./scripts/run-next --repo /path/to/target-repo --allow deployment-plan
-  ./scripts/run-next --repo /path/to/target-repo --allow deployment-plan --dry-run
-  ./scripts/run-next --repo /path/to/target-repo --allow supabase-preflight
-  ./scripts/run-next --repo /path/to/target-repo --allow supabase-preflight --dry-run
-  ./scripts/run-next --repo /path/to/target-repo --allow supabase-tooling-auth
-  ./scripts/run-next --repo /path/to/target-repo --allow supabase-tooling-auth --dry-run
-  ./scripts/run-next --repo /path/to/target-repo --allow supabase-link-secret-readiness
-  ./scripts/run-next --repo /path/to/target-repo --allow supabase-link-secret-readiness --dry-run
-  ./scripts/run-next --repo /path/to/target-repo --allow scheduler-draft-pr
-  ./scripts/run-next --repo /path/to/target-repo --allow scheduler-draft-pr --dry-run
-  ./scripts/run-next --repo /path/to/target-repo --allow scheduler-pr-merge
-  ./scripts/run-next --repo /path/to/target-repo --allow scheduler-pr-merge --dry-run
-  ./scripts/run-next --repo /path/to/target-repo --allow supabase-secret-function-deploy
-  ./scripts/run-next --repo /path/to/target-repo --allow supabase-secret-function-deploy --dry-run
-  ./scripts/run-next --repo /path/to/target-repo --allow runtime-negative-verification
-  ./scripts/run-next --repo /path/to/target-repo --allow runtime-negative-verification --dry-run
-  ./scripts/run-next --repo /path/to/target-repo --allow function-secret-deploy-negative-runtime
-  ./scripts/run-next --repo /path/to/target-repo --allow function-secret-deploy-negative-runtime --dry-run
-  ./scripts/run-next --repo /path/to/target-repo --allow controlled-success-invocation
-  ./scripts/run-next --repo /path/to/target-repo --allow controlled-success-invocation --dry-run
-  ./scripts/run-next --repo /path/to/target-repo --allow scheduled-run-monitoring-handoff
-  ./scripts/run-next --repo /path/to/target-repo --allow scheduled-run-monitoring-handoff --dry-run
-  ./scripts/run-next --lane wagging-web-wins --state-file /path/to/lanes.json --repo /path/to/target-repo --allow zero-output-investigation
-  ./scripts/run-next --lane wagging-web-wins --state-file /path/to/lanes.json --repo /path/to/target-repo --allow zero-output-investigation --dry-run
-  ./scripts/run-next --lane wagging-web-wins --state-file /path/to/lanes.json --repo /path/to/target-repo --allow observability-pr-recovery
-  ./scripts/run-next --lane wagging-web-wins --state-file /path/to/lanes.json --repo /path/to/target-repo --allow observability-pr-recovery --dry-run
-  ./scripts/run-next --lane wagging-web-wins --state-file /path/to/lanes.json --repo /path/to/target-repo --allow observability-deploy
-  ./scripts/run-next --lane wagging-web-wins --state-file /path/to/lanes.json --repo /path/to/target-repo --allow observability-deploy --dry-run
-  ./scripts/run-next --lane wagging-web-wins --state-file /path/to/lanes.json --repo /path/to/target-repo --allow observability-run-recheck
-  ./scripts/run-next --lane wagging-web-wins --state-file /path/to/lanes.json --repo /path/to/target-repo --allow observability-run-recheck --dry-run
-  ./scripts/run-next --repo /path/to/target-repo --allow scheduler-application-decision
-  ./scripts/run-next --repo /path/to/target-repo --allow scheduler-application-decision --dry-run
-  ./scripts/run-next --repo /path/to/target-repo --allow scheduler-vault-design-apply
-  ./scripts/run-next --repo /path/to/target-repo --allow scheduler-vault-design-apply --dry-run
-  ./scripts/run-next --repo /path/to/target-repo --allow scheduler-vault-apply-retry
-  ./scripts/run-next --repo /path/to/target-repo --allow scheduler-vault-apply-retry --dry-run
-  ./scripts/run-next --repo /path/to/library --allow verification-bundle-self-test
-  ./scripts/run-next --repo /path/to/library --allow verification-bundle-self-test --dry-run
-  ./scripts/run-next --repo /path/to/library --allow local-skill-workpack --allow evidence-pack-write
-  ./scripts/run-next --repo /path/to/library --allow local-skill-workpack --allow evidence-pack-write --dry-run
-  ./scripts/run-next --repo /path/to/library --allow cloudflare-opstruth-packaging-bundle
-  ./scripts/run-next --repo /path/to/library --allow cloudflare-opstruth-packaging-bundle --dry-run
-  ./scripts/run-next --repo /path/to/library --allow clean-temp-readiness-smoke
-  ./scripts/run-next --repo /path/to/library --allow clean-temp-readiness-smoke --dry-run
-  ./scripts/run-next --repo /path/to/library --allow license-package-candidate
-  ./scripts/run-next --repo /path/to/library --allow license-package-candidate --dry-run
-  ./scripts/run-next --repo /path/to/library --allow package-candidate-dry-run
-  ./scripts/run-next --repo /path/to/library --allow package-candidate-dry-run --dry-run
-  ./scripts/run-next --repo /path/to/library --allow cli-package-smoke
-  ./scripts/run-next --repo /path/to/library --allow cli-package-smoke --dry-run
-  ./scripts/run-next --repo /path/to/library --allow github-open-source-handoff
-  ./scripts/run-next --repo /path/to/library --allow github-open-source-handoff --dry-run
-  ./scripts/run-next --repo /path/to/library --allow first-version-tag
-  ./scripts/run-next --repo /path/to/library --allow first-version-tag --dry-run
-  ./scripts/run-next --repo <library-repo> --allow project-kb-compiler
-  ./scripts/run-next --repo <library-repo> --allow project-kb-compiler --dry-run
-  ./scripts/run-next --repo <library-repo> --allow pre-commit-validation-hook
-  ./scripts/run-next --repo <library-repo> --allow pre-commit-validation-hook --dry-run
-  ./scripts/run-next --repo <library-repo> --allow migration-review-helper
-  ./scripts/run-next --repo <library-repo> --allow migration-review-helper --dry-run
-
-Supported --allow values:
-  auth-check
-  github-handoff
-  push-pr
-  local-validation
-  local-edit
-  commit
-  pr-readiness
-  pr-merge
-  deployment-plan
-  supabase-preflight
-  supabase-tooling-auth
-  supabase-link-secret-readiness
-  scheduler-draft-pr
-  scheduler-pr-merge
-  supabase-secret-function-deploy
-  runtime-negative-verification
-  function-secret-deploy-negative-runtime
-  controlled-success-invocation
-  scheduled-run-monitoring-handoff
-  zero-output-investigation
-  observability-pr-recovery
-  observability-deploy
-  observability-run-recheck
-  scheduler-application-decision
-  scheduler-vault-design-apply
-  scheduler-vault-apply-retry
-  verification-bundle-self-test
-  local-skill-workpack
-  evidence-pack-write
-  cloudflare-opstruth-packaging-bundle
-  clean-temp-readiness-smoke
-  license-package-candidate
-  package-candidate-dry-run
-  cli-package-smoke
-  github-open-source-handoff
-  first-version-tag
-  workflow-corpus-recovery
-  docs-list-foundation
-  repo-map-helper-automation
-  project-kb-compiler
-  pre-commit-validation-hook
-  migration-review-helper
-  local_execution
-  remote_publication
-  production_mutation
-  secret_mutation
-  destructive_action
-
-Lane mode reads and updates only the selected local lane. If --lane is omitted, legacy work-ledger.md routing remains available.
-Legacy --allow route flags still work; authority-class flags now mean objective-level authority for that consequence class.
-Dry-run and explain modes do not mutate target repos, lane state, work-ledger.md, or runs/skill-runs.md.`);
-}
-
-function printDoctor() {
-  const registryPath = path.join(LIBRARY_ROOT, "state", "approval-registry.json");
-  let registryStatus = "missing";
-  try {
-    const registry = autonomousBoundaries.loadApprovalRegistry(registryPath);
-    const validation = autonomousBoundaries.validateApprovalRegistry(registry);
-    registryStatus = `valid (${validation.approvals} approvals)`;
-  } catch (error) {
-    registryStatus = `invalid: ${error.message}`;
-  }
-
-  console.log("# run-next autonomy doctor");
-  console.log(`workflow states: ${autonomousBoundaries.WORKFLOW_STATES.join(", ")}`);
-  console.log(`boundary types: ${autonomousBoundaries.BOUNDARY_TYPES.join(", ")}`);
-  console.log(`approval registry: ${registryStatus}`);
-  console.log("automatic verified PR merge policy: enabled for workflow-authored, scoped, passing, unchanged-head PRs under normal repository rules");
-  console.log("completion policy: PR merge is followed by post-merge validation before COMPLETED");
-}
-
-function printApprovalRegistry() {
-  const registryPath = path.join(LIBRARY_ROOT, "state", "approval-registry.json");
-  const registry = autonomousBoundaries.loadApprovalRegistry(registryPath);
-  autonomousBoundaries.validateApprovalRegistry(registry);
-  console.log("# approval registry");
-  console.log(`path: ${path.relative(LIBRARY_ROOT, registryPath)}`);
-  console.log(`version: ${registry.version}`);
-  const approvals = Array.isArray(registry.approvals) ? registry.approvals : [];
-  console.log(`approvals: ${approvals.length}`);
-  for (const approval of approvals) {
-    console.log(`- ${approval.approvalId}: ${approval.status}; scope=${approval.scope.join(", ")}`);
-  }
-  if (!approvals.length) console.log("No committed approvals. Runtime approvals may remain local-only when they contain operational context.");
-}
-
-function printBoundaryExplanation(type) {
-  const result = autonomousBoundaries.classifyBoundary({ boundaryType: type, reason: "Boundary explanation requested." });
-  console.log("# boundary explanation");
-  console.log(`boundary_type: ${result.boundary_type}`);
-  console.log(`workflow state: ${result.state}`);
-  console.log(`boundary_reason: ${result.boundary_reason}`);
-  console.log(`evidence: ${result.evidence.join(", ") || "none"}`);
-  console.log(`why_autonomous_resolution_is_unsafe_or_impossible: ${result.why_autonomous_resolution_is_unsafe_or_impossible}`);
-  console.log(`safe to continue automatically: ${result.safeToContinueAutomatically ? "yes" : "no"}`);
-  console.log(`exact_human_input_required: ${result.exact_human_input_required}`);
-  console.log(`resume_condition: ${result.resume_condition}`);
-  console.log(`resume_command: ${result.resume_command}`);
-}
-
-function printLaneList() {
-  const state = laneState.readState(args.stateFile);
-  console.log(`# Workflow Lanes\n\nState file: ${args.stateFile}\nLanes: ${state.lanes.length}\n`);
-  for (const lane of state.lanes) {
-    console.log(`## ${lane.lane_id}`);
-    console.log(`Name: ${lane.display_name}`);
-    console.log(`Status: ${lane.status}`);
-    console.log(`Current state: ${lane.current_state}`);
-    console.log(`Next permission: ${lane.next_permission || "none"}`);
-    if (lane.objective) {
-      const objective = objectiveAuthority.normalizeObjective(lane.objective);
-      const grants = objectiveAuthority.AUTHORITY_CLASSES.filter((name) => objective.authority[name]).join(", ") || "none";
-      console.log(`Objective: ${objective.id}`);
-      console.log(`Authority: ${grants}`);
-    }
-    console.log("");
-  }
-  console.log("This command reads local lane metadata only. State files must not contain secrets.");
-}
-
-function activeWorkItemFromLane(lane) {
-  return {
-    heading: `Lane: ${lane.lane_id}`,
-    text: "",
-    activeRepo: lane.repo_path,
-    currentObjective: lane.notes || `Continue lane ${lane.lane_id}`,
-    currentStatus: lane.current_state,
-    selectedSkill: "coding-workflow-orchestrator-skill",
-    laneId: lane.lane_id,
-    laneStatus: lane.status,
-    monitoringBaseline: lane.monitoring_baseline || "",
-    rawLane: lane,
-  };
-}
-
-function printRouteList() {
-  const routeFile = path.join(LIBRARY_ROOT, "routes", "skill-routes.json");
-  if (!fs.existsSync(routeFile)) runtimeApi().die("missing route metadata: routes/skill-routes.json");
-
-  let parsed;
-  try {
-    parsed = JSON.parse(fs.readFileSync(routeFile, "utf8"));
-  } catch (error) {
-    runtimeApi().die(`route metadata is not valid JSON: ${error.message}`);
-  }
-
-  const routes = Array.isArray(parsed.routes) ? parsed.routes : [];
-  console.log(`# Skill Routes
-
-Route file: routes/skill-routes.json
-Routes: ${routes.length}
-
-${routes.map((route) => {
-    const states = Array.isArray(route.ledger_states_handled) ? route.ledger_states_handled.join("; ") : "";
-    return [
-      `## ${route.id || "(missing id)"}`,
-      `Skill: ${route.skill_file || "(missing skill file)"}`,
-      `Authority grant: ${route.permission_flag || "(missing legacy grant flag)"}`,
-      `States: ${states || "(none)"}`,
-      `Success: ${route.success_ledger_state || "(missing success state)"}`,
-      `Blocked: ${route.blocked_ledger_state || "(missing blocked state)"}`,
-      `Next: ${route.next_permission || "(missing next permission)"}`,
-    ].join("\n");
-  }).join("\n\n")}
-
-This command only reads local route metadata. It does not update the ledger, call external services, or mutate repos.`);
-}
-
-function readControlFiles() {
-  for (const file of ["AGENTS.md", "RUNBOOK.md", "tools.md", "work-ledger.md"]) {
-    const full = path.join(LIBRARY_ROOT, file);
-    if (!fs.existsSync(full)) runtimeApi().die(`missing required control file: ${file}`);
-    fs.readFileSync(full, "utf8");
-    evidence.push(`read ${file}`);
-  }
-}
-
-function readText(relativePath) {
-  return fs.readFileSync(path.join(LIBRARY_ROOT, relativePath), "utf8");
-}
-
-function findActiveWorkItem(ledgerText, repo) {
-  const sections = ledgerText
-    .split(/\n(?=## \d{4}-\d{2}-\d{2} - )/)
-    .map((section) => section.trim())
-    .filter(Boolean);
-
-  const parsed = sections.map((section) => {
-    const heading = (section.match(/^## (.+)$/m) || [])[1] || "";
-    return {
-      heading,
-      text: section,
-      activeRepo: cleanField(extractField(section, "Active repo")),
-      currentObjective: cleanField(extractField(section, "Current objective")),
-      currentStatus: cleanField(extractField(section, "Current status")),
-      selectedSkill: cleanField(extractField(section, "Selected skill")),
-    };
-  });
-
-  const repoMatches = parsed.filter((section) => section.activeRepo === repo);
-  if (repoMatches.length > 0) return repoMatches[repoMatches.length - 1];
-  if (repo) {
-    return {
-      heading: `No ledger entry for ${repo}`,
-      text: "",
-      activeRepo: repo,
-      currentObjective: "Create or select a ledger item before mutation",
-      currentStatus: "No ledger item for repo",
-      selectedSkill: "coding-workflow-orchestrator-skill",
-    };
-  }
-  if (parsed.length > 0) return parsed[parsed.length - 1];
-  runtimeApi().die("work-ledger.md has no parseable work items");
-}
-
-function extractField(section, label) {
-  const pattern = new RegExp(`^\\* ${runtimeApi().escapeRegExp(label)}:\\s*(.+)$`, "m");
-  const match = section.match(pattern);
-  return match ? match[1] : "";
-}
-
-function cleanField(value) {
-  return String(value || "")
-    .replace(/`/g, "")
-    .replace(/\.$/, "")
-    .trim();
-}
-
 function routeStatus(status, active = {}) {
   const normalized = status.toLowerCase();
   const activeObjective = active.rawLane?.objective ? objectiveAuthority.normalizeObjective(active.rawLane.objective) : null;
 
-  const releaseVersion = releaseVersionFromObjective(activeObjective?.id);
+  const releaseVersion = runtimeApi().releaseVersionFromObjective(activeObjective?.id);
   if (releaseVersion && path.resolve(targetRepo) === LIBRARY_ROOT) {
     return {
       skill: "release-preflight-skill / skills-library-packaging-skill / github-handoff-skill",
@@ -1333,7 +769,7 @@ function routeStatus(status, active = {}) {
 
   if (
     normalized === "needs john: sudo password required to install psql" ||
-    (normalized === "needs john" && hasSchedulerVaultApplyPermission())
+    (normalized === "needs john" && runtimeApi().hasSchedulerVaultApplyPermission())
   ) {
     return {
       skill: "security-hardening-review-skill / scheduler Vault design and apply gate",
@@ -1344,7 +780,7 @@ function routeStatus(status, active = {}) {
   }
 
   if (normalized === "scheduler blocked: vault/pg_cron/pg_net capability not proven") {
-    if (hasSchedulerVaultApplyPermission()) {
+    if (runtimeApi().hasSchedulerVaultApplyPermission()) {
       return {
         skill: "security-hardening-review-skill / scheduler Vault design and apply gate",
         permission: args.allow.has("scheduler-vault-apply-retry") ? "scheduler-vault-apply-retry" : "scheduler-vault-design-apply",
@@ -1363,7 +799,7 @@ function routeStatus(status, active = {}) {
   }
 
   if (normalized === "db connectivity blocked") {
-    if (hasSchedulerVaultApplyPermission()) {
+    if (runtimeApi().hasSchedulerVaultApplyPermission()) {
       return {
         skill: "security-hardening-review-skill / scheduler Vault design and apply gate",
         permission: args.allow.has("scheduler-vault-apply-retry") ? "scheduler-vault-apply-retry" : "scheduler-vault-design-apply",
@@ -1382,7 +818,7 @@ function routeStatus(status, active = {}) {
   }
 
   if (normalized === "db url still points to direct host") {
-    if (hasSchedulerVaultApplyPermission()) {
+    if (runtimeApi().hasSchedulerVaultApplyPermission()) {
       return {
         skill: "security-hardening-review-skill / scheduler Vault design and apply gate",
         permission: args.allow.has("scheduler-vault-apply-retry") ? "scheduler-vault-apply-retry" : "scheduler-vault-design-apply",
@@ -1525,72 +961,4 @@ function routeStatus(status, active = {}) {
     finalStatus: "NEEDS JOHN",
     nextAction: `unknown ledger status: ${status}`,
   };
-}
-
-function permissionGranted(route) {
-  const objective = selectedLane?.objective || null;
-  const result = objectiveAuthority.permissionGrantedForRoute({ route, objective, allow: args.allow });
-  route.requiredAuthority = result.requiredAuthority;
-  route.permissionSource = result.source;
-  return result.granted;
-}
-
-function hasSchedulerVaultApplyPermission() {
-  return args.allow.has("scheduler-vault-design-apply") || args.allow.has("scheduler-vault-apply-retry");
-}
-
-function canRunNow(route) {
-  if (route.kind === "human-boundary" || route.kind === "permission-boundary") return false;
-  if (route.kind === "not-implemented") return false;
-  return permissionGranted(route);
-}
-
-function nextApprovalCommand(route) {
-  if (!route.permission) return "";
-  return `./scripts/run-next --repo ${targetRepo} --allow ${route.permission}`;
-}
-
-function modeLabel() {
-  if (args.explain || args.explainNext) return "explain";
-  if (args.dryRun) return "dry-run";
-  return "real";
-}
-
-function needsJohn(route) {
-  const requiredAuthority = route.requiredAuthority || objectiveAuthority.routeAuthority(route);
-  return {
-    finalStatus: `BLOCKED_PERMISSION: ${requiredAuthority} is not granted`,
-    ledgerStatus: `BLOCKED_PERMISSION: ${requiredAuthority} is not granted`,
-    summary: `${requiredAuthority} is not granted for ${route.permission || route.kind || "selected route"}`,
-    nextPermission: `grant ${requiredAuthority} once for this objective`,
-    nextSkill: route.skill,
-    exitCode: dryRun ? 0 : 2,
-  };
-}
-
-function stopAtBoundary(route) {
-  return {
-    finalStatus: route.finalStatus || "NEEDS JOHN",
-    ledgerStatus: route.finalStatus || "Needs John",
-    summary: route.nextAction,
-    nextPermission: route.nextPermission || route.permission || route.nextAction || "manual review",
-    nextSkill: route.skill,
-    exitCode: 0,
-  };
-}
-
-function notImplemented(route) {
-  return {
-    finalStatus: "NEEDS JOHN",
-    ledgerStatus: "Needs John: runner path not implemented",
-    summary: `run-next v1 understands this state but does not execute ${route.nextAction} yet`,
-    nextPermission: route.permission || "manual routing",
-    nextSkill: route.skill,
-    exitCode: dryRun ? 0 : 2,
-  };
-}
-
-function releaseVersionFromObjective(objectiveId) {
-  const match = String(objectiveId || "").match(/^release-coding-workflow-library-v(\d+\.\d+\.\d+)$/);
-  return match ? match[1] : null;
 }

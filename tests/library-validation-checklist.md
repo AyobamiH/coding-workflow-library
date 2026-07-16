@@ -52,7 +52,11 @@ Use this checklist after creating, updating, or reorganizing the coding workflow
 - [ ] GitHub deep review leaves ambiguous branch-protection 404s as metadata unavailable
 - [ ] `skill-cleaner` reports duplicate triggers and reviewed shape exceptions separately
 - [ ] Command entrypoints remain thin and responsibility-owned implementation lives in focused modules
-- [ ] Hand-written JavaScript and Node scripts remain below the enforced source-size maximum
+- [ ] Every source file above 1,000 lines has a current cohesion decision in `docs/modularity-audit.md`
+- [ ] Hand-written JavaScript and Node scripts remain below the enforced 2,200-line source-size maximum
+- [ ] Missing-skill records use the structured recorder and reject duplicate, private-path, and secret-shaped input
+- [ ] Autonomy outcomes remain aggregate-only and do not emit paths, notes, commands, or raw logs
+- [ ] Multi-project proof preserves target Git status and temporary lane state
 
 ## Validation Commands
 
@@ -60,6 +64,7 @@ Use this checklist after creating, updating, or reorganizing the coding workflow
 ./scripts/validate-skills
 ./scripts/check-public-paths
 ./scripts/check-module-size
+./scripts/check-module-size --json
 ./scripts/docs-list --validate
 ./scripts/repo-map --repo . --validate
 ./scripts/project-kb --repo . --validate
@@ -67,6 +72,8 @@ Use this checklist after creating, updating, or reorganizing the coding workflow
 ./scripts/browser-live-proof --help
 ./scripts/github-deep-review --help
 ./scripts/opstruth-classify --self-test --validate
+./scripts/add-skill-gap --validate
+./scripts/autonomy-outcomes --repo . --validate
 npm run test:portable
 ./scripts/npm-package-readiness --repo . --validate
 ./scripts/release-preflight --repo . --mode local --json --validate

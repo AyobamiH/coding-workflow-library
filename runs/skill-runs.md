@@ -1680,3 +1680,16 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: recursive validation correctly exposed an old literal placeholder-detector regex after extraction. The regex semantics were preserved with validator-safe spelling, and the full suite passed on rerun. A temporary codemod was deleted and is not part of the package.
 * Follow-up skill needed: coding-workflow-orchestrator-skill for the safe skill-gap recorder, followed by autonomy outcome reporting and multi-project evidence.
 * Upgrade idea: replace the remaining long dispatch chain with a declarative executor registry only when that can be proven without hiding authority or route ownership.
+
+## 2026-07-16 - Workflow Reliability Maturity Foundations
+
+* Skill used: coding-workflow-orchestrator-skill and build-verify-skill.
+* Goal: Complete the recorded post-modularisation maturity sequence locally, prove one bounded contract across real repositories, and audit other large source files without performing a directionless mass refactor.
+* Starting state: `main` was one local modularisation commit ahead of `origin/main`; the worktree was clean; the queue named safe skill-gap recording, autonomy outcomes, multi-project evidence, then remote cross-platform proof.
+* Commands/tools used: repository and roadmap inspection; `apply_patch`; focused Node tests; real helper validation; one explicit read-only multi-project proof; `run-next` syntax/module/resume/authority/lane regression tests; module-size JSON audit; CLI help; docs/control integration; full package and validation gates.
+* Files changed: `scripts/add-skill-gap`; `scripts/autonomy-outcomes`; `scripts/multi-project-proof`; their schemas/tests; `scripts/run-next`; three `scripts/lib/run-next/` structural modules; `scripts/check-module-size`; CLI/package wiring; README/RUNBOOK/AGENTS/index/checklist; maturity and modularity docs; changelog; queue; roadmap; ledger; run log.
+* Evidence collected: structured gap recording is atomic and refuses unsafe fields; the final autonomy report was aggregate-only and validated 398 checkpoint records without invalid content; the same four local contracts passed across the workflow library, OpsTruth, and Wagging Web Wins with unchanged Git and lane state; the entrypoint is 964 lines with 17 modules and no checked source above 2,200 lines.
+* Result: COMPLETE LOCALLY pending the exact local commit. The next maturity dependency is remote exact-commit Linux/macOS/Windows proof, which is not inferred from local execution.
+* Failure/recovery notes: the interrupted work was recovered from the dirty tree and focused tests instead of restarted. The broader source audit found review candidates, but their current domain cohesion did not justify a mass mechanical split; explicit follow-up dispositions now prevent that debt from disappearing.
+* Follow-up skill needed: github-handoff-skill only after `remote_publication` is granted for a non-force push and exact-commit CI inspection.
+* Upgrade idea: split scheduler monitoring from scheduler/Vault mutation when that module next changes; do not refactor untouched domain modules solely to reduce line counts.

@@ -71,6 +71,18 @@ const COMMANDS = {
     script: "scripts/opstruth-classify",
     description: "Classify existing evidence without collapsing skipped, unverified, CI, or production scopes.",
   },
+  "skill-gap": {
+    script: "scripts/add-skill-gap",
+    description: "Validate or record a structured missing-skill backlog item.",
+  },
+  "autonomy-outcomes": {
+    script: "scripts/autonomy-outcomes",
+    description: "Aggregate privacy-safe workflow outcomes from local runtime metadata.",
+  },
+  "multi-project-proof": {
+    script: "scripts/multi-project-proof",
+    description: "Run one bounded read-only workflow contract across explicit local repositories.",
+  },
   "install-hooks": {
     script: "scripts/install-git-hooks",
     description: "Install the optional local Git pre-commit hook when safe.",
@@ -104,6 +116,9 @@ Usage:
   coding-workflow github-deep-review --repo OWNER/REPO --pr NUMBER [--inspect-failed-checks] [--json] [--validate]
   coding-workflow opstruth-classify --self-test [--json] [--validate]
   coding-workflow opstruth-classify --input /path/to/redacted-evidence.json [--json] [--validate] [--strict]
+  coding-workflow skill-gap --title "..." --evidence "..." --primary-type SCRIPT_OR_HELPER --dependency "..." --authority local_execution --done "..." --reason "..." [--dry-run] [--json]
+  coding-workflow autonomy-outcomes --repo /path/to/library [--state-file /path/to/lanes.json] [--json] [--validate]
+  coding-workflow multi-project-proof --repo project-a=/path/to/repo --repo project-b=/path/to/repo --repo project-c=/path/to/repo [--json] [--validate]
   coding-workflow install-hooks [--dry-run] [--force]
   coding-workflow objective show --lane <lane-id> --state-file /path/to/lanes.json
   coding-workflow objective approve --lane <lane-id> --grant remote_publication --state-file /path/to/lanes.json

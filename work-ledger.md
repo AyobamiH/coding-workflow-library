@@ -1634,3 +1634,21 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Boundaries: no route authority, blocker class, dry-run, lane isolation, redaction, checkpoint, resume, remote, deployment, database, secret, or production boundary was broadened.
 * Exact next action: create one bounded local commit and stop before remote publication.
 * Whether John is needed: No for the bounded local commit; yes before any push, version, tag, release, npm publication, deploy, production mutation, or secret mutation.
+
+## 2026-07-16 - Workflow Reliability Maturity Foundations Complete Locally
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Implement the full recorded workflow-reliability maturity sequence after modularisation, audit other large source files, and preserve the next evidence-backed dependency.
+* Current permission level: `local_execution` for source inspection, implementation, tests, local multi-repository read-only proof, package dry-run, exact-file staging, and one local commit. No remote publication, version change, tag, release, npm publication, deploy, production mutation, secret mutation, or destructive action.
+* Current status: Skill-gap recording, autonomy outcome reporting, multi-project proof, and the follow-up entrypoint refactor are complete locally; exact-commit remote portability remains not verified.
+* Selected skill: coding-workflow-orchestrator-skill and build-verify-skill.
+* Starting evidence: the preceding modular commit left `scripts/run-next` at 1,596 lines and recorded safe skill-gap recording, autonomy outcome reporting, multi-project evidence, and remote portability as the next ordered gaps.
+* Files changed: three deterministic helpers, three schemas, three focused test files, CLI/package integration, three additional `run-next` structural modules, module-size audit output and tests, maturity/modularity docs, control guidance, queue, roadmap, changelog, ledger, and run log.
+* Skill-gap evidence: structured dry-run, JSON, write, and validation paths are covered; duplicate, malformed, multiline, oversized, private-path, and secret-shaped fields are rejected; queue replacement is atomic and bounded to the P1/P2 insertion boundary.
+* Outcome evidence: the real library report inspected safe checkpoint, ledger, and run-log metadata without emitting paths, notes, commands, raw logs, or credentials. The final local observation validated 398 checkpoint records with no invalid records and remained `WARN` only because optional default lane state was absent.
+* Multi-project evidence: one real read-only proof passed repository-map validation, package readiness, local release preflight, and lane-scoped verification-bundle dry-run across the workflow library, OpsTruth, and Wagging Web Wins. Git status and temporary lane state remained unchanged for every target; existing product-repository dirt was preserved.
+* Modularity evidence: CLI control, route access, and route dispatch moved into focused modules; `scripts/run-next` is 964 lines and the runtime has 17 modules. No checked file exceeds 2,200 lines. Files above the 1,000-line review threshold have explicit cohesion or next-extraction decisions in `docs/modularity-audit.md`.
+* Route decision: no artificial `run-next` routes were added. The recorder is explicit queue maintenance, the outcome reporter is read-only inspection, and multi-project proof is an operator-selected validation harness until repeated lane-state transitions prove route semantics.
+* Boundaries: no target repository was edited by the proof harness; no production, deployment, database, secret, registry, network publication, or destructive consequence was executed. Local evidence is not remote Linux/macOS/Windows proof.
+* Exact next action: run full validation and package smoke, create one exact-file local commit, then stop at the `remote_publication` boundary for push and exact-commit matrix observation.
+* Whether John is needed: No for the local commit; yes to grant `remote_publication` for push and remote exact-commit CI observation.

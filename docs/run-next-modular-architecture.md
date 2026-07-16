@@ -13,20 +13,20 @@ The modular architecture preserves the existing route and authority behaviour wh
 The entrypoint owns:
 
 - environment-independent constants;
-- command-line argument parsing;
 - selection of the target repo or lane;
-- top-level route dispatch;
-- objective-authority checks;
 - composition of runtime modules;
 - top-level error and exit handling.
 
-It must not absorb product executors, specialised report renderers, database helpers, GitHub workflows, or scheduler logic.
+Command-line parsing, route-access decisions, and route-kind dispatch are separate structural modules. The entrypoint must not absorb product executors, specialised report renderers, database helpers, GitHub workflows, scheduler logic, or another long executor chain.
 
 ## Module Ownership
 
 | Module | Responsibility |
 | --- | --- |
 | `runtime-context.js` | Internal dependency composition and lazy function lookup |
+| `cli-control.js` | Argument parsing, help, control-file reads, and lane/ledger work-item selection |
+| `route-access.js` | Authority checks, stop-boundary decisions, and next-approval classification |
+| `route-dispatch.js` | Declarative route-kind to executor dispatch |
 | `runtime-core.js` | Process execution, sanitisation, Git helpers, shared runtime utilities |
 | `checkpoints.js` | Secret-free interrupted-run checkpoint creation, status, and resume support |
 | `reports.js` | Route-specific human report selection and rendering |
@@ -62,6 +62,7 @@ Modularity is a repository rule, not a one-time refactor.
 - Review a hand-written source file when it reaches 1,000 lines.
 - Explain why it remains cohesive or extract a focused responsibility.
 - `scripts/check-module-size` enforces a 2,200-line hard maximum.
+- `scripts/check-module-size --json` exposes review candidates for deterministic audit tooling.
 - The checker scans JavaScript and Node scripts recursively under `bin/`, `scripts/`, and `tests/`.
 - Generated output, dependencies, caches, builds, coverage, and private `.run-next` state are excluded by directory boundary.
 - Do not add a hand-written-file allowlist to bypass the limit.
@@ -97,10 +98,6 @@ It is not a migration to planner, worker, reviewer, agent-swarm, generic capabil
 
 ## Remaining Maturity Gaps
 
-The modular split makes the next gaps easier to implement without changing direction:
+The modular split enabled the safe skill-gap recorder, read-only autonomy outcome reporting, and observed three-repository proof without broadening route authority. The next gap is exact-commit remote proof for the existing Linux, macOS, and Windows portable matrix. Optional secret-manager work remains held behind a separate non-printing contract and authority decision.
 
-1. A safe skill-gap recorder for the existing "no skill fits" runbook contract.
-2. Read-only autonomy outcome reporting from safe lane, checkpoint, ledger, and run metadata.
-3. Representative real-run evidence across multiple repositories without lane leakage.
-4. Exact-commit remote proof for the existing Linux, macOS, and Windows portable matrix.
-5. Optional secret-manager work only after a separate non-printing contract and authority decision.
+See `docs/modularity-audit.md` for current review candidates and `docs/workflow-maturity-foundations.md` for the completed reliability contracts.

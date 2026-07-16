@@ -57,7 +57,7 @@
 - Dependency: existing route and objective-authority contracts.
 - Authority required: `local_execution`.
 - Done definition: the entrypoint owns only composition and dispatch; domain logic, reports, checkpoints, and runtime support live in focused modules; recursive syntax checks cover nested code; a deterministic hard line budget prevents another monolith.
-- Status: implemented locally. `scripts/run-next` is 1,596 lines, 14 modules live under `scripts/lib/run-next/`, every checked file is below 2,200 lines, and focused module, resume, and authority tests pass.
+- Status: implemented locally. `scripts/run-next` is 964 lines, 17 modules live under `scripts/lib/run-next/`, every checked file is below 2,200 lines, and focused module, resume, authority, and lane-isolation tests pass. `scripts/check-module-size --json` exposes files above the 1,000-line review threshold; their current responsibility decisions are recorded in `docs/modularity-audit.md`.
 
 ## Safe skill-gap recorder
 
@@ -67,6 +67,7 @@
 - Authority required: `local_execution`.
 - Done definition: one deterministic helper appends a bounded, portable, secret-safe gap record; supports dry-run and validation; refuses duplicate or malformed entries; never edits unrelated queue content.
 - Reason for priority: the control rule exists, but recording still depends on ad hoc manual editing.
+- Status: implemented locally through `scripts/add-skill-gap`, `schemas/skill-gap-record.schema.json`, CLI delegation, dry-run/JSON/validation modes, atomic queue replacement, and focused refusal tests for duplicates, malformed fields, private paths, and secret-shaped values.
 
 ## Autonomy outcome reporting
 
@@ -76,6 +77,7 @@
 - Authority required: `local_execution`.
 - Done definition: a read-only helper reports route completion, blocker, recovery, resume, and stop-boundary counts from safe local metadata without reading secrets or treating logs as production proof.
 - Reason for priority: the workflow records evidence but does not yet summarize whether autonomy is becoming more reliable.
+- Status: implemented locally through `scripts/autonomy-outcomes`, `schemas/autonomy-outcomes.schema.json`, CLI delegation, and focused privacy/determinism tests. The final local observation validated 398 checkpoint records with no invalid records and remained `WARN` only because optional default lane state was absent.
 
 ## Real multi-project workflow evidence
 
@@ -85,6 +87,7 @@
 - Authority required: `local_execution`; target-specific consequences retain their own authority.
 - Done definition: at least three distinct repositories complete representative routes with the same public contracts, explicit failures, and no lane-state leakage.
 - Reason for priority: synthetic coverage is strong, but reusable autonomy needs repeated cross-repository evidence.
+- Status: implemented and observed locally through `scripts/multi-project-proof`, `schemas/multi-project-proof.schema.json`, CLI delegation, and focused synthetic tests. One real proof passed the same four read-only contracts across the workflow library, OpsTruth, and Wagging Web Wins with Git status and temporary lane state unchanged for every target.
 
 ## Remote cross-platform exact-commit proof
 
@@ -94,6 +97,7 @@
 - Authority required: `remote_publication`.
 - Done definition: Linux, macOS, and Windows jobs pass for the exact published commit, with any platform-specific failure classified rather than inferred from local Linux evidence.
 - Reason for priority: the matrix exists locally, but remote execution evidence must remain separate until observed.
+- Status: next active maturity dependency. Local portable coverage includes the three new foundations, but exact-commit remote matrix execution remains `NOT_VERIFIED` until publication is authorised and observed.
 
 # P2 - Follow-On Autonomy Improvements
 

@@ -1,0 +1,343 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const { spawnSync } = require("child_process");
+const laneState = require("./lane-state");
+const objectiveAuthority = require("./objective-authority");
+
+const SCHEMA_VERSION = 1;
+const MINIMUM_REPOSITORIES = 3;
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/multi-project-proof --repo <label>=<path> --repo <label>=<path>
+    --repo <label>=<path> [--json] [--validate]
+
+Run the same bounded, read-only workflow contract against at least three
+distinct local repositories:
+
+  - source-only repository map
+  - package-readiness classification
+  - local release preflight
+  - lane-scoped run-next verification-bundle dry-run
+
+The helper writes only disposable state under the operating-system temporary
+directory. It reports labels and aggregate classifications, never repository
+paths or raw command output.`);
+}
+
+function parseArgs(argv) {
+  const args = { repos: [], json: false, validate: false, help: false };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--repo") args.repos.push(parseRepo(requireValue(argv, ++index, arg)));
+    else if (arg === "--json") args.json = true;
+    else if (arg === "--validate") args.validate = true;
+    else if (arg === "--help" || arg === "-h") args.help = true;
+    else throw new Error(`unknown argument: ${arg}`);
+  }
+  return args;
+}
+
+function requireValue(argv, index, flag) {
+  const value = argv[index];
+  if (!value) throw new Error(`${flag} requires <label>=<path>`);
+  return value;
+}
+
+function parseRepo(value) {
+  const separator = value.indexOf("=");
+  if (separator < 1 || separator === value.length - 1) throw new Error("--repo requires <label>=<path>");
+  const label = value.slice(0, separator);
+  const repo = path.resolve(value.slice(separator + 1));
+  if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(label)) {
+    throw new Error("repository labels must use lowercase letters, numbers, and hyphens");
+  }
+  return { label, repo };
+}
+
+function run(command, args, options = {}) {
+  return spawnSync(command, args, {
+    cwd: options.cwd,
+    env: options.env || process.env,
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024 * 16,
+    timeout: options.timeout || 120000,
+  });
+}
+
+function gitStatus(repo) {
+  const result = run("git", ["-C", repo, "status", "--porcelain"]);
+  if (result.status !== 0) return { available: false, snapshot: "", entries: 0 };
+  const snapshot = result.stdout || "";
+  return {
+    available: true,
+    snapshot,
+    entries: snapshot.split(/\r?\n/).filter(Boolean).length,
+  };
+}
+
+function safeJson(result) {
+  if (!result || result.status !== 0 || !String(result.stdout || "").trim()) return null;
+  try {
+    return JSON.parse(result.stdout);
+  } catch {
+    return null;
+  }
+}
+
+function commandResult(id, result, report = null) {
+  return {
+    id,
+    exit_code: typeof result.status === "number" ? result.status : 1,
+    parsed: Boolean(report),
+    classification: report?.final_classification || report?.status || (result.status === 0 ? "PASS" : "FAIL"),
+  };
+}
+
+function createLaneState(file, repo) {
+  const now = "2026-01-01T00:00:00.000Z";
+  const state = {
+    version: 1,
+    lanes: [{
+      lane_id: "proof-target",
+      display_name: "Proof Target",
+      repo_path: repo,
+      repository: "",
+      current_state: "Local verification and release evidence bundle built",
+      next_permission: "verification-bundle-self-test",
+      status: "active",
+      route_ids: [],
+      last_updated: now,
+      evidence_refs: [],
+      hold_reason: "",
+      notes: "",
+      objective: objectiveAuthority.createObjective({
+        id: "multi-project-proof",
+        description: "Bounded read-only cross-project workflow proof",
+        created_at: now,
+        updated_at: now,
+      }),
+    }],
+  };
+  laneState.atomicWrite(file, state);
+}
+
+function inspectRepository({ label, repo }, libraryRoot, temporaryRoot) {
+  const failures = [];
+  if (!fs.existsSync(repo) || !fs.statSync(repo).isDirectory()) {
+    return {
+      label,
+      status: "FAIL",
+      git: { available: false, entries_before: 0, entries_after: 0, unchanged: false },
+      lane_state_unchanged: false,
+      contracts: [],
+      failures: ["repository-unavailable"],
+    };
+  }
+
+  const before = gitStatus(repo);
+  const repoMapRun = run(process.execPath, [
+    path.join(libraryRoot, "scripts", "repo-map"),
+    "--repo", repo,
+    "--json",
+    "--validate",
+  ], { cwd: libraryRoot });
+  const repoMap = safeJson(repoMapRun);
+
+  const packageRun = run(process.execPath, [
+    path.join(libraryRoot, "scripts", "npm-package-readiness"),
+    "--repo", repo,
+    "--json",
+    "--validate",
+  ], { cwd: libraryRoot });
+  const packageReport = safeJson(packageRun);
+
+  const releaseRun = run(process.execPath, [
+    path.join(libraryRoot, "scripts", "release-preflight"),
+    "--repo", repo,
+    "--mode", "local",
+    "--json",
+    "--validate",
+  ], { cwd: libraryRoot });
+  const releaseReport = safeJson(releaseRun);
+
+  const laneFile = path.join(temporaryRoot, `${label}-lanes.json`);
+  const checkpointDir = path.join(temporaryRoot, `${label}-checkpoints`);
+  createLaneState(laneFile, repo);
+  const laneBefore = fs.readFileSync(laneFile, "utf8");
+  const routeRun = run(process.execPath, [
+    path.join(libraryRoot, "scripts", "run-next"),
+    "--repo", repo,
+    "--lane", "proof-target",
+    "--state-file", laneFile,
+    "--allow", "verification-bundle-self-test",
+    "--dry-run",
+  ], {
+    cwd: libraryRoot,
+    env: { ...process.env, RUN_NEXT_DIR: checkpointDir },
+  });
+  const laneAfter = fs.readFileSync(laneFile, "utf8");
+  const laneUnchanged = laneBefore === laneAfter;
+  const routeSelected = routeRun.status === 0
+    && /verification bundle self-test/i.test(routeRun.stdout || "")
+    && /DRY RUN PASSED/i.test(routeRun.stdout || "");
+
+  const after = gitStatus(repo);
+  const gitUnchanged = before.available && after.available && before.snapshot === after.snapshot;
+  const contracts = [
+    commandResult("repo-map", repoMapRun, repoMap),
+    commandResult("package-readiness", packageRun, packageReport),
+    commandResult("release-preflight-local", releaseRun, releaseReport),
+    {
+      id: "run-next-dry-run",
+      exit_code: typeof routeRun.status === "number" ? routeRun.status : 1,
+      parsed: routeSelected,
+      classification: routeSelected ? "PASS" : "FAIL",
+    },
+  ];
+  for (const contract of contracts) {
+    if (contract.exit_code !== 0 || !contract.parsed) failures.push(`${contract.id}-failed`);
+  }
+  if (!gitUnchanged) failures.push("target-state-changed");
+  if (!laneUnchanged) failures.push("lane-state-changed");
+
+  return {
+    label,
+    status: failures.length ? "FAIL" : "PASS",
+    git: {
+      available: before.available && after.available,
+      entries_before: before.entries,
+      entries_after: after.entries,
+      unchanged: gitUnchanged,
+    },
+    lane_state_unchanged: laneUnchanged,
+    contracts,
+    failures,
+  };
+}
+
+function validateInputs(repos) {
+  const errors = [];
+  if (repos.length < MINIMUM_REPOSITORIES) errors.push("minimum-three-repositories-required");
+  const labels = new Set();
+  const paths = new Set();
+  for (const item of repos) {
+    if (labels.has(item.label)) errors.push("duplicate-label");
+    if (paths.has(item.repo)) errors.push("duplicate-repository");
+    labels.add(item.label);
+    paths.add(item.repo);
+  }
+  return [...new Set(errors)].sort();
+}
+
+function buildReport(options) {
+  const inputErrors = validateInputs(options.repos);
+  if (inputErrors.length) {
+    return {
+      schema_version: SCHEMA_VERSION,
+      status: "FAIL",
+      contract: "bounded-read-only-workflow-v1",
+      repositories_required: MINIMUM_REPOSITORIES,
+      repositories_observed: options.repos.length,
+      results: [],
+      failures: inputErrors,
+      boundaries: boundaries(),
+    };
+  }
+
+  const libraryRoot = path.resolve(__dirname, "..");
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "multi-project-proof-"));
+  try {
+    const results = options.repos
+      .map((item) => inspectRepository(item, libraryRoot, temporaryRoot))
+      .sort((left, right) => left.label.localeCompare(right.label));
+    const failures = results.flatMap((result) => result.failures.map((failure) => `${result.label}:${failure}`));
+    return {
+      schema_version: SCHEMA_VERSION,
+      status: failures.length ? "FAIL" : "PASS",
+      contract: "bounded-read-only-workflow-v1",
+      repositories_required: MINIMUM_REPOSITORIES,
+      repositories_observed: results.length,
+      results,
+      failures,
+      boundaries: boundaries(),
+    };
+  } finally {
+    fs.rmSync(temporaryRoot, { recursive: true, force: true });
+  }
+}
+
+function boundaries() {
+  return [
+    "No target repository file is written.",
+    "No lane state is shared between repositories.",
+    "No network, deployment, publication, secret read, or production action is requested.",
+    "Package and release classifications are evidence, not proof of deployment or production state.",
+  ];
+}
+
+function validateReport(report) {
+  const errors = [];
+  if (report.schema_version !== SCHEMA_VERSION) errors.push("schema-version");
+  if (!["PASS", "FAIL"].includes(report.status)) errors.push("status");
+  if (report.repositories_observed < MINIMUM_REPOSITORIES) errors.push("repository-count");
+  const serialized = JSON.stringify(report);
+  if (/\/(?:home|Users)\/[A-Za-z0-9._-]+|[A-Za-z]:\\\\Users\\\\/i.test(serialized)) errors.push("private-path-output");
+  if (/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.|-----BEGIN .*PRIVATE KEY-----/i.test(serialized)) errors.push("secret-shaped-output");
+  return errors;
+}
+
+function printHuman(report) {
+  console.log("# Multi-Project Workflow Proof");
+  console.log(`Status: ${report.status}`);
+  console.log(`Contract: ${report.contract}`);
+  console.log(`Repositories: ${report.repositories_observed}/${report.repositories_required}`);
+  console.log(`Failures: ${report.failures.length}`);
+  for (const result of report.results) {
+    console.log(`\n## ${result.label}`);
+    console.log(`Status: ${result.status}`);
+    console.log(`Target state unchanged: ${result.git.unchanged ? "yes" : "no"}`);
+    console.log(`Lane state unchanged: ${result.lane_state_unchanged ? "yes" : "no"}`);
+    for (const contract of result.contracts) {
+      console.log(`- ${contract.id}: ${contract.classification}`);
+    }
+  }
+  console.log("\n## Boundaries");
+  for (const boundary of report.boundaries) console.log(`- ${boundary}`);
+}
+
+function main() {
+  try {
+    const args = parseArgs(process.argv.slice(2));
+    if (args.help) {
+      usage();
+      return;
+    }
+    const report = buildReport(args);
+    const validation = validateReport(report);
+    if (validation.length) {
+      report.status = "FAIL";
+      report.failures = [...new Set([...report.failures, ...validation])].sort();
+    }
+    if (args.json) console.log(JSON.stringify(report, null, 2));
+    else printHuman(report);
+    if (args.validate && report.status !== "PASS") process.exitCode = 1;
+  } catch (error) {
+    console.error(`multi-project proof failed: ${error.message}`);
+    process.exitCode = 2;
+  }
+}
+
+if (require.main === module) main();
+
+module.exports = {
+  buildReport,
+  inspectRepository,
+  parseArgs,
+  parseRepo,
+  validateInputs,
+  validateReport,
+};

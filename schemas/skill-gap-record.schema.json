@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AyobamiH/coding-workflow-library/schemas/skill-gap-record.schema.json",
+  "title": "Skill Gap Recorder Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "queue",
+    "candidate_present",
+    "candidate_title",
+    "insertion_boundary",
+    "issues",
+    "mode",
+    "written"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "status": { "enum": ["PASS", "FAIL"] },
+    "queue": { "const": "build-queue.md" },
+    "candidate_present": { "type": "boolean" },
+    "candidate_title": { "type": ["string", "null"] },
+    "insertion_boundary": { "const": "before-p2" },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["category", "field"],
+        "properties": {
+          "category": { "type": "string" },
+          "field": { "type": "string" }
+        }
+      }
+    },
+    "mode": { "enum": ["validate", "dry-run", "write"] },
+    "written": { "type": "boolean" }
+  }
+}
