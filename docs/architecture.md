@@ -6,6 +6,7 @@ The coding workflow library is organized around five local layers:
 2. Route metadata in `routes/skill-routes.json` maps ledger states to reusable skills, permission flags, helper scripts, forbidden actions, and evidence requirements.
 3. Local lane state stores active per-project execution state outside the public package. `schemas/work-lanes.schema.json` defines the portable shape and `templates/work-lanes.example.json` provides neutral example data.
 4. `scripts/run-next` selects a route from one explicit lane, or reads historical `work-ledger.md` in backwards-compatible mode, and enforces objective authority before running local automation.
+5. `scripts/library-next-objective` closes the reusable-library loop by cross-checking the queue and roadmap. It can select a structured active gap or prove a known no-gap boundary; it cannot invent work or grant authority.
 5. Evidence and release helpers validate package contents, routes, skills, runtime claims, and handoff readiness without publishing or mutating remote services unless a specific permission gate allows it.
 
 The library is designed to be portable. Clean-temp smoke tests copy the package candidate into an isolated folder and verify that route audit, validation, package readiness, release preflight, and CLI commands work without hidden local state.

@@ -156,6 +156,7 @@ function runtimeApi() {
   Object.assign(api, cliControl);
   Object.assign(api, require("./lib/run-next/route-access"));
   Object.assign(api, require("./lib/run-next/route-dispatch"));
+  Object.assign(api, require("./lib/run-next/library-route-selection"));
   Object.assign(api, require("./lib/run-next/local-foundations"));
   Object.assign(api, require("./lib/run-next/release-routes"));
   Object.assign(api, require("./lib/run-next/github-routes"));
@@ -315,65 +316,8 @@ function routeStatus(status, active = {}) {
     };
   }
 
-  if (args.allow.has("workflow-corpus-recovery") && path.resolve(targetRepo) === LIBRARY_ROOT) {
-    return {
-      skill: "session-log-extraction-skill / coding-workflow-orchestrator-skill",
-      permission: "workflow-corpus-recovery",
-      requiresAuthority: ["local_execution"],
-      kind: "workflow-corpus-recovery",
-      nextAction: "validate or regenerate the private workflow corpus, verify coverage, and stop before remote publication",
-    };
-  }
-
-  if (args.allow.has("docs-list-foundation") && path.resolve(targetRepo) === LIBRARY_ROOT) {
-    return {
-      skill: "coding-workflow-orchestrator-skill / session-log-extraction-skill",
-      permission: "docs-list-foundation",
-      requiresAuthority: ["local_execution", "remote_publication"],
-      kind: "docs-list-foundation",
-      nextAction: "verify deterministic docs inventory, strict docs validation, and stop before package publication or release work",
-    };
-  }
-
-  if (args.allow.has("repo-map-helper-automation") && path.resolve(targetRepo) === LIBRARY_ROOT) {
-    return {
-      skill: "repo-map-skill / coding-workflow-orchestrator-skill",
-      permission: "repo-map-helper-automation",
-      requiresAuthority: ["local_execution", "remote_publication"],
-      kind: "repo-map-helper-automation",
-      nextAction: "verify deterministic source-only repo map helper, schema, CLI delegation, tests, package contents, and stop before the next dependency",
-    };
-  }
-
-  if (args.allow.has("project-kb-compiler") && path.resolve(targetRepo) === LIBRARY_ROOT) {
-    return {
-      skill: "project-kb-builder-skill / coding-workflow-orchestrator-skill",
-      permission: "project-kb-compiler",
-      requiresAuthority: ["local_execution", "remote_publication"],
-      kind: "project-kb-compiler",
-      nextAction: "verify deterministic source-only project KB compiler, schema, CLI delegation, tests, package contents, and stop before the next dependency",
-    };
-  }
-
-  if (args.allow.has("pre-commit-validation-hook") && path.resolve(targetRepo) === LIBRARY_ROOT) {
-    return {
-      skill: "build-verify-skill / github-handoff-skill / coding-workflow-orchestrator-skill",
-      permission: "pre-commit-validation-hook",
-      requiresAuthority: ["local_execution", "remote_publication"],
-      kind: "pre-commit-validation-hook",
-      nextAction: "verify deterministic local pre-commit gate, staged secret scan, safe hook installer, CLI delegation, tests, and stop before migration-review work",
-    };
-  }
-
-  if (args.allow.has("migration-review-helper") && path.resolve(targetRepo) === LIBRARY_ROOT) {
-    return {
-      skill: "migration-review-skill / coding-workflow-orchestrator-skill",
-      permission: "migration-review-helper",
-      requiresAuthority: ["local_execution", "remote_publication"],
-      kind: "migration-review-helper",
-      nextAction: "verify deterministic source-only migration review helper, schema, CLI delegation, tests, package contents, and stop before browser/GitHub/release work",
-    };
-  }
+  const libraryFoundationRoute = runtimeApi().selectLibraryFoundationRoute(status);
+  if (libraryFoundationRoute) return libraryFoundationRoute;
 
   if (normalized === "no ledger item for repo") {
     return {

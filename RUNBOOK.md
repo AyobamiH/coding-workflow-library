@@ -332,6 +332,12 @@ If a mapped skill file is missing:
 
 The recorder rejects duplicates, missing or multiline fields, oversized values, private absolute paths, and secret-shaped material. It edits only the P1 queue boundary and performs no remote action.
 
+## Library Next-Objective Assessment
+
+When the library lane is complete and no next reusable dependency is obvious, run `scripts/library-next-objective --repo <LIBRARY_REPO> --json --validate` before proposing more foundation work. `NO_ACTIVE_REUSABLE_GAP` is a valid terminal result: choose a target repository objective or record a new bounded gap from fresh evidence. `ACTIVE_REUSABLE_GAP` names the first structured P1 candidate. `EVIDENCE_INCONSISTENT` blocks until the queue and roadmap agree.
+
+The helper reads only public queue and roadmap files. The matching `library-next-objective-assessment` route additionally validates docs, repo mapping, module size, routes, and skills, then updates only the selected lane. It does not publish, deploy, access secrets, or mutate product repositories.
+
 ## Autonomy Outcome Review
 
 Use `scripts/autonomy-outcomes --repo <LIBRARY_REPO> --json --validate` when the question is whether the workflow is completing, blocking, resuming, or stopping more reliably.

@@ -90,6 +90,16 @@ No active P1 gaps are currently evidence-backed. The entries below remain in thi
 - Reason for priority: the control rule exists, but recording still depends on ad hoc manual editing.
 - Status: implemented and published through `scripts/add-skill-gap`, `schemas/skill-gap-record.schema.json`, CLI delegation, dry-run/JSON/validation modes, atomic queue replacement, and focused refusal tests for duplicates, malformed fields, private paths, and secret-shaped values.
 
+## Terminal next-objective assessment
+
+- Evidence source: `scripts/run-next` classified the valid completed state `Role credentials retained, source cohesion hardening complete` as an unknown ledger status while the queue and roadmap explicitly recorded no active reusable gap.
+- Primary type: `CONTROL_PLANE`, `VALIDATION`.
+- Dependency: lane-scoped state, structured P1 records, roadmap truth, and modular route dispatch.
+- Authority required: `local_execution`.
+- Done definition: a deterministic read-only helper distinguishes an active structured P1 gap, a verified no-gap boundary, and inconsistent evidence; `run-next` updates only the selected lane and recognizes the no-gap result on rerun.
+- Reason for priority: valid completion must not degrade into `NEEDS JOHN`, and autonomy must not manufacture work merely to keep running.
+- Status: implemented and locally proven through `scripts/library-next-objective`, schema, CLI delegation, route metadata, focused classification tests, dry-run immutability, a real selected-lane run, unselected-lane hash stability, and a known terminal state.
+
 ## Autonomy outcome reporting
 
 - Evidence source: lane objectives, checkpoints, blocker classes, `work-ledger.md`, and `runs/skill-runs.md`.

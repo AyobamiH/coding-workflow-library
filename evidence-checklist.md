@@ -48,6 +48,7 @@ Use this before final response or before saying a workflow is complete.
 - Tool permission level checked against `tools.md`.
 - `scripts/run-next --dry-run` used when a ledger-driven continuation is available.
 - `scripts/run-next` real run used only with matching `--allow` flags.
+- Completed library lanes use `scripts/library-next-objective --validate`; a no-gap result is recorded as a deliberate boundary, while inconsistent queue/roadmap evidence blocks.
 - Runner stopped at a real permission/auth/repo-state boundary or recorded a PR URL.
 - Verification bundle self-test used `--allow verification-bundle-self-test` only when the active ledger status was `Local verification and release evidence bundle built`.
 - Verification bundle self-test defaulted to `scripts/evidence-pack --dry-run`; any local evidence-file creation used the extra `--allow evidence-pack-write` gate.

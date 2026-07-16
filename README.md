@@ -71,6 +71,7 @@ skills/coding-workflow-library/
     skill-gap-record.schema.json
     autonomy-outcomes.schema.json
     multi-project-proof.schema.json
+    library-next-objective.schema.json
   runs/
     decisions/
     skill-runs.md
@@ -103,6 +104,7 @@ skills/coding-workflow-library/
     add-skill-gap
     autonomy-outcomes
     multi-project-proof
+    library-next-objective
     install-git-hooks
     run-next
     route-audit
@@ -202,7 +204,7 @@ The frontmatter is the routing contract. `name` must match the filename without 
 2. Read `RUNBOOK.md` for operational guidance.
 3. Prefer `scripts/run-next` for the autonomous work loop when the next action should come from `work-ledger.md`.
 4. Use `routes/skill-routes.json` and `./scripts/run-next --list-routes` to see which reusable skill owns a ledger route.
-5. Use `coding-workflow-orchestrator-skill` manually when `scripts/run-next` cannot cover the current state.
+5. For a completed library lane, run `coding-workflow next-objective --repo <LIBRARY_REPO> --validate`; a verified empty reusable queue is a valid boundary, while inconsistent evidence blocks.
 6. Pick the relevant downstream skill from frontmatter routing, route metadata, and `skills-index.md`.
 7. Open the matching file under `skill-files/`.
 8. State why the skill was selected before acting.
@@ -341,9 +343,13 @@ coding-workflow multi-project-proof \
   --repo product-a=/path/to/product-a \
   --repo product-b=/path/to/product-b \
   --json --validate
+
+coding-workflow next-objective \
+  --repo <LIBRARY_REPO> \
+  --json --validate
 ```
 
-The skill-gap recorder performs one structured atomic queue edit and rejects duplicate, malformed, private-path, or secret-shaped fields. The outcome report reads only safe local metadata and emits aggregate categories rather than paths, notes, commands, or raw logs. The multi-project proof runs the same source/readiness/preflight/dry-run contract across explicit targets, then proves Git status and temporary lane state did not change.
+The skill-gap recorder performs one structured atomic queue edit and rejects duplicate, malformed, private-path, or secret-shaped fields. The outcome report reads only safe local metadata and emits aggregate categories rather than paths, notes, commands, or raw logs. The multi-project proof runs the same source/readiness/preflight/dry-run contract across explicit targets, then proves Git status and temporary lane state did not change. The next-objective assessor cross-checks P1 statuses, P2 completion, missing-helper evidence, and held agent-role boundaries; it reports `NO_ACTIVE_REUSABLE_GAP`, `ACTIVE_REUSABLE_GAP`, or `EVIDENCE_INCONSISTENT` without editing the queue.
 
 These commands do not publish, deploy, call production, read secret values, or grant authority. A real local proof passed across the workflow library, OpsTruth, and Wagging Web Wins. Remote Linux/macOS/Windows exact-commit proof remains separate and unverified. See [docs/workflow-maturity-foundations.md](docs/workflow-maturity-foundations.md).
 
@@ -642,6 +648,8 @@ It supports `GH_TOKEN` and `GITHUB_TOKEN` only as runtime environment auth. It m
 Use `--explain` when John needs the selected job, required permission, stop reason, and next approval command without mutating any files. `--dry-run` is also non-mutating; it does not update `work-ledger.md`, `runs/skill-runs.md`, target repos, or external services.
 
 Use `--list-routes` to inspect local route metadata without reading credentials, updating the ledger, touching target repos, or calling external services.
+
+When the library lane reaches `Role credentials retained, source cohesion hardening complete`, the local-only `library-next-objective-assessment` route validates the queue, roadmap, docs, repository map, module sizes, routes, and skills. A successful empty assessment records `Library self-assessment complete, no active reusable foundation gap`; subsequent explanations recognize that as a deliberate target-selection boundary rather than an unknown state.
 
 Current automation supports the `Auth pass for GitHub handoff` path for `<TARGET_REPO>`: it isolates `GH_TOKEN`, verifies `AyobamiH/wagging-web-wins` access, checks local repo safety, creates/switches the feature branch, pushes that branch only, and creates or confirms the PR.
 

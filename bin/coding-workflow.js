@@ -83,6 +83,10 @@ const COMMANDS = {
     script: "scripts/multi-project-proof",
     description: "Run one bounded read-only workflow contract across explicit local repositories.",
   },
+  "next-objective": {
+    script: "scripts/library-next-objective",
+    description: "Cross-check the library queue and roadmap before selecting more reusable work.",
+  },
   "sops-age": {
     script: "scripts/sops-age-secret-access",
     description: "Check and use local non-printing SOPS plus age secret injection.",
@@ -127,6 +131,7 @@ Usage:
   coding-workflow skill-gap --title "..." --evidence "..." --primary-type SCRIPT_OR_HELPER --dependency "..." --authority local_execution --done "..." --reason "..." [--dry-run] [--json]
   coding-workflow autonomy-outcomes --repo /path/to/library [--state-file /path/to/lanes.json] [--json] [--validate]
   coding-workflow multi-project-proof --repo project-a=/path/to/repo --repo project-b=/path/to/repo --repo project-c=/path/to/repo [--json] [--validate]
+  coding-workflow next-objective --repo /path/to/library [--json] [--validate]
   coding-workflow sops-age status [--json] [--validate]
   coding-workflow sops-age validate-file --file /private/path/runtime.enc.env [--json] [--validate]
   coding-workflow sops-age run --file /private/path/runtime.enc.env --dry-run -- command arg

@@ -4,6 +4,18 @@ This is the persistent control-plane ledger for `coding-workflow-orchestrator-sk
 
 Each entry records the active repo, objective, permission boundary, selected skill, evidence, blockers, and exact next action. The ledger is operational state, not a polished report.
 
+## 2026-07-17 - Library Next-Objective Assessment
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Repair the observed terminal routing defect by proving whether any reusable foundation gap is active.
+* Current permission level: `local_execution`; no remote publication, version, tag, release, npm publication, deploy, production mutation, secret access, or destructive action.
+* Current status: Library self-assessment complete, no active reusable foundation gap.
+* Selected skill: coding-workflow-orchestrator-skill.
+* Evidence: the public queue states no active P1 gaps and complete P2 work; the roadmap states no evidence-backed missing helper or reusable agent role. The real route passed next-objective, docs, repo-map, module-size, route, and skill validation. Dry-run changed no lane; real execution changed only the library lane; Wagging and OneClickPostFactory remained byte-for-byte unchanged.
+* Validation limitation: full `npm test` reached the existing SOPS fixture and then received an empty nested subprocess stream under the sandbox. An unsandboxed rerun was unavailable because the execution quota was exhausted; the SOPS test and security boundary were not weakened.
+* Exact next action: select a target repository objective or record a new evidence-backed gap; remote publication of this local commit requires a separate `remote_publication` grant.
+* Whether John is needed: No to stop at the verified no-gap boundary. Yes only to choose a product objective or grant a consequence authority for a future objective.
+
 ## 2026-07-16 - Retained Role Credentials And Source Cohesion
 
 * Active repo: `<LIBRARY_REPO>` with private credential metadata outside source.

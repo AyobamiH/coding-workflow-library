@@ -1971,6 +1971,71 @@
       "provenance": "standalone capability-intelligence product hard cutover using local Codex plugin, skill, app-tool, connector, and workflow-library metadata"
     },
     {
+      "id": "library-next-objective-assessment",
+      "skill_file": "skill-files/coding-workflow-orchestrator-skill.md",
+      "ledger_states_handled": [
+        "Role credentials retained, source cohesion hardening complete",
+        "Library next-objective assessment blocked"
+      ],
+      "permission_flag": "library-next-objective-assessment",
+      "helper_scripts": [
+        "scripts/library-next-objective",
+        "scripts/docs-list",
+        "scripts/repo-map",
+        "scripts/check-module-size",
+        "scripts/route-audit",
+        "scripts/validate-skills",
+        "scripts/run-next"
+      ],
+      "permission_level": "local_execution",
+      "explicit_permission_required": false,
+      "requires_authority": [
+        "local_execution"
+      ],
+      "forbidden_actions": [
+        "product repository mutation",
+        "automatic gap invention",
+        "remote publication",
+        "npm publish",
+        "npm version",
+        "git tag",
+        "GitHub release creation",
+        "deploy",
+        "production calls",
+        "secret access",
+        "secret value printing"
+      ],
+      "success_ledger_state": "Library self-assessment complete, no active reusable foundation gap",
+      "blocked_ledger_state": "Library next-objective assessment blocked",
+      "next_permission": "select a target repository objective or record a new evidence-backed gap",
+      "evidence_required": [
+        "build queue P1 status classification",
+        "build queue P2 completion statement",
+        "roadmap missing-helper statement",
+        "agent-role hold boundary",
+        "documentation validation",
+        "repository map validation",
+        "module-size validation",
+        "route audit",
+        "skill validation",
+        "selected-lane isolation"
+      ],
+      "safety_gates": [
+        "read-only public roadmap evidence",
+        "active P1 entries win over no-gap inference",
+        "inconsistent evidence blocks",
+        "dry-run changes no lane",
+        "real run changes only the selected lane",
+        "no external calls or mutations"
+      ],
+      "idempotency_evidence": [
+        "repeated assessment produces equivalent classification",
+        "known terminal state does not rerun the assessment",
+        "no-gap result remains a deliberate boundary rather than an unknown state"
+      ],
+      "provenance": "run-next treated a valid completed library lane as an unknown state after the verified reusable foundation queue became empty"
+    },
+    {
       "id": "workflow-corpus-recovery",
       "skill_file": "skill-files/session-log-extraction-skill.md",
       "ledger_states_handled": [

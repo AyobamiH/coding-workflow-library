@@ -324,6 +324,10 @@ cd <LIBRARY_REPO>
 ./scripts/run-next --repo <LIBRARY_REPO> --allow package-candidate-dry-run --dry-run
 ./scripts/run-next --repo <LIBRARY_REPO> --allow cli-package-smoke
 ./scripts/run-next --repo <LIBRARY_REPO> --allow cli-package-smoke --dry-run
+./scripts/library-next-objective --repo <LIBRARY_REPO>
+./scripts/library-next-objective --repo <LIBRARY_REPO> --json --validate
+./scripts/run-next --lane coding-workflow-library --state-file <STATE_FILE> --repo <LIBRARY_REPO> --dry-run --allow library-next-objective-assessment
+./scripts/run-next --lane coding-workflow-library --state-file <STATE_FILE> --repo <LIBRARY_REPO> --allow library-next-objective-assessment
 ```
 
 ## Route Metadata Audit

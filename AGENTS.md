@@ -132,6 +132,7 @@ Do not ask John for another approval merely because the next skill is ready, a l
 - Run `scripts/docs-list` before broad documentation reorganization so existing guidance is discovered before new files are created.
 - When no existing skill fits, use `scripts/add-skill-gap --dry-run` before recording one structured queue entry; do not invent an untracked skill contract in prose.
 - Use `scripts/autonomy-outcomes` for aggregate local reliability evidence and `scripts/multi-project-proof` for explicit cross-repository local proof. Neither helper grants target authority or proves remote, deployment, database, or production state.
+- Use `scripts/library-next-objective --repo <LIBRARY_REPO> --validate` when a completed library lane needs to distinguish an active evidence-backed P1 gap from a valid no-gap boundary. Do not turn an empty reusable queue into invented work.
 - For interrupted work, prefer `scripts/run-next --repo <repo> --status` and `scripts/run-next --repo <repo> --resume --dry-run` before asking John to reconstruct state manually.
 - If local skills, route metadata, git state, or checkpoint state can answer the recovery question, use them; do not request a babysitting prompt.
 - When John is needed, provide a decision brief with options and recommendation.

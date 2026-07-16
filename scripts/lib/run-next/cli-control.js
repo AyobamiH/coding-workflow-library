@@ -50,6 +50,7 @@ const ALLOWED_FLAGS = new Set([
   "project-kb-compiler",
   "pre-commit-validation-hook",
   "migration-review-helper",
+  "library-next-objective-assessment",
   "release-publication",
   "local_execution",
   "remote_publication",

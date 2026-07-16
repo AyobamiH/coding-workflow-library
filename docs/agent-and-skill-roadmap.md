@@ -90,6 +90,7 @@ Implemented:
 - `scripts/add-skill-gap`
 - `scripts/autonomy-outcomes`
 - `scripts/multi-project-proof`
+- `scripts/library-next-objective`
 - `scripts/sops-age-secret-access`
 - `scripts/route-audit`
 - `scripts/validate-skills`
@@ -123,6 +124,7 @@ Foundation routes implemented:
 - `project-kb-compiler`
 - `pre-commit-validation-hook`
 - `migration-review-helper`
+- `library-next-objective-assessment`
 - `browser-live-proof`
 - `github-deep-review`
 - `opstruth-runtime-truth-integration` with built-in classifier self-test

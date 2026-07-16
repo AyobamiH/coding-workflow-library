@@ -172,7 +172,7 @@ function setObjective(state, laneId, options) {
     ...(replacing ? {} : current),
     id: nextId,
     description: options.description || current.description,
-    status: options.status || current.status,
+    status: options.status || (replacing ? "active" : current.status),
     authority: replacing ? objectiveAuthority.defaultAuthority() : current.authority,
     checkpoints: replacing ? {} : current.checkpoints,
     blockers: replacing ? [] : current.blockers,

@@ -181,6 +181,7 @@ try {
   const replacementObjective = laneState.getLane(initial, "lane-a").objective;
   assert.deepEqual(replacementObjective.checkpoints, {}, "replacement objective inherited stale checkpoints");
   assert.deepEqual(replacementObjective.blockers, [], "replacement objective inherited stale blockers");
+  assert.equal(replacementObjective.status, "active", "replacement objective inherited a completed status");
   assert.equal(replacementObjective.authority.remote_publication, false, "replacement objective inherited a prior remote grant");
 
   const beforeDryRun = fs.readFileSync(stateFile, "utf8");

@@ -40,6 +40,7 @@ const HANDLERS = {
   "project-kb-compiler": "runProjectKbCompiler",
   "pre-commit-validation-hook": "runPreCommitValidationHook",
   "migration-review-helper": "runMigrationReviewHelper",
+  "library-next-objective-assessment": "runLibraryNextObjectiveAssessment",
 };
 
 function dispatchRoute(route, active) {

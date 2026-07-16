@@ -2,6 +2,19 @@
 
 This file records every real use of the coding workflow skills library.
 
+## 2026-07-17 - Library Next-Objective Foundation
+
+* Skill used: coding-workflow-orchestrator-skill and build-verify-skill.
+* Goal: Make the autonomous runner distinguish an evidence-backed next gap from a valid completed-library boundary.
+* Starting state: clean synchronized `main`; private library lane state `Role credentials retained, source cohesion hardening complete`; `run-next --explain-next` returned `NEEDS JOHN` with `unknown ledger status`.
+* Commands/tools used: route and authority inspection; queue/roadmap cross-check; `apply_patch`; focused helper, route, module-registry, CLI, and lane-isolation tests.
+* Files inspected: controls, queue, roadmap, route metadata, modular runtime, CLI/package wiring, lane helper, and validation contracts.
+* Files changed: next-objective helper and schema; two focused run-next modules; route dispatch and metadata; CLI/package test wiring; public controls, queue, roadmap, ledger, and run log.
+* Evidence collected: current classification `NO_ACTIVE_REUSABLE_GAP`; 37 routes audit cleanly; 39 runtime modules and their lazy dependencies resolve; synthetic active-gap, inconsistent-evidence, deterministic-output, dry-run, selected-lane, and known-terminal contracts pass.
+* Result: COMPLETE LOCALLY: real lane-scoped execution classified `NO_ACTIVE_REUSABLE_GAP`, updated only the library lane to `Library self-assessment complete, no active reusable foundation gap`, and subsequent explanation recognized the terminal boundary.
+* Failure/recovery notes: nested real-route subprocesses are blocked in the focused test sandbox, so focused coverage uses a deterministic executor contract plus the separate successful real lane run. Full `npm test` later reached the existing SOPS fixture but received an empty nested subprocess stream; unsandboxed verification was unavailable because the execution quota was exhausted, and no SOPS test or security behavior was changed.
+* Follow-up skill needed: select a target repository skill only after the real assessment confirms no reusable gap, or use the structured skill-gap recorder when new repeated evidence exists.
+
 ## YYYY-MM-DD - Project Name
 
 * Skill used:

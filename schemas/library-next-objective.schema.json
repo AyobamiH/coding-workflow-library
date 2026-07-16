@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AyobamiH/coding-workflow-library/schemas/library-next-objective.schema.json",
+  "title": "Library Next Objective Assessment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "classification",
+    "checks",
+    "active_gaps",
+    "p1_entries",
+    "next_action",
+    "boundaries"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "status": { "enum": ["PASS", "WARN", "FAIL"] },
+    "classification": {
+      "enum": ["NO_ACTIVE_REUSABLE_GAP", "ACTIVE_REUSABLE_GAP", "EVIDENCE_INCONSISTENT"]
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status", "source", "detail"],
+        "properties": {
+          "id": { "type": "string" },
+          "status": { "enum": ["PASS", "FAIL"] },
+          "source": { "type": "string" },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "active_gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "status"],
+        "properties": {
+          "title": { "type": "string" },
+          "status": { "type": "string" }
+        }
+      }
+    },
+    "p1_entries": { "type": "integer", "minimum": 0 },
+    "next_action": { "type": "string" },
+    "boundaries": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    }
+  }
+}

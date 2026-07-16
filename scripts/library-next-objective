@@ -1,0 +1,186 @@
+#!/usr/bin/env node
+
+"use strict";
+
+const fs = require("fs");
+const path = require("path");
+
+const SCHEMA_VERSION = 1;
+const P1_HEADING = "# P1 - Current Maturity Gaps";
+const P2_HEADING = "# P2 - Follow-On Autonomy Improvements";
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/library-next-objective [--repo <path>] [--json] [--validate]
+
+Cross-check the public build queue and roadmap before selecting more reusable
+library work. The helper reports an active P1 gap, a verified no-gap boundary,
+or inconsistent evidence. It does not edit files or call external services.`);
+}
+
+function parseArgs(argv) {
+  const args = { repo: process.cwd(), json: false, validate: false, help: false };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--repo") args.repo = requireValue(argv, ++index, arg);
+    else if (arg === "--json") args.json = true;
+    else if (arg === "--validate") args.validate = true;
+    else if (arg === "--help" || arg === "-h") args.help = true;
+    else throw new Error(`unknown argument: ${arg}`);
+  }
+  args.repo = path.resolve(args.repo);
+  return args;
+}
+
+function requireValue(argv, index, flag) {
+  const value = argv[index];
+  if (!value) throw new Error(`${flag} requires a value`);
+  return value;
+}
+
+function section(markdown, startHeading, endHeading) {
+  const start = markdown.indexOf(startHeading);
+  if (start < 0) return null;
+  const bodyStart = start + startHeading.length;
+  const end = endHeading ? markdown.indexOf(endHeading, bodyStart) : markdown.length;
+  if (end < 0) return null;
+  return markdown.slice(bodyStart, end);
+}
+
+function p1Entries(markdown) {
+  const body = section(markdown, P1_HEADING, P2_HEADING);
+  if (body === null) return { entries: [], issue: "p1-boundary-missing" };
+  const headings = [...body.matchAll(/^##\s+(.+?)\s*$/gm)];
+  const entries = headings.map((match, index) => {
+    const start = match.index + match[0].length;
+    const end = index + 1 < headings.length ? headings[index + 1].index : body.length;
+    const entryBody = body.slice(start, end);
+    const statusMatch = entryBody.match(/^- Status:\s*(.+?)\s*$/m);
+    const status = statusMatch ? statusMatch[1].trim() : "";
+    return {
+      title: match[1].trim(),
+      status,
+      disposition: classifyDisposition(status),
+    };
+  });
+  return { entries, issue: null };
+}
+
+function classifyDisposition(status) {
+  if (!status) return "active";
+  if (/\b(not implemented|missing|pending|requested|blocked|active|ready to build)\b/i.test(status)) return "active";
+  if (/\b(implemented|complete|completed|published|proven|observed|rejected|held)\b/i.test(status)) return "complete";
+  return "unknown";
+}
+
+function check(id, ok, source, detail) {
+  return { id, status: ok ? "PASS" : "FAIL", source, detail };
+}
+
+function buildReport(repo) {
+  const queueFile = path.join(repo, "build-queue.md");
+  const roadmapFile = path.join(repo, "docs", "agent-and-skill-roadmap.md");
+  const queueExists = fs.existsSync(queueFile);
+  const roadmapExists = fs.existsSync(roadmapFile);
+  const queue = queueExists ? fs.readFileSync(queueFile, "utf8") : "";
+  const roadmap = roadmapExists ? fs.readFileSync(roadmapFile, "utf8") : "";
+  const parsed = p1Entries(queue);
+  const activeGaps = parsed.entries.filter((entry) => entry.disposition === "active");
+  const unknownGaps = parsed.entries.filter((entry) => entry.disposition === "unknown");
+  const noActiveStatement = /No active P1 gaps are currently evidence-backed\./.test(queue);
+
+  const checks = [
+    check("build-queue-present", queueExists, "build-queue.md", queueExists ? "available" : "missing"),
+    check("roadmap-present", roadmapExists, "docs/agent-and-skill-roadmap.md", roadmapExists ? "available" : "missing"),
+    check("p1-boundary", !parsed.issue, "build-queue.md", parsed.issue || "P1 and P2 boundaries found"),
+    check("p1-statuses-known", unknownGaps.length === 0, "build-queue.md", unknownGaps.length ? `${unknownGaps.length} unknown status entries` : "all P1 entries classified"),
+    check("p1-summary-consistent", noActiveStatement === (activeGaps.length === 0), "build-queue.md", `summary=${noActiveStatement ? "no-active" : "not-no-active"}; active=${activeGaps.length}`),
+    check("p2-summary-complete", /All listed P2 items are complete\./.test(queue), "build-queue.md", "P2 completion statement"),
+    check("roadmap-missing-helpers-none", /Missing helpers:\s*[\r\n]+\s*[\r\n]+- None currently evidence-backed\./.test(roadmap), "docs/agent-and-skill-roadmap.md", "missing-helper statement"),
+    check("roadmap-agent-roles-held", /Current status: no reusable agent role is verified for implementation\./.test(roadmap), "docs/agent-and-skill-roadmap.md", "agent-role boundary"),
+    check("roadmap-generic-foundation-none", /No additional generic foundation is currently proven missing\./.test(roadmap), "docs/agent-and-skill-roadmap.md", "generic-foundation boundary"),
+  ];
+
+  const invalid = checks.some((item) => item.status === "FAIL") && activeGaps.length === 0;
+  const classification = invalid
+    ? "EVIDENCE_INCONSISTENT"
+    : activeGaps.length
+      ? "ACTIVE_REUSABLE_GAP"
+      : "NO_ACTIVE_REUSABLE_GAP";
+  const status = classification === "EVIDENCE_INCONSISTENT" ? "FAIL" : checks.some((item) => item.status === "FAIL") ? "WARN" : "PASS";
+  const nextAction = classification === "ACTIVE_REUSABLE_GAP"
+    ? `route the first active P1 gap: ${activeGaps[0].title}`
+    : classification === "NO_ACTIVE_REUSABLE_GAP"
+      ? "select a target repository objective or record a new evidence-backed gap"
+      : "repair queue or roadmap evidence before selecting more foundation work";
+
+  return {
+    schema_version: SCHEMA_VERSION,
+    status,
+    classification,
+    checks,
+    active_gaps: activeGaps.map(({ title, status: gapStatus }) => ({ title, status: gapStatus || "not recorded" })),
+    p1_entries: parsed.entries.length,
+    next_action: nextAction,
+    boundaries: [
+      "read-only public roadmap evidence",
+      "no product repository mutation",
+      "no remote publication",
+      "no package publication or release",
+      "no production or secret access",
+    ],
+  };
+}
+
+function validateReport(report) {
+  const errors = [];
+  if (report.schema_version !== SCHEMA_VERSION) errors.push("schema-version");
+  if (!["PASS", "WARN", "FAIL"].includes(report.status)) errors.push("status");
+  if (!["NO_ACTIVE_REUSABLE_GAP", "ACTIVE_REUSABLE_GAP", "EVIDENCE_INCONSISTENT"].includes(report.classification)) errors.push("classification");
+  if (!Array.isArray(report.checks) || !report.checks.length) errors.push("checks");
+  if (!Array.isArray(report.active_gaps)) errors.push("active-gaps");
+  if (!Array.isArray(report.boundaries) || !report.boundaries.length) errors.push("boundaries");
+  return errors;
+}
+
+function printHuman(report) {
+  console.log("# Library Next Objective Assessment");
+  console.log(`Status: ${report.status}`);
+  console.log(`Classification: ${report.classification}`);
+  console.log(`P1 entries: ${report.p1_entries}`);
+  console.log(`Active gaps: ${report.active_gaps.length}`);
+  for (const gap of report.active_gaps) console.log(`- ${gap.title}: ${gap.status}`);
+  console.log(`Next action: ${report.next_action}`);
+  console.log("Checks:");
+  for (const item of report.checks) console.log(`- ${item.id}: ${item.status} (${item.source})`);
+}
+
+function main() {
+  try {
+    const args = parseArgs(process.argv.slice(2));
+    if (args.help) return usage();
+    const report = buildReport(args.repo);
+    const validationErrors = validateReport(report);
+    if (validationErrors.length) {
+      report.status = "FAIL";
+      report.classification = "EVIDENCE_INCONSISTENT";
+      report.next_action = `repair report contract: ${validationErrors.join(", ")}`;
+    }
+    if (args.json) console.log(JSON.stringify(report, null, 2));
+    else printHuman(report);
+    if (args.validate && report.status === "FAIL") process.exitCode = 1;
+  } catch (error) {
+    console.error(`library next-objective assessment failed: ${error.message}`);
+    process.exitCode = 2;
+  }
+}
+
+if (require.main === module) main();
+
+module.exports = {
+  buildReport,
+  classifyDisposition,
+  p1Entries,
+  parseArgs,
+  validateReport,
+};
