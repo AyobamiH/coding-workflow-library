@@ -187,6 +187,7 @@ Use this mapping before acting:
 - Need production handoff, scheduled-run monitoring, run history review, or final observed-versus-pending status: `production-handoff-skill`
 - Need to inspect environment variables or secret exposure risk: `env-audit-skill`
 - Need non-printing open-source SOPS + age status, encrypted-file validation, or one approved output-suppressed injection: `sops-age-secret-access-skill` with `scripts/sops-age-secret-access`
+- Need to split a multi-consumer dotenv file into purpose-scoped encrypted bundles, prove delivery, or retire the source: `secret-bundle-delivery-skill` with `scripts/secret-bundles`
 - Need to inspect Supabase database/auth/RLS risk: `supabase-rls-audit-skill`
 - Need to resolve blocked or invalid GitHub CLI auth before push/PR work: `github-auth-gate-skill`
 - Need to inspect Cloudflare deployment/runtime state: `cloudflare-deploy-skill`
@@ -216,7 +217,7 @@ Use `npm run test:portable` for the dependency-free path/hook/evidence subset th
 
 When frontmatter and this prose mapping disagree, treat `./scripts/validate-skills` output and the active skill file as the source of truth, then update stale docs.
 
-Do not select work by copying the capability catalogue into this library. Discovery, installation, key readiness, runnability, and verification are distinct states. Use the GitHub plugin only as an optional provider beneath the existing GitHub skills; keep provider writes behind `remote_publication`. Use the narrow SOPS + age adapter only for tooling status, encrypted-file validation, and explicitly authorised output-suppressed `sops exec-env`; direct decryption, plaintext materialisation, secret mutation, automatic skill installation, generic brokering, and prefetch remain out of scope.
+Do not select work by copying the capability catalogue into this library. Discovery, installation, key readiness, runnability, and verification are distinct states. Use the GitHub plugin only as an optional provider beneath the existing GitHub skills; keep provider writes behind `remote_publication`. Use the narrow SOPS + age adapter for one-file injection, and `secret-bundle-delivery-skill` for exact multi-bundle migration and delivery. Direct terminal decryption, plaintext materialisation, automatic skill installation, generic brokering, and prefetch remain out of scope.
 
 ## Local Verification Bundle
 

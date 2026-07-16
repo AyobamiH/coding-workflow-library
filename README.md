@@ -240,6 +240,27 @@ A real injection requires `--allow-secret-access`. The adapter delegates only to
 
 Keep age identities outside source with owner-only permissions, normally using one workstation identity and one separately stored recovery identity. Encrypt operational files for both public recipients and move the recovery identity to independent secure storage before relying on it. The adapter never runs `sops decrypt`, `exec-file`, `edit`, `set`, `unset`, `publish`, `rotate`, or `updatekeys`. The earlier 1Password path was rejected and removed because a subscription-backed account was not appropriate for this local workflow.
 
+### Purpose-Scoped Secret Bundles
+
+Use `secret-bundle-delivery-skill` when one plaintext dotenv source serves several unrelated consumers. Its thin CLI delegates to focused modules for manifest validation, name-only inventory, in-memory SOPS migration, encrypted-file validation, output-suppressed delivery proof, command allowlists, and same-run source retirement:
+
+```bash
+coding-workflow secret-bundles inventory \
+  --manifest /private/path/secret-bundles.json \
+  --env-file /private/path/source.env
+coding-workflow secret-bundles validate \
+  --manifest /private/path/secret-bundles.json
+coding-workflow secret-bundles prove \
+  --manifest /private/path/secret-bundles.json \
+  --allow-secret-access
+coding-workflow secret-bundles run \
+  --manifest /private/path/secret-bundles.json \
+  --profile github-read \
+  --dry-run -- gh api user
+```
+
+The real manifest, encrypted bundles, reports, and identities stay outside the repository. Every source name must map exactly once; runtime aliases are explicit; delivery profiles allow only declared command basenames; and source deletion requires `--allow-destructive` after coverage, encrypted status, and delivery proof pass in the same operation. The helper never grants a child command publication, deployment, provider-write, database-write, or production authority.
+
 ## Project-Scoped Workflow Lanes
 
 `work-ledger.md` is retained as historical library evidence. Active multi-project execution state should live in a local lane file outside the repository, defaulting to `$HOME/.coding-workflow/lanes.json` or supplied with `--state-file`.

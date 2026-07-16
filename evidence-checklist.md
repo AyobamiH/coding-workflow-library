@@ -178,6 +178,19 @@ Use this before final response or before saying a workflow is complete.
 - `sops decrypt`, `exec-file`, `edit`, `set`, `unset`, `publish`, `rotate`, `updatekeys`, `--ignore-mac`, and secret mutation were not run.
 - Missing tools or identity were recorded as `BLOCKED_CAPABILITY`, not as adapter success or a permission request.
 
+## Purpose-Scoped Secret Bundles
+
+- `secret-bundle-delivery-skill` selected for a multi-consumer dotenv migration or purpose-scoped delivery.
+- Real manifest, encrypted bundles, reports, SOPS policy, identities, and local paths remained outside source.
+- Expected, source, and mapped variable-name sets reconciled exactly, with each source name mapped once.
+- Inventory output contained names and a name-only fingerprint, never values.
+- Every bundle passed owner-only permission, encrypted-shape, and SOPS encrypted-status checks.
+- Every runtime alias was present in an output-suppressed delivery proof.
+- Real consumer checks used the selected profile's exact command-basename allowlist.
+- Child commands retained separate publication, deployment, provider-write, database-write, and production authority.
+- Plaintext source retirement, if run, required explicit destructive authority and repeated all gates in the same operation.
+- No plaintext temporary bundle, terminal decryption, private identity, recipient, provider output, child output, or secret value was emitted.
+
 ## OpenClaw Route Trace
 
 - `allowAgents` searched in config/docs.

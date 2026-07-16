@@ -938,6 +938,42 @@ Evidence required:
 - Confirmation that no decrypted value, private identity, or plaintext file was emitted.
 - Commands deliberately not run.
 
+## Purpose-Scoped Secret Bundles
+
+Purpose: migrate a multi-consumer dotenv source into explicit SOPS age bundles and deliver only the selected bundle to an allowlisted consumer without terminal output.
+
+Default permission: name-only inventory and manifest validation use `local_execution`; bundle creation uses `secret_mutation`; value delivery uses explicit `secret-access`; plaintext source retirement additionally uses `destructive_action`.
+
+Rules:
+
+- Keep the real manifest, encrypted bundles, reports, policy, and identities outside source with owner-only permissions.
+- Require exact one-to-one coverage of every expected source name.
+- Record runtime aliases explicitly; never infer cross-provider aliases.
+- Restrict each delivery profile to exact command basenames.
+- Send plaintext only through process memory, SOPS stdin, or a private child pipe.
+- Suppress provider and child output during proof operations.
+- Retire a plaintext source only after coverage, SOPS status, and delivery proof pass in the same command.
+- Never treat secret access as publication, deployment, provider-write, database-write, or production authority.
+
+Examples:
+
+```bash
+./scripts/secret-bundles inventory --manifest /private/path/manifest.json --env-file /private/path/source.env
+./scripts/secret-bundles validate --manifest /private/path/manifest.json
+./scripts/secret-bundles prove --manifest /private/path/manifest.json --allow-secret-access
+./scripts/secret-bundles run --manifest /private/path/manifest.json --profile github-read --dry-run -- gh api user
+```
+
+Evidence required:
+
+- Name-only source inventory and fingerprint.
+- Complete expected, source, and mapped name reconciliation.
+- Bundle ids, encrypted basenames, variable counts, and owner-only results.
+- SOPS encrypted-file status for every bundle.
+- Output-suppressed runtime-name delivery proof.
+- Exact profile and command basename for each real consumer check.
+- Source removal result when explicitly authorised.
+
 ### Docker
 
 Purpose: run local services, containers, databases, and integration test dependencies.

@@ -30,6 +30,7 @@ corrected workflow corpus
   -> Opstruth runtime truth self-test (implemented)
   -> capability adapter evaluation (completed: narrow adapters only)
   -> narrow open-source SOPS + age secret-access adapter (implemented)
+  -> purpose-scoped encrypted secret delivery (implemented)
   -> capability acquisition/prefetch, rejected until repeated adapter insufficiency is proven
   -> agent-role system, only after repeated role contracts are proven
 ```
@@ -60,6 +61,7 @@ Implemented and active:
 - GitHub deep review
 - Opstruth runtime truth self-test
 - SOPS + age secret access
+- purpose-scoped secret bundle delivery
 - production handoff
 - release/package readiness
 - skills-library packaging
@@ -136,6 +138,7 @@ Implemented capability gates:
 - browser live-proof gate and count-only Chromium observer
 - optional GitHub plugin repository-read provider observed beneath the existing GitHub skill contracts
 - narrow non-printing open-source SOPS + age adapter with encrypted-file validation and output-suppressed `sops exec-env --pristine`
+- manifest-driven purpose bundles with exact source coverage, runtime aliases, allowlisted consumers, and same-run retirement proof
 
 Missing, held, or rejected:
 
@@ -176,7 +179,8 @@ The adapter evaluation found no need for a generic broker. Capability Intelligen
 
 18. Keep optional provider reads subordinate to existing workflow skills, evidence contracts, redaction, and authority gates.
 19. Keep the SOPS + age adapter narrow: keep private identities outside source, preserve output suppression, and never let injection grant the child command extra authority.
+20. Use `secret-bundle-delivery-skill` only when one source serves multiple consumers; keep real manifests, ciphertext, reports, and local paths private.
 20. Revisit capability acquisition and prefetch only after at least two real runs prove the same unresolved adapter insufficiency.
 21. Revisit agent-role system only after at least two independent sessions prove a reusable role contract.
 
-The evidence-backed reusable-foundation sequence through capability adapter evaluation and remote portability proof is complete. Workflow reliability now has a bounded entrypoint, structured skill-gap recording, privacy-safe outcome reporting, observed three-repository proof, exact-commit Ubuntu/macOS/Windows CI evidence, and a narrow open-source SOPS + age adapter with two-recipient recovery proof plus real output-suppressed GitHub checks and publication. The earlier subscription-backed 1Password direction, system package, trust files, executable, and daemon are removed. No additional generic foundation is currently proven missing. The prior GitHub Actions runtime warning was addressed by moving the workflow from the v4 Node 20 action generation to the official v7 Node 24 generation; exact commit `e535230` passed validation plus Ubuntu, macOS, and Windows in run `29517093422`. New foundation-building should start only from corrected corpus evidence, a structured gap record, or repeated real workflow failures. The remaining SOPS task is operational recovery storage, not a new adapter or control plane. See `docs/workflow-maturity-foundations.md` and `docs/modularity-audit.md`. Capability Intelligence remains parked as a separate product direction.
+The evidence-backed reusable-foundation sequence through capability adapter evaluation and remote portability proof is complete. Workflow reliability now has a bounded entrypoint, structured skill-gap recording, privacy-safe outcome reporting, observed three-repository proof, exact-commit Ubuntu/macOS/Windows CI evidence, and a narrow open-source SOPS + age adapter with two-recipient recovery proof plus real output-suppressed GitHub checks and publication. Independent recovery storage and round-trip proof are complete. A separate manifest-driven layer now covers the real multi-consumer dotenv need without creating a generic broker: it maps every source name exactly once into purpose bundles, constrains consumer profiles, and proves delivery before source retirement. The earlier subscription-backed 1Password direction, system package, trust files, executable, and daemon are removed. No additional generic foundation is currently proven missing. The prior GitHub Actions runtime warning was addressed by moving the workflow from the v4 Node 20 action generation to the official v7 Node 24 generation; exact commit `e535230` passed validation plus Ubuntu, macOS, and Windows in run `29517093422`. New foundation-building should start only from corrected corpus evidence, a structured gap record, or repeated real workflow failures. See `docs/workflow-maturity-foundations.md` and `docs/modularity-audit.md`. Capability Intelligence remains parked as a separate product direction.

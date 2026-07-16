@@ -144,6 +144,11 @@ Use when GitHub handoff is blocked by missing, invalid, wrong-account, expired, 
 File: `skill-files/sops-age-secret-access-skill.md`
 Use when an existing workflow credential should come from a local open-source SOPS-encrypted file without plaintext storage or provider output. It delegates to `scripts/sops-age-secret-access` for tooling and identity readiness, non-decrypting `filestatus` validation, dry-run planning, and explicitly authorised `sops exec-env --pristine` injection with child output suppressed. It never grants the child command publication, deployment, production, secret-mutation, or destructive authority.
 
+### secret-bundle-delivery-skill
+
+File: `skill-files/secret-bundle-delivery-skill.md`
+Use when one dotenv source must be migrated into purpose-scoped SOPS age bundles for several consumers. It delegates to `scripts/secret-bundles` for exact source-name coverage, runtime aliases, bundle validation, command allowlists, output-suppressed delivery proof, private-pipe resolution, and same-run gated source retirement. Private manifests, ciphertext, reports, identities, and maintainer paths remain outside the package.
+
 ### cloudflare-deploy-skill
 
 File: `skill-files/cloudflare-deploy-skill.md`
@@ -217,6 +222,10 @@ Use for source-only migration risk review before any apply/deploy step. Run `scr
 - `schemas/browser-live-proof.schema.json`: portable schema for `scripts/browser-live-proof --json` output.
 - `scripts/sops-age-secret-access`: dependency-free narrow SOPS + age adapter for tool and identity status, encrypted-file validation, dry-run planning, and output-suppressed `sops exec-env --pristine` injection.
 - `schemas/sops-age-secret-access.schema.json`: portable report contract for the SOPS + age adapter.
+- `scripts/secret-bundles`: thin manifest-driven CLI for exact dotenv coverage, purpose-scoped encryption, delivery proof, allowlisted execution, private-pipe resolution, and gated source retirement.
+- `scripts/lib/secret-bundles/`: focused parsing, manifest, inventory, tooling, migration, delivery, probe, report, and CLI modules.
+- `schemas/secret-bundles.schema.json`: portable private-manifest contract with no real identities, paths, or variable inventory.
+- `templates/secret-bundles.example.json`: neutral purpose-bundle and delivery-profile example.
 - `scripts/opstruth-classify`: dependency-free local evidence classifier and built-in mixed-category runtime-truth self-test.
 - `schemas/opstruth-runtime-truth.schema.json`: portable schema for classifier JSON output.
 - `schemas/workflow-corpus.schema.json`: portable event schema for redacted corpus events.

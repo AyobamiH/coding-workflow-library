@@ -16,6 +16,21 @@ This file records every real use of the coding workflow skills library.
 * Follow-up skill needed:
 * Upgrade idea:
 
+## 2026-07-16 - Purpose-Scoped Encrypted Secret Delivery
+
+* Skill used: `secret-bundle-delivery-skill`, `sops-age-secret-access-skill`, and `coding-workflow-orchestrator-skill`.
+* Goal: migrate the complete local dotenv surface into purpose-scoped encrypted bundles, prove each delivery boundary without output, integrate OpenClaw SecretRefs, and retire plaintext only after same-run proof.
+* Starting state: SOPS + age and independent recovery proof existed, but sixteen values for unrelated consumers still shared one plaintext dotenv file; the low-level adapter intentionally handled only one encrypted file and one child.
+* Commands/tools used: name-only inventory; manifest/schema validation; in-memory SOPS encryption; `filestatus`; output-suppressed bundle proof; read-only GitHub and Cloudflare identity checks; fixed read-only PostgreSQL `select 1`; OpenClaw SecretRef audit/config validation; systemd user-service verification/restart; payload-free local `/healthz`; focused and library validation.
+* Files inspected: SOPS adapter and skill, CLI/package wiring, route metadata, library controls, private dotenv names, source consumers by variable name, OpenClaw installed SecretRef documentation/config/service shape, and local lane metadata. Values, recipients, identities, DB URLs, tokens, and provider output were not printed.
+* Reusable files changed: modular `scripts/secret-bundles` implementation; manifest schema and neutral template; active delivery skill; CLI/package tests; route metadata; README, RUNBOOK, tools, command library, evidence checklist, queue, roadmap, capability evaluation, changelog, ledger, and this run record.
+* Private runtime result: six encrypted bundles cover sixteen source names exactly once. All bundles are owner-only, SOPS-valid, and delivery-proven. OpenClaw uses two direct SOPS exec providers; GitHub, Cloudflare, read-only database connectivity, and local gateway liveness passed after plaintext retirement. The source dotenv, obsolete token-bearing service backup, superseded encrypted GitHub file, and temporary resolver debug artifacts were removed.
+* Evidence collected: exact name coverage; six encrypted-file validations; six delivery proofs; four real read-only consumer checks; two resolved OpenClaw SecretRefs; active user service; source-retirement result; private/public package separation; focused route, skill, docs, and helper validation.
+* Result: LOCAL MIGRATION COMPLETE. Secret values now reach selected consumers at process runtime without plaintext bundle files or terminal output; child consequence authority remains independent.
+* Failure/recovery notes: OpenClaw's multi-id exec-provider stdin was empty under the managed host, so the documented direct SOPS provider contract was used per SecretRef. The system OpenClaw Node version was too old; an official checksum-verified Node 24 runtime was installed user-locally and selected by a systemd drop-in. Nested network restrictions caused a false local health failure until the exact read-only check ran under the approved boundary. Two unrelated local LM Studio plaintext compatibility warnings remain visible rather than being silently reclassified.
+* Follow-up skill needed: none. Review the held role-specific credential bundle only when a real consumer or retirement decision exists.
+* Upgrade idea: add another bundle/profile only after a real consumer proves the need; do not broaden this into capability prefetch, hosted provider writes, or a generic secret broker.
+
 ## 2026-07-16 - Open-Source SOPS + age Secret Access Replacement
 
 * Skill used: sops-age-secret-access-skill, coding-workflow-orchestrator-skill, and github-auth-gate-skill.

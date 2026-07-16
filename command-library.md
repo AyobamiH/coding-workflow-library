@@ -127,6 +127,38 @@ One real injection is separate and explicit:
 
 The selected file must already be SOPS-encrypted for an age recipient. The helper never echoes decrypted values, private identities, provider output, or child output. Do not use `sops decrypt`, `exec-file`, `edit`, `set`, `unset`, `publish`, `rotate`, `updatekeys`, or `--ignore-mac` as a substitute. Injection does not grant the child command any other consequence authority.
 
+## Purpose-Scoped Secret Bundles
+
+Inventory and reconcile names without values:
+
+```bash
+./scripts/secret-bundles inventory \
+  --manifest /private/path/secret-bundles.json \
+  --env-file /private/path/source.env \
+  --json
+```
+
+Validate and prove every encrypted bundle:
+
+```bash
+./scripts/secret-bundles validate --manifest /private/path/secret-bundles.json --json
+./scripts/secret-bundles prove \
+  --manifest /private/path/secret-bundles.json \
+  --allow-secret-access \
+  --json
+```
+
+Plan one allowlisted consumer command:
+
+```bash
+./scripts/secret-bundles run \
+  --manifest /private/path/secret-bundles.json \
+  --profile github-read \
+  --dry-run -- gh api user
+```
+
+`migrate --allow-secret-mutation` creates encrypted output without plaintext bundle files. `retire-source --allow-secret-access --allow-destructive` removes the dotenv source only after same-run coverage, encryption, and delivery checks pass. Real manifests and outputs are private runtime state and must not be committed.
+
 ## Git Verification
 
 ```bash

@@ -87,6 +87,10 @@ const COMMANDS = {
     script: "scripts/sops-age-secret-access",
     description: "Check and use local non-printing SOPS plus age secret injection.",
   },
+  "secret-bundles": {
+    script: "scripts/secret-bundles",
+    description: "Inventory, encrypt, validate, and deliver purpose-scoped SOPS bundles.",
+  },
   "install-hooks": {
     script: "scripts/install-git-hooks",
     description: "Install the optional local Git pre-commit hook when safe.",
@@ -127,6 +131,10 @@ Usage:
   coding-workflow sops-age validate-file --file /private/path/runtime.enc.env [--json] [--validate]
   coding-workflow sops-age run --file /private/path/runtime.enc.env --dry-run -- command arg
   coding-workflow sops-age run --file /private/path/runtime.enc.env --allow-secret-access -- command arg
+  coding-workflow secret-bundles inventory --manifest /private/path/manifest.json --env-file /private/path/.env [--json]
+  coding-workflow secret-bundles validate --manifest /private/path/manifest.json [--json]
+  coding-workflow secret-bundles prove --manifest /private/path/manifest.json --allow-secret-access [--json]
+  coding-workflow secret-bundles run --manifest /private/path/manifest.json --profile <id> --dry-run -- command arg
   coding-workflow install-hooks [--dry-run] [--force]
   coding-workflow objective show --lane <lane-id> --state-file /path/to/lanes.json
   coding-workflow objective approve --lane <lane-id> --grant remote_publication --state-file /path/to/lanes.json
@@ -137,7 +145,7 @@ Usage:
 
 The system requests authority for consequences, not permission for every tool call.
 
-Lane state is local runtime metadata and must not contain secrets. This CLI delegates to local scripts and preserves objective authority gates. The sops-age command decrypts one validated file into one child environment only when --allow-secret-access is explicit; it suppresses provider and child output and grants no other consequence authority. The CLI does not publish, deploy, push, tag, create releases, mutate secrets, or call production endpoints on its own.`);
+Lane state is local runtime metadata and must not contain secrets. This CLI delegates to local scripts and preserves objective authority gates. The sops-age command decrypts one validated file into one child environment only when --allow-secret-access is explicit; secret-bundles adds exact name coverage, purpose profiles, command allowlists, and same-run delivery proof. Neither grants child consequence authority. The CLI does not publish, deploy, push, tag, create releases, mutate external secrets, or call production endpoints on its own.`);
 }
 
 function fail(message, code = 2) {

@@ -1835,6 +1835,72 @@
       "provenance": "approved open-source replacement after the subscription-based provider was rejected; SOPS and age preserve the non-printing local injection contract"
     },
     {
+      "id": "secret-bundle-delivery",
+      "skill_file": "skill-files/secret-bundle-delivery-skill.md",
+      "ledger_states_handled": [
+        "Modular encrypted secret delivery requested",
+        "Modular SOPS environment migration in progress",
+        "Secret bundle delivery blocked"
+      ],
+      "permission_flag": "secret-bundle-delivery",
+      "helper_scripts": [
+        "scripts/secret-bundles",
+        "scripts/sops-age-secret-access"
+      ],
+      "permission_level": "local_execution, secret_mutation, secret-access, destructive_action",
+      "explicit_permission_required": true,
+      "requires_authority": [
+        "local_execution"
+      ],
+      "forbidden_actions": [
+        "secret value output",
+        "private identity or recipient output",
+        "plaintext temporary bundle files",
+        "terminal decryption",
+        "unmapped source variables",
+        "duplicate source mappings",
+        "commands outside a profile allowlist",
+        "child consequence authority inference",
+        "source deletion before same-run proof",
+        "remote publication without separate authority",
+        "provider mutation without separate authority",
+        "database write without separate authority",
+        "deploy or production mutation without separate authority"
+      ],
+      "success_ledger_state": "Purpose-scoped encrypted secret delivery ready",
+      "blocked_ledger_state": "Secret bundle delivery blocked",
+      "next_permission": "select one delivery profile and grant only the child consequence authority it requires",
+      "evidence_required": [
+        "name-only source inventory and fingerprint",
+        "complete expected, source, and mapped name reconciliation",
+        "bundle ids, encrypted basenames, variable counts, and owner-only results",
+        "SOPS encrypted-file status for every bundle",
+        "output-suppressed runtime-name delivery proof",
+        "selected profile and exact child command basename",
+        "private manifest and ciphertext exclusion from package contents",
+        "source retirement result when explicitly authorised",
+        "commands deliberately not run"
+      ],
+      "safety_gates": [
+        "real manifest and bundles remain outside source",
+        "exact one-to-one source coverage",
+        "runtime aliases are explicit",
+        "age-only SOPS policy with owner-only identity",
+        "delivery output is suppressed",
+        "resolver refuses terminal stdout",
+        "source retirement repeats validation and proof",
+        "child command keeps independent consequence authority"
+      ],
+      "idempotency_evidence": [
+        "inventory and validate do not mutate source or bundles",
+        "dry-run decrypts no value and runs no child",
+        "migration refuses an existing bundle unless replace is explicit",
+        "repeated proof does not modify encrypted files",
+        "retirement refuses a missing or unproven source"
+      ],
+      "provenance": "real multi-consumer dotenv migration proved the one-file SOPS adapter needed a manifest-driven purpose and delivery layer rather than a generic capability broker"
+    },
+    {
       "id": "capability-intelligence-hard-cutover",
       "skill_file": "skill-files/capability-intelligence-builder-skill.md",
       "ledger_states_handled": [

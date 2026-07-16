@@ -56,7 +56,16 @@
 - Dependency: open-source SOPS and age executables plus workstation and recovery age identities stored outside source.
 - Authority required: `local_execution` for tool/identity status and encrypted-file metadata validation; explicit `secret-access` for one injection; child consequences retain their own authority.
 - Done definition: helper classifies tooling and identity readiness without identity output, validates SOPS encryption metadata without decryption, refuses plaintext, requires explicit injection approval, suppresses provider/child output, and writes no decrypted value.
-- Status: implemented and published through `scripts/sops-age-secret-access`, a report schema, active skill, CLI delegation, route metadata, verified local SOPS and age binaries, synthetic provider tests, a two-recipient private policy, recovery-recipient decryption proof, real output-suppressed GitHub checks, and one SOPS-backed non-force publication. Exact commit `e535230` passed all GitHub Actions jobs in run `29517093422`. The subscription-backed 1Password adapter, system package, trust files, executable, and daemon are removed. Independent recovery storage remains an operator task.
+- Status: implemented and published through `scripts/sops-age-secret-access`, a report schema, active skill, CLI delegation, route metadata, verified local SOPS and age binaries, synthetic provider tests, a two-recipient private policy, recovery-recipient decryption proof, real output-suppressed GitHub checks, and one SOPS-backed non-force publication. Exact commit `e535230` passed all GitHub Actions jobs in run `29517093422`. The subscription-backed 1Password adapter, system package, trust files, executable, and daemon are removed. Independent recovery storage and its download/decryption round trip are proven.
+
+## Purpose-scoped encrypted secret delivery
+
+- Evidence source: one local dotenv surface served unrelated GitHub, Cloudflare, OpenClaw, OpenAI-role, and Supabase consumers; the low-level SOPS adapter intentionally handled only one encrypted file and one child.
+- Primary type: `CAPABILITY_ADAPTER`, `VALIDATION`.
+- Dependency: `sops-age-secret-access-skill`, SOPS age identities, and private runtime storage outside source.
+- Authority required: `local_execution` for inventory/validation; `secret_mutation` for encrypted-bundle creation; explicit secret access for delivery; `destructive_action` for source retirement. Child consequences remain separate.
+- Done definition: exact name coverage, purpose bundles, runtime aliases, command allowlists, SOPS status, output-suppressed delivery proof, OpenClaw SecretRef compatibility, same-run retirement gate, synthetic portability tests, and no public private-state leakage.
+- Status: implemented and locally proven with six private encrypted bundles covering sixteen source names exactly. GitHub, Cloudflare, Supabase connectivity, OpenClaw config resolution, and every runtime-name delivery path passed without value or child-output emission. Public helper, schema, template, skill, route, CLI, tests, and documentation are ready for exact-file publication.
 
 # P1 - Current Maturity Gaps
 

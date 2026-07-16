@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add manifest-driven purpose-scoped SOPS bundles with exact dotenv-name coverage, explicit runtime aliases, command allowlists, encrypted-file validation, non-printing delivery proof, private-pipe resolution, gated source retirement, modular implementation, CLI delegation, route metadata, and portable synthetic tests.
 - Replace the rejected subscription-backed 1Password path with a narrow open-source SOPS + age adapter for tooling and identity status, non-decrypting encrypted-file validation, explicit output-suppressed `sops exec-env --pristine`, active skill/route/CLI integration, a report schema, and synthetic provider tests.
 - Reconcile the foundation roadmap and build queue with published implementation evidence, add a regression test for stale missing-helper and portability claims, and move GitHub Actions from the deprecated v4 Node 20 generation to the official v7 Node 24 generation.
 - Decompose the 16,116-line `scripts/run-next` monolith into a 964-line entrypoint and 17 responsibility-owned runtime modules without changing route or authority behaviour.
