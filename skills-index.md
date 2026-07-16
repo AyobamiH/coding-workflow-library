@@ -86,6 +86,11 @@ Use for local release gates that combine Git state, validation evidence, npm pac
 File: `skill-files/runtime-verification-skill.md`
 Use for generic runtime verification after deploy-like work or live endpoint changes. It separates negative/non-mutating checks, true no-write dry-run proof, controlled success invocations, scheduled monitoring, forbidden production writes, and next ledger states.
 
+### browser-live-proof-skill
+
+File: `skill-files/browser-live-proof-skill.md`
+Use after source, build, and local runtime checks to collect one bounded Chromium observation. It delegates to `scripts/browser-live-proof` for viewport dimensions, horizontal-overflow proof, count-only accessibility/console/network evidence, and an optional screenshot while keeping interactions, authentication, database state, deployment history, and ongoing reliability `NOT_VERIFIED`.
+
 ### opstruth-runtime-truth-skill
 
 File: `skill-files/opstruth-runtime-truth-skill.md`
@@ -189,6 +194,8 @@ Use for source-only migration risk review before any apply/deploy step. Run `scr
 - `schemas/project-kb.schema.json`: portable schema for `scripts/project-kb --json` output.
 - `scripts/migration-review`: dependency-free source-only migration risk review helper for common migration directories, with JSON, validation, custom directory, and high-risk gate modes.
 - `schemas/migration-review.schema.json`: portable schema for `scripts/migration-review --json` output.
+- `scripts/browser-live-proof`: optional dependency-free Chromium/DevTools helper for one bounded read-only browser observation, count-only console/network evidence, responsive overflow proof, and local screenshots.
+- `schemas/browser-live-proof.schema.json`: portable schema for `scripts/browser-live-proof --json` output.
 - `schemas/workflow-corpus.schema.json`: portable event schema for redacted corpus events.
 - `schemas/workflow-source-manifest.schema.json`: portable source manifest schema with terminal parse statuses.
 - `templates/workflow-extraction-config.example.json`: neutral example config for private corpus extraction.

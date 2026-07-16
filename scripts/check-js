@@ -19,6 +19,7 @@ const explicit = [
   "tests/project-kb.test.js",
   "tests/pre-commit-check.test.js",
   "tests/migration-review.test.js",
+  "tests/browser-live-proof.test.js",
   "tests/public-paths.test.js",
 ];
 

@@ -1,0 +1,721 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const { spawn, spawnSync } = require("child_process");
+
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+const BROWSER_CANDIDATES = [
+  process.env.BROWSER,
+  "google-chrome",
+  "chromium",
+  "chromium-browser",
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+].filter(Boolean);
+
+const BOUNDARIES = [
+  "one read-only browser navigation only; no clicks, form submission, login, upload, or mutation",
+  "loopback targets are allowed by default; remote targets require explicit --allow-remote",
+  "console messages, response bodies, request headers, cookies, storage, and page text are never emitted",
+  "a successful navigation proves only the observed URL, viewport, and collection window",
+  "screenshots and browser metadata do not prove deployment history, database state, authentication paths, or ongoing reliability",
+];
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/browser-live-proof --url <url> [--json] [--validate]
+  ./scripts/browser-live-proof --url <url> --viewport 390x844 --screenshot /tmp/proof.png
+  ./scripts/browser-live-proof --url <remote-url> --allow-remote
+
+Collect one bounded, read-only Chromium observation. Loopback URLs are allowed by
+default. Remote navigation requires --allow-remote. The helper never clicks,
+submits forms, logs in, emits raw logs/content, or claims production correctness.
+
+Options:
+  --url URL              HTTP(S) page to observe.
+  --viewport WIDTHxHEIGHT
+                         Viewport size. Default: 1280x720.
+  --screenshot PATH      Write one PNG screenshot to the requested local path.
+  --allow-remote         Permit one read-only navigation beyond loopback.
+  --browser PATH         Chromium/Chrome executable or command.
+  --timeout-ms NUMBER    Browser/navigation timeout. Default: 15000.
+  --settle-ms NUMBER     Bounded post-load observation window. Default: 500.
+  --json                 Print deterministic JSON.
+  --validate             Validate the collected evidence contract.
+  --help                 Show this help.`);
+}
+
+function parsePositiveInteger(value, flag, minimum, maximum) {
+  if (!value || !/^\d+$/.test(value)) throw new Error(`${flag} requires an integer`);
+  const number = Number(value);
+  if (number < minimum || number > maximum) {
+    throw new Error(`${flag} must be between ${minimum} and ${maximum}`);
+  }
+  return number;
+}
+
+function parseViewport(value) {
+  const match = String(value || "").match(/^(\d{2,5})x(\d{2,5})$/i);
+  if (!match) throw new Error("--viewport requires WIDTHxHEIGHT");
+  return {
+    width: parsePositiveInteger(match[1], "viewport width", 240, 7680),
+    height: parsePositiveInteger(match[2], "viewport height", 240, 7680),
+  };
+}
+
+function parseArgs(argv) {
+  const args = {
+    url: null,
+    viewport: { width: 1280, height: 720 },
+    screenshot: null,
+    allowRemote: false,
+    browser: null,
+    timeoutMs: 15000,
+    settleMs: 500,
+    json: false,
+    validate: false,
+    help: false,
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--url") {
+      args.url = argv[++index];
+      if (!args.url) throw new Error("--url requires a value");
+    } else if (arg === "--viewport") {
+      args.viewport = parseViewport(argv[++index]);
+    } else if (arg === "--screenshot") {
+      args.screenshot = argv[++index];
+      if (!args.screenshot) throw new Error("--screenshot requires a path");
+    } else if (arg === "--allow-remote") {
+      args.allowRemote = true;
+    } else if (arg === "--browser") {
+      args.browser = argv[++index];
+      if (!args.browser) throw new Error("--browser requires a path or command");
+    } else if (arg === "--timeout-ms") {
+      args.timeoutMs = parsePositiveInteger(argv[++index], "--timeout-ms", 1000, 120000);
+    } else if (arg === "--settle-ms") {
+      args.settleMs = parsePositiveInteger(argv[++index], "--settle-ms", 0, 10000);
+    } else if (arg === "--json") {
+      args.json = true;
+    } else if (arg === "--validate") {
+      args.validate = true;
+    } else if (arg === "--help" || arg === "-h") {
+      args.help = true;
+    } else {
+      throw new Error(`unknown argument: ${arg}`);
+    }
+  }
+
+  if (!args.url && !args.help) throw new Error("--url is required");
+  return args;
+}
+
+function isLoopback(hostname) {
+  return LOOPBACK_HOSTS.has(hostname) || /^127\./.test(hostname);
+}
+
+function validateTarget(rawUrl, allowRemote) {
+  let target;
+  try {
+    target = new URL(rawUrl);
+  } catch {
+    throw new Error("--url must be a valid URL");
+  }
+  if (!["http:", "https:"].includes(target.protocol)) {
+    throw new Error("--url must use http or https");
+  }
+  if (target.username || target.password) {
+    throw new Error("credential-bearing URLs are not allowed");
+  }
+  for (const key of target.searchParams.keys()) {
+    if (/(?:token|secret|key|password|auth|code|jwt|session|signature)/i.test(key)) {
+      throw new Error("sensitive query parameters are not allowed");
+    }
+  }
+  if (!isLoopback(target.hostname) && !allowRemote) {
+    throw new Error("remote URL blocked; use --allow-remote for one read-only navigation");
+  }
+  return target;
+}
+
+function safePathname(pathname) {
+  return pathname
+    .split("/")
+    .map((part) => {
+      if (/^[a-z0-9_-]{36,}$/i.test(part) || /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(part)) {
+        return "[redacted-segment]";
+      }
+      return part;
+    })
+    .join("/");
+}
+
+function safeDisplayUrl(rawUrl) {
+  const url = new URL(rawUrl);
+  url.username = "";
+  url.password = "";
+  url.search = "";
+  url.hash = "";
+  url.pathname = safePathname(url.pathname);
+  return url.toString();
+}
+
+function classifyFinalLocation(requested, observed) {
+  let finalUrl;
+  try {
+    finalUrl = new URL(observed);
+  } catch {
+    return "unavailable";
+  }
+  if (finalUrl.protocol === "chrome-error:") return "browser_error";
+  if (finalUrl.origin === requested.origin) return "same_origin";
+  if (isLoopback(finalUrl.hostname) && isLoopback(requested.hostname)) return "loopback_redirect";
+  return "different_origin";
+}
+
+function browserVersion(browser) {
+  const result = spawnSync(browser, ["--version"], { encoding: "utf8", timeout: 5000 });
+  if (result.status !== 0) return null;
+  const value = `${result.stdout || ""}${result.stderr || ""}`.trim();
+  const match = value.match(/(?:Chrome|Chromium)\s+([0-9.]+)/i);
+  return match ? match[1] : "available";
+}
+
+function resolveBrowser(explicit) {
+  const candidates = explicit ? [explicit] : BROWSER_CANDIDATES;
+  for (const candidate of candidates) {
+    if (browserVersion(candidate)) return candidate;
+  }
+  throw new Error("no supported Chrome/Chromium executable found; use --browser");
+}
+
+function sleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function waitForDevtools(profileDir, child, timeoutMs) {
+  const activePortFile = path.join(profileDir, "DevToolsActivePort");
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    if (child.exitCode !== null) throw new Error(`browser exited before DevTools became available (${child.exitCode})`);
+    if (fs.existsSync(activePortFile)) {
+      const [port] = fs.readFileSync(activePortFile, "utf8").trim().split(/\r?\n/);
+      if (/^\d+$/.test(port)) return Number(port);
+    }
+    await sleep(50);
+  }
+  throw new Error("browser DevTools startup timed out");
+}
+
+async function findPageTarget(port, timeoutMs) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const response = await fetch(`http://127.0.0.1:${port}/json/list`).catch(() => null);
+    if (response && response.ok) {
+      const targets = await response.json();
+      const page = targets.find((target) => target.type === "page" && target.webSocketDebuggerUrl);
+      if (page) return page;
+    }
+    await sleep(50);
+  }
+  throw new Error("browser page target was not available");
+}
+
+class CdpClient {
+  constructor(socket, timeoutMs) {
+    this.socket = socket;
+    this.timeoutMs = timeoutMs;
+    this.nextId = 1;
+    this.pending = new Map();
+    this.listeners = new Map();
+    socket.addEventListener("message", (event) => this.handleMessage(event.data));
+    socket.addEventListener("close", () => this.rejectPending("browser connection closed"));
+    socket.addEventListener("error", () => this.rejectPending("browser connection failed"));
+  }
+
+  static async connect(url, timeoutMs) {
+    if (typeof WebSocket !== "function") {
+      throw new Error("this optional helper requires a Node runtime with built-in WebSocket support");
+    }
+    return new Promise((resolve, reject) => {
+      const socket = new WebSocket(url);
+      const timer = setTimeout(() => {
+        socket.close();
+        reject(new Error("browser connection timed out"));
+      }, timeoutMs);
+      socket.addEventListener("open", () => {
+        clearTimeout(timer);
+        resolve(new CdpClient(socket, timeoutMs));
+      }, { once: true });
+      socket.addEventListener("error", () => {
+        clearTimeout(timer);
+        reject(new Error("browser connection failed"));
+      }, { once: true });
+    });
+  }
+
+  handleMessage(data) {
+    let message;
+    try {
+      message = JSON.parse(String(data));
+    } catch {
+      return;
+    }
+    if (message.id && this.pending.has(message.id)) {
+      const pending = this.pending.get(message.id);
+      clearTimeout(pending.timer);
+      this.pending.delete(message.id);
+      if (message.error) pending.reject(new Error(message.error.message || "browser command failed"));
+      else pending.resolve(message.result || {});
+      return;
+    }
+    if (message.method && this.listeners.has(message.method)) {
+      for (const listener of this.listeners.get(message.method)) listener(message.params || {});
+    }
+  }
+
+  rejectPending(message) {
+    for (const pending of this.pending.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(new Error(message));
+    }
+    this.pending.clear();
+  }
+
+  on(method, listener) {
+    if (!this.listeners.has(method)) this.listeners.set(method, new Set());
+    this.listeners.get(method).add(listener);
+    return () => this.listeners.get(method)?.delete(listener);
+  }
+
+  waitFor(method, timeoutMs = this.timeoutMs) {
+    return new Promise((resolve, reject) => {
+      const stop = this.on(method, (params) => {
+        clearTimeout(timer);
+        stop();
+        resolve(params);
+      });
+      const timer = setTimeout(() => {
+        stop();
+        reject(new Error(`${method} timed out`));
+      }, timeoutMs);
+    });
+  }
+
+  send(method, params = {}) {
+    const id = this.nextId++;
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pending.delete(id);
+        reject(new Error(`${method} timed out`));
+      }, this.timeoutMs);
+      this.pending.set(id, { resolve, reject, timer });
+      this.socket.send(JSON.stringify({ id, method, params }));
+    });
+  }
+
+  close() {
+    this.socket.close();
+  }
+}
+
+function classifyConsoleMessage(text) {
+  const value = String(text || "");
+  if (/failed to load resource|net::err_/i.test(value)) return "failed_resource";
+  if (/uncaught|unhandled|exception/i.test(value)) return "uncaught_exception";
+  if (/deprecated|deprecation/i.test(value)) return "deprecation";
+  if (/content security policy|\bcsp\b/i.test(value)) return "content_security_policy";
+  if (/accessibility|aria-|a11y/i.test(value)) return "accessibility";
+  return "other";
+}
+
+function increment(object, key) {
+  object[key] = (object[key] || 0) + 1;
+}
+
+function buildSignals(observation) {
+  const navigationVerified = (observation.navigation.http_status === null || observation.navigation.http_status < 400) &&
+    observation.network.blocked_remote_documents === 0;
+  return [
+    { id: "navigation", state: navigationVerified ? "VERIFIED" : "FAILED", evidence: "document response and load observation" },
+    { id: "document_rendered", state: observation.navigation.ready_state === "complete" ? "VERIFIED" : "FAILED", evidence: "DOM ready state" },
+    { id: "no_horizontal_overflow", state: observation.layout.horizontal_overflow ? "FAILED" : "VERIFIED", evidence: "document width compared with viewport width" },
+    { id: "console_observation", state: observation.console.errors || observation.console.exceptions ? "WARNING" : "VERIFIED", evidence: "count-only console observation" },
+    { id: "network_observation", state: observation.network.failed_requests ? "WARNING" : "VERIFIED", evidence: "count-only network observation" },
+    { id: "remote_request_boundary", state: observation.network.blocked_remote_requests ? "WARNING" : "VERIFIED", evidence: "request-stage loopback boundary" },
+    { id: "screenshot", state: observation.screenshot.requested ? (observation.screenshot.captured ? "VERIFIED" : "FAILED") : "NOT_VERIFIED", evidence: observation.screenshot.requested ? "PNG capture result" : "not requested" },
+    { id: "authenticated_flows", state: "NOT_VERIFIED", evidence: "login and credentials are outside this helper" },
+    { id: "user_interactions", state: "NOT_VERIFIED", evidence: "no clicks or form submissions were executed" },
+    { id: "production_correctness", state: "NOT_VERIFIED", evidence: "one browser observation is scope-limited" },
+  ];
+}
+
+function buildBrowserProofReport(observation) {
+  const signals = buildSignals(observation);
+  const hasFailure = signals.some((signal) => signal.state === "FAILED");
+  const hasWarning = signals.some((signal) => signal.state === "WARNING") ||
+    observation.accessibility.unlabelled_interactive > 0 || observation.accessibility.images_missing_alt > 0;
+  return {
+    schema_version: 1,
+    mode: observation.target.remote ? "remote_read_only" : "loopback_read_only",
+    status: hasFailure ? "FAIL" : hasWarning ? "WARN" : "PASS",
+    target: observation.target,
+    browser: observation.browser,
+    viewport: observation.viewport,
+    navigation: observation.navigation,
+    layout: observation.layout,
+    accessibility: observation.accessibility,
+    console: observation.console,
+    network: observation.network,
+    screenshot: observation.screenshot,
+    signals,
+    not_verified: [
+      "authenticated and role-specific flows",
+      "click, form, upload, payment, and other mutation paths",
+      "deployment history and infrastructure state",
+      "database contents and permissions",
+      "behaviour outside the observed viewport and collection window",
+      "ongoing availability and reliability",
+    ],
+    boundaries: BOUNDARIES,
+  };
+}
+
+function validateBrowserProof(report) {
+  const errors = [];
+  if (!report || typeof report !== "object") return ["report must be an object"];
+  if (report.schema_version !== 1) errors.push("schema_version must be 1");
+  if (!['PASS', 'WARN', 'FAIL'].includes(report.status)) errors.push("status is invalid");
+  if (!['loopback_read_only', 'remote_read_only'].includes(report.mode)) errors.push("mode is invalid");
+  for (const key of ["signals", "not_verified", "boundaries"]) {
+    if (!Array.isArray(report[key])) errors.push(`${key} must be an array`);
+  }
+  if (!report.target || typeof report.target.url !== "string") errors.push("target.url is required");
+  if (report.target && typeof report.target.url === "string") {
+    try {
+      const target = new URL(report.target.url);
+      if (target.username || target.password || target.search || target.hash) {
+        errors.push("target.url must not contain credentials, query values, or fragments");
+      }
+    } catch {
+      errors.push("target.url must be a valid URL");
+    }
+  }
+  if (!report.viewport || !Number.isInteger(report.viewport.width) || !Number.isInteger(report.viewport.height)) {
+    errors.push("viewport dimensions are required");
+  }
+  if (!report.navigation || !report.layout || !report.console || !report.network || !report.screenshot) {
+    errors.push("browser observation sections are required");
+  }
+  const serialized = JSON.stringify(report);
+  const forbidden = [
+    /(?:\/home\/[^/\s]+|\/Users\/[^/\s]+)\//,
+    /[A-Za-z]:\\Users\\[^\\\s]+\\/,
+    /Bearer\s+[A-Za-z0-9._-]{12,}/i,
+    /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/,
+    /\bgh[pousr]_[A-Za-z0-9_]{12,}\b/,
+    /\bsk-[A-Za-z0-9_-]{12,}\b/,
+    /postgres(?:ql)?:\/\/[^"\s]+/i,
+    /-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----/,
+    /"(?:headers|cookies|local_storage|session_storage|response_body|page_text)"\s*:/i,
+  ];
+  if (forbidden.some((pattern) => pattern.test(serialized))) {
+    errors.push("report contains private paths, secret-shaped material, or raw browser data");
+  }
+  return errors;
+}
+
+function renderHuman(report) {
+  const lines = [
+    "# Browser Live Proof",
+    "",
+    `Status: ${report.status}`,
+    `Mode: ${report.mode}`,
+    `Target: ${report.target.url}`,
+    `Viewport: ${report.viewport.width}x${report.viewport.height}`,
+    `HTTP status: ${report.navigation.http_status ?? "not observed"}`,
+    `Ready state: ${report.navigation.ready_state}`,
+    `Horizontal overflow: ${report.layout.horizontal_overflow ? "yes" : "no"}`,
+    `Console errors: ${report.console.errors}`,
+    `Failed requests: ${report.network.failed_requests}`,
+    `Unlabelled interactive elements: ${report.accessibility.unlabelled_interactive}`,
+    `Screenshot: ${report.screenshot.captured ? report.screenshot.filename : "not captured"}`,
+    "",
+    "## Signals",
+    ...report.signals.map((signal) => `- ${signal.state}: ${signal.id} (${signal.evidence})`),
+    "",
+    "## Not Verified",
+    ...report.not_verified.map((item) => `- ${item}`),
+    "",
+    "## Boundaries",
+    ...report.boundaries.map((item) => `- ${item}`),
+  ];
+  return lines.join("\n");
+}
+
+async function collectBrowserProof(args) {
+  const target = validateTarget(args.url, args.allowRemote);
+  const browser = resolveBrowser(args.browser);
+  const version = browserVersion(browser);
+  const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), "coding-workflow-browser-proof-"));
+  const chromeArgs = [
+    "--headless=new",
+    "--disable-background-networking",
+    "--disable-breakpad",
+    "--disable-component-update",
+    "--disable-default-apps",
+    "--disable-dev-shm-usage",
+    "--disable-extensions",
+    "--disable-features=Translate",
+    "--disable-sync",
+    "--metrics-recording-only",
+    "--mute-audio",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--password-store=basic",
+    "--remote-debugging-port=0",
+    `--user-data-dir=${profileDir}`,
+    `--window-size=${args.viewport.width},${args.viewport.height}`,
+    "about:blank",
+  ];
+  const child = spawn(browser, chromeArgs, { stdio: "ignore" });
+  let client;
+  try {
+    const port = await waitForDevtools(profileDir, child, args.timeoutMs);
+    const page = await findPageTarget(port, args.timeoutMs);
+    client = await CdpClient.connect(page.webSocketDebuggerUrl, args.timeoutMs);
+
+    const counters = {
+      requests: 0,
+      responses: 0,
+      failedRequests: 0,
+      blockedRemoteRequests: 0,
+      blockedRemoteDocuments: 0,
+      statusClasses: {},
+      resourceTypes: {},
+      consoleMessages: 0,
+      consoleErrors: 0,
+      consoleWarnings: 0,
+      exceptions: 0,
+      consoleCategories: {},
+      documentStatus: null,
+    };
+
+    client.on("Network.requestWillBeSent", () => { counters.requests += 1; });
+    client.on("Network.loadingFailed", () => { counters.failedRequests += 1; });
+    client.on("Network.responseReceived", (event) => {
+      counters.responses += 1;
+      increment(counters.resourceTypes, event.type || "Other");
+      const status = Number(event.response?.status || 0);
+      if (status) increment(counters.statusClasses, `${Math.floor(status / 100)}xx`);
+      if (event.type === "Document") counters.documentStatus = status || null;
+    });
+    client.on("Runtime.consoleAPICalled", (event) => {
+      counters.consoleMessages += 1;
+      const type = String(event.type || "log").toLowerCase();
+      if (["error", "assert"].includes(type)) counters.consoleErrors += 1;
+      if (["warning", "warn"].includes(type)) counters.consoleWarnings += 1;
+      const text = (event.args || []).map((item) => item.description || item.value || "").join(" ");
+      increment(counters.consoleCategories, classifyConsoleMessage(text));
+    });
+    client.on("Runtime.exceptionThrown", (event) => {
+      counters.exceptions += 1;
+      increment(counters.consoleCategories, classifyConsoleMessage(event.exceptionDetails?.text || "exception"));
+    });
+    client.on("Fetch.requestPaused", (event) => {
+      let shouldBlock = false;
+      try {
+        const requestUrl = new URL(event.request?.url || "");
+        shouldBlock = !args.allowRemote && ["http:", "https:"].includes(requestUrl.protocol) && !isLoopback(requestUrl.hostname);
+      } catch {
+        shouldBlock = false;
+      }
+      if (shouldBlock) {
+        counters.blockedRemoteRequests += 1;
+        if (event.resourceType === "Document") counters.blockedRemoteDocuments += 1;
+        client.send("Fetch.failRequest", { requestId: event.requestId, errorReason: "BlockedByClient" }).catch(() => {});
+      } else {
+        client.send("Fetch.continueRequest", { requestId: event.requestId }).catch(() => {});
+      }
+    });
+
+    await Promise.all([
+      client.send("Page.enable"),
+      client.send("Runtime.enable"),
+      client.send("Network.enable", { maxTotalBufferSize: 0, maxResourceBufferSize: 0 }),
+      client.send("Fetch.enable", { patterns: [{ urlPattern: "*", requestStage: "Request" }] }),
+    ]);
+    await client.send("Emulation.setDeviceMetricsOverride", {
+      width: args.viewport.width,
+      height: args.viewport.height,
+      deviceScaleFactor: 1,
+      mobile: args.viewport.width < 600,
+    });
+
+    const startedAt = Date.now();
+    const loaded = client.waitFor("Page.loadEventFired", args.timeoutMs).then(() => true).catch(() => false);
+    await client.send("Page.navigate", { url: target.toString(), transitionType: "typed" });
+    const loadEventObserved = await loaded;
+    await sleep(args.settleMs);
+
+    const evaluated = await client.send("Runtime.evaluate", {
+      returnByValue: true,
+      awaitPromise: true,
+      expression: `(() => {
+        const root = document.documentElement;
+        const body = document.body;
+        const interactive = [...document.querySelectorAll('a,button,input,select,textarea,[role="button"],[tabindex]')];
+        const label = (element) => (
+          element.getAttribute('aria-label') ||
+          element.getAttribute('aria-labelledby') ||
+          element.getAttribute('title') ||
+          element.getAttribute('alt') ||
+          element.getAttribute('placeholder') ||
+          element.getAttribute('value') ||
+          element.textContent || ''
+        ).trim();
+        return {
+          url: location.href,
+          readyState: document.readyState,
+          titlePresent: Boolean(document.title.trim()),
+          languagePresent: Boolean(root.lang || document.querySelector('meta[http-equiv="content-language"]')),
+          viewportWidth: window.innerWidth,
+          viewportHeight: window.innerHeight,
+          documentWidth: Math.max(root.scrollWidth, body ? body.scrollWidth : 0),
+          documentHeight: Math.max(root.scrollHeight, body ? body.scrollHeight : 0),
+          headings: document.querySelectorAll('h1,h2,h3,h4,h5,h6').length,
+          interactive: interactive.length,
+          unlabelledInteractive: interactive.filter((element) => !label(element)).length,
+          images: document.images.length,
+          imagesMissingAlt: [...document.images].filter((image) => !image.hasAttribute('alt')).length,
+          videos: document.querySelectorAll('video').length
+        };
+      })()`,
+    });
+    const dom = evaluated.result?.value;
+    if (!dom || typeof dom !== "object") throw new Error("browser DOM observation was unavailable");
+
+    const screenshot = { requested: Boolean(args.screenshot), captured: false, filename: null, bytes: 0 };
+    if (args.screenshot) {
+      const absolute = path.resolve(args.screenshot);
+      fs.mkdirSync(path.dirname(absolute), { recursive: true });
+      const capture = await client.send("Page.captureScreenshot", {
+        format: "png",
+        fromSurface: true,
+        captureBeyondViewport: false,
+      });
+      const bytes = Buffer.from(capture.data || "", "base64");
+      fs.writeFileSync(absolute, bytes, { mode: 0o600 });
+      screenshot.captured = bytes.length > 0;
+      screenshot.filename = path.basename(absolute);
+      screenshot.bytes = bytes.length;
+    }
+
+    return buildBrowserProofReport({
+      target: {
+        url: safeDisplayUrl(target.toString()),
+        remote: !isLoopback(target.hostname),
+        query_present: Boolean(target.search),
+        final_location: classifyFinalLocation(target, dom.url),
+      },
+      browser: { family: "chromium", version },
+      viewport: { width: args.viewport.width, height: args.viewport.height, device_scale_factor: 1 },
+      navigation: {
+        http_status: counters.documentStatus,
+        ready_state: dom.readyState,
+        load_event_observed: loadEventObserved,
+        title_present: dom.titlePresent,
+        duration_ms: Date.now() - startedAt,
+      },
+      layout: {
+        viewport_width: dom.viewportWidth,
+        viewport_height: dom.viewportHeight,
+        document_width: dom.documentWidth,
+        document_height: dom.documentHeight,
+        horizontal_overflow: dom.documentWidth > dom.viewportWidth + 1,
+      },
+      accessibility: {
+        language_present: dom.languagePresent,
+        headings: dom.headings,
+        interactive_elements: dom.interactive,
+        unlabelled_interactive: dom.unlabelledInteractive,
+        images: dom.images,
+        images_missing_alt: dom.imagesMissingAlt,
+        videos: dom.videos,
+      },
+      console: {
+        messages: counters.consoleMessages,
+        warnings: counters.consoleWarnings,
+        errors: counters.consoleErrors,
+        exceptions: counters.exceptions,
+        categories: counters.consoleCategories,
+      },
+      network: {
+        requests: counters.requests,
+        responses: counters.responses,
+        failed_requests: counters.failedRequests,
+        blocked_remote_requests: counters.blockedRemoteRequests,
+        blocked_remote_documents: counters.blockedRemoteDocuments,
+        status_classes: counters.statusClasses,
+        resource_types: counters.resourceTypes,
+      },
+      screenshot,
+    });
+  } finally {
+    if (client) client.close();
+    if (child.exitCode === null) child.kill("SIGTERM");
+    fs.rmSync(profileDir, { recursive: true, force: true });
+  }
+}
+
+async function main() {
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    usage();
+    process.exitCode = 2;
+    return;
+  }
+  if (args.help) {
+    usage();
+    return;
+  }
+
+  let report;
+  try {
+    report = await collectBrowserProof(args);
+  } catch (error) {
+    console.error(`browser live proof failed: ${error.message}`);
+    process.exitCode = 2;
+    return;
+  }
+
+  const validationErrors = validateBrowserProof(report);
+  console.log(args.json ? JSON.stringify(report, null, 2) : renderHuman(report));
+  if (args.validate && validationErrors.length) {
+    console.error("Browser live proof validation failed:");
+    for (const error of validationErrors) console.error(`- ${error}`);
+    process.exitCode = 1;
+  }
+  if (report.status === "FAIL") process.exitCode = 1;
+}
+
+if (require.main === module) main();
+
+module.exports = {
+  BOUNDARIES,
+  buildBrowserProofReport,
+  classifyConsoleMessage,
+  parseArgs,
+  parseViewport,
+  renderHuman,
+  safeDisplayUrl,
+  classifyFinalLocation,
+  validateBrowserProof,
+  validateTarget,
+};

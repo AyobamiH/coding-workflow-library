@@ -1487,3 +1487,20 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: build-verify-skill for final local gates; github-handoff-skill only after separate remote-publication authority.
 * Exact next action: complete local package, browser, source-coverage, and library validation; create local exact-file commits if clean.
 * Whether John is needed: No for local validation; yes before any push, package publication, tag, release, or deploy.
+
+## 2026-07-16 - Browser Live Proof Foundation Complete Locally
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Resume coding-workflow-library maturity from its documented roadmap without turning Capability Intelligence into the workflow product or introducing agent-role drift.
+* Current permission level: `local_execution` for source inspection, implementation, tests, temporary loopback browser evidence, exact-file staging, and local commit. No remote publication, package publication, version change, tag, release, deploy, production mutation, secret mutation, destructive action, authenticated browser action, or remote browser navigation.
+* Current status: Browser live proof foundation complete locally.
+* Selected skill: coding-workflow-orchestrator-skill, repo-map-skill, skill-creator guidance, browser-live-proof-skill, build-verify-skill.
+* Documentation evidence: `build-queue.md` and `docs/agent-and-skill-roadmap.md` identified browser live proof as the first missing reusable component after the implemented docs-list, repo-map, project-KB, pre-commit, and migration-review foundations. OpsTruth remains the separate proof product; Capability Intelligence remains a separate standalone product/workflow resource rather than the library direction.
+* Files changed: browser helper, JSON schema, skill, route metadata, CLI delegation, focused tests, pre-commit syntax coverage, package scripts, README/RUNBOOK/tools/index/checklist, changelog, build queue, roadmap, ledger, and run log.
+* Browser evidence: temporary loopback-only fixture passed at `390x844` and `1440x900` with HTTP 200, complete DOM, no horizontal overflow, zero console errors, zero failed requests, labelled interactive controls, and valid PNG captures; visual inspection confirmed a nonblank correctly framed mobile image. A loopback redirect toward a remote origin was blocked at request stage and returned `FAIL` with no remote navigation approval.
+* Validation evidence: focused tests passed; full `npm test` passed; 17-check full pre-commit gate passed; route audit passed with 33 routes; skill validation passed with 30 active skills; skill cleaner kept the new skill; package dry-run included the helper, schema, skill, and test; `git diff --check` passed.
+* Boundaries: helper emits no raw console messages, request/response bodies, headers, cookies, storage, page text, credentials, or private screenshot paths. It performs no clicks, forms, login, upload, deploy, database action, or product mutation. Authentication, interactions, deployment history, database state, production correctness, and reliability remain `NOT_VERIFIED`.
+* Blockers: none for local implementation. Remote publication is outside this objective.
+* Next recommended skill: GitHub deep review skill, the next documented missing reusable component.
+* Exact next action: create one exact-file local commit for the validated browser-live-proof foundation, then hold before any remote publication.
+* Whether John is needed: No for the local commit; yes before push, versioning, tag, release, npm publication, or remote browser work.

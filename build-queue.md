@@ -11,15 +11,6 @@
 
 # P1 - Documented Missing Reusable Components
 
-## Browser live proof skill
-
-- Evidence source: `work-ledger.md`, `runs/skill-runs.md`, `tools.md` `browser-live-proof` permission level.
-- Primary type: `SKILL`.
-- Dependency: runtime-verification and Opstruth runtime-truth skills.
-- Authority required: `local_execution` for local browser proof; logged-in or production browser actions require explicit higher authority.
-- Done definition: skill defines screenshots, console/network evidence, mutation boundaries, and final proof language for browser-observed behavior.
-- Reason for priority: browser evidence is a documented gap after source/build/runtime helper checks.
-
 ## GitHub deep review skill
 
 - Evidence source: `runs/skill-runs.md` Peter-pattern follow-up; existing GitHub handoff skill covers PR files/checks but not review-thread triage.
@@ -120,4 +111,5 @@
 - Deterministic source-only project KB compiler (`scripts/project-kb`).
 - Pre-commit validation hook (`scripts/pre-commit-check`, `scripts/install-git-hooks`, `templates/hooks/pre-commit`).
 - Deterministic source-only migration review helper (`scripts/migration-review`).
+- Bounded read-only browser live-proof helper (`scripts/browser-live-proof`) and `browser-live-proof-skill`.
 - Capability-intelligence builder skill and local-only hard-cutover route.

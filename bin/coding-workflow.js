@@ -59,6 +59,10 @@ const COMMANDS = {
     script: "scripts/migration-review",
     description: "Run source-only migration risk review.",
   },
+  "browser-live-proof": {
+    script: "scripts/browser-live-proof",
+    description: "Collect bounded, count-only browser rendering evidence.",
+  },
   "install-hooks": {
     script: "scripts/install-git-hooks",
     description: "Install the optional local Git pre-commit hook when safe.",
@@ -87,6 +91,7 @@ Usage:
   coding-workflow project-kb --repo /path/to/repo [--output /path/to/PROJECT_KB.md] [--json] [--validate] [--dry-run]
   coding-workflow pre-commit-check [--staged] [--full] [--json]
   coding-workflow migration-review --repo /path/to/repo [--json] [--validate] [--migrations-dir relative/path]
+  coding-workflow browser-live-proof --url http://127.0.0.1:4173 [--viewport 390x844] [--screenshot /tmp/proof.png] [--json] [--validate]
   coding-workflow install-hooks [--dry-run] [--force]
   coding-workflow objective show --lane <lane-id> --state-file /path/to/lanes.json
   coding-workflow objective approve --lane <lane-id> --grant remote_publication --state-file /path/to/lanes.json

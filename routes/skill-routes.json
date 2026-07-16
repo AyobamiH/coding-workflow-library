@@ -1560,6 +1560,71 @@
       "provenance": "P1 helper identified by migration-review-skill and Supabase scheduler work that required source-only migration/secret-hardcoding review before any apply gate"
     },
     {
+      "id": "browser-live-proof",
+      "skill_file": "skill-files/browser-live-proof-skill.md",
+      "ledger_states_handled": [
+        "Local runtime ready for browser proof",
+        "Website changes locally validated, browser proof pending",
+        "Deployment complete, browser proof pending"
+      ],
+      "permission_flag": "browser-live-proof",
+      "helper_scripts": [
+        "scripts/browser-live-proof",
+        "scripts/repo-map",
+        "scripts/project-kb"
+      ],
+      "permission_level": "local_execution, browser-live-proof",
+      "explicit_permission_required": true,
+      "requires_authority": [
+        "local_execution"
+      ],
+      "forbidden_actions": [
+        "credential-bearing URLs",
+        "raw console log output",
+        "request or response body output",
+        "request header or cookie output",
+        "browser storage output",
+        "page text output",
+        "clicks",
+        "form submission",
+        "login",
+        "upload",
+        "production mutation",
+        "database mutation",
+        "deploy",
+        "remote publication",
+        "secret value printing"
+      ],
+      "success_ledger_state": "Browser live proof collected",
+      "blocked_ledger_state": "Browser live proof blocked",
+      "next_permission": "classify combined source, build, runtime, browser, and production evidence",
+      "evidence_required": [
+        "safe target URL and read-only mode",
+        "browser version and viewport",
+        "navigation and DOM ready state",
+        "document and viewport dimensions",
+        "horizontal overflow classification",
+        "count-only accessibility evidence",
+        "count-only console and network evidence",
+        "optional screenshot metadata",
+        "explicit not-verified claims"
+      ],
+      "safety_gates": [
+        "loopback by default",
+        "explicit --allow-remote for one remote read-only navigation",
+        "no browser interactions",
+        "no raw browser data",
+        "no authentication material",
+        "no production correctness inference"
+      ],
+      "idempotency_evidence": [
+        "fixed-page repeated observations preserve the evidence shape",
+        "helper writes only an explicitly requested screenshot",
+        "no target repository files are mutated by default"
+      ],
+      "provenance": "P1 browser evidence gap identified by the corrected workflow corpus roadmap and existing runtime-verification boundaries"
+    },
+    {
       "id": "capability-intelligence-hard-cutover",
       "skill_file": "skill-files/capability-intelligence-builder-skill.md",
       "ledger_states_handled": [

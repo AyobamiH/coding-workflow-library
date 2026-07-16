@@ -818,6 +818,8 @@ Rules:
 - Distinguish screenshot/inspection from mutation.
 - Logged-in browser access can expose accounts and private data.
 - Approval is required before changing live data, submitting forms, purchasing, deleting, or altering account state.
+- Prefer `scripts/browser-live-proof` for loopback or explicitly approved read-only observations. It emits counts and categories only, defaults to loopback, and performs no clicks, form submissions, or login.
+- Treat authenticated flows, user interaction, database state, deployment history, and ongoing reliability as `NOT_VERIFIED` unless separately observed under the required authority.
 
 Evidence required:
 

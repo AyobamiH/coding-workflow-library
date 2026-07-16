@@ -174,6 +174,7 @@ Use this mapping before acting:
 - Need to inspect npm package or CLI distribution readiness: `npm-package-readiness-skill`
 - Need a local release gate before publish/tag/push/deploy: `release-preflight-skill`
 - Need runtime endpoint verification, negative checks, dry-run proof, controlled success invocation, or scheduled monitoring: `runtime-verification-skill`
+- Need direct responsive rendering, screenshot, horizontal-overflow, or count-only console/network evidence: `browser-live-proof-skill` with `scripts/browser-live-proof`
 - Need Supabase Edge Function remote secret setup, one function deploy, or deploy-to-runtime boundary handling: `supabase-function-deploy-skill`
 - Need Supabase scheduler, Vault, pg_cron, pg_net, scheduler secret storage, or scheduler mutation boundary handling: `supabase-scheduler-vault-skill`
 - Need production handoff, scheduled-run monitoring, run history review, or final observed-versus-pending status: `production-handoff-skill`
@@ -192,6 +193,7 @@ Use this mapping before acting:
 - Need deterministic source-only workspace orientation, package/config markers, docs summary, and env-file presence without values: `scripts/repo-map`
 - Need deterministic project identity, commands, docs, route/skill, verified-fact, and unknowns synthesis from source-only evidence: `scripts/project-kb`
 - Need source-only migration risk classification without SQL execution: `scripts/migration-review`
+- Need one bounded browser observation without interaction or raw browser data: `scripts/browser-live-proof`
 - Need to trace OpenClaw subagent routing: `route-trace-skill`
 - Need to compare OpenClaw config backups: `openclaw-config-diff-skill`
 - Need to coordinate local tools, reads, writes, process logs, or gateway calls: `tool-patterns-skill`

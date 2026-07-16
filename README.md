@@ -52,6 +52,7 @@ skills/coding-workflow-library/
     project-kb.schema.json
     pre-commit-check.schema.json
     migration-review.schema.json
+    browser-live-proof.schema.json
   runs/
     decisions/
     skill-runs.md
@@ -76,6 +77,7 @@ skills/coding-workflow-library/
     pre-commit-check
     check-public-paths
     migration-review
+    browser-live-proof
     install-git-hooks
     run-next
     route-audit
@@ -98,6 +100,7 @@ skills/coding-workflow-library/
     project-kb.test.js
     pre-commit-check.test.js
     migration-review.test.js
+    browser-live-proof.test.js
     public-paths.test.js
     library-validation-checklist.md
   skill-files/
@@ -112,6 +115,7 @@ skills/coding-workflow-library/
     skills-library-packaging-skill.md
     release-preflight-skill.md
     runtime-verification-skill.md
+    browser-live-proof-skill.md
     opstruth-runtime-truth-skill.md
     supabase-function-deploy-skill.md
     supabase-scheduler-vault-skill.md
@@ -262,6 +266,26 @@ coding-workflow migration-review --repo /path/to/repo --validate
 ```
 
 The helper reports relative migration paths, ordering prefixes, statement categories, risk categories, rollback hints, RLS/policy changes, grants/revokes, functions, triggers, extensions, pg_cron/pg_net, Vault references, destructive/data-mutation patterns, and secret-shaped findings by category only. It never executes SQL, connects to a database, runs Supabase CLI, applies migrations, deploys, mutates files, reads `.env` values, prints secret values, or proves deployed database truth. High-risk findings should block apply/deploy decisions until a separate authority gate and human review approve the next step.
+
+## Browser Live Proof
+
+Use `scripts/browser-live-proof` after source, build, and local runtime checks to collect one bounded Chromium observation:
+
+```bash
+./scripts/browser-live-proof \
+  --url http://127.0.0.1:4173 \
+  --viewport 390x844 \
+  --screenshot /tmp/browser-proof-mobile.png \
+  --validate
+
+coding-workflow browser-live-proof \
+  --url http://127.0.0.1:4173 \
+  --viewport 1440x900 \
+  --json \
+  --validate
+```
+
+The helper defaults to loopback targets. `--allow-remote` permits one explicitly selected read-only remote navigation. It records safe URL metadata, viewport/document dimensions, horizontal overflow, basic accessibility counts, count-only console/network classifications, and optional screenshot metadata. It never clicks, submits forms, logs in, prints raw console messages, emits headers/bodies/cookies/storage/page text, or treats one browser observation as proof of deployment history, database state, authentication paths, production correctness, or ongoing reliability.
 
 ## Objective-Level Autonomy
 
