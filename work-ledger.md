@@ -1652,3 +1652,17 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Boundaries: no target repository was edited by the proof harness; no production, deployment, database, secret, registry, network publication, or destructive consequence was executed. Local evidence is not remote Linux/macOS/Windows proof.
 * Exact next action: run full validation and package smoke, create one exact-file local commit, then stop at the `remote_publication` boundary for push and exact-commit matrix observation.
 * Whether John is needed: No for the local commit; yes to grant `remote_publication` for push and remote exact-commit CI observation.
+
+## 2026-07-16 - Workflow Reliability Remote Portability Proof Complete
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Publish the two validated workflow-reliability commits and verify the existing portable matrix against the exact remote commit.
+* Current permission level: `remote_publication` granted for normal push and read-only exact-commit CI observation. No version change, tag, GitHub Release, npm publication, deploy, production mutation, secret mutation, or destructive action.
+* Current status: COMPLETE: workflow reliability foundations published and exact-commit remote portability verified.
+* Selected skill: github-handoff-skill and build-verify-skill.
+* Push evidence: clean local `main` was a strict two-commit fast-forward of `origin/main`; normal push advanced remote `main` from `aae4c9b` through `c81fc66` to `f8968d2`; local HEAD, `origin/main`, and remote `refs/heads/main` matched exactly afterward.
+* Exact-commit CI evidence: GitHub Actions run `29484530598` matched head `f8968d2` and completed with conclusion `success`. Main validation, Ubuntu portability, macOS portability, and Windows portability all passed.
+* Warning evidence: GitHub reported a non-failing deprecation warning for the Node 20 runtime used internally by `actions/checkout@v4` and `actions/setup-node@v4`, which runners forced onto Node 24. This is a maintenance warning, not a portability failure.
+* Boundaries: no force push, version, tag, GitHub Release, npm publish, deployment, production call, secret mutation, or destructive action occurred.
+* Next recommended skill: coding-workflow-orchestrator-skill for P0 foundation maintenance. Review GitHub Action runtime versions in a separate bounded maintenance objective before the warning becomes a failure.
+* Whether John is needed: No for the completed publication and proof. A new objective is required for release, npm publication, production work, or another roadmap expansion.

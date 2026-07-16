@@ -103,6 +103,19 @@ No new `run-next` route IDs were added for these helpers.
 
 They remain thin CLI commands until repeated lane-driven use demonstrates a stable route state transition. This avoids inventing ledger states merely to make helpers look orchestrated.
 
-## Next Dependency
+## Remote Portability Proof
 
-The next recorded maturity dependency is exact-commit remote proof for the existing Linux, macOS, and Windows portable test matrix. That requires `remote_publication` and observed GitHub Actions evidence. Local Linux success must not be reported as remote cross-platform proof.
+After `remote_publication` was granted, commits `c81fc66` and `f8968d2` were pushed by normal fast-forward to `main`.
+
+GitHub Actions run `29484530598` matched exact commit `f8968d2` and completed successfully:
+
+- main validation: passed;
+- Ubuntu portability: passed;
+- macOS portability: passed;
+- Windows portability: passed.
+
+This closes the recorded remote cross-platform dependency for that exact commit. It does not prove future commits or arbitrary environments.
+
+The run emitted a non-failing warning that the Node 20 runtime used by `actions/checkout@v4` and `actions/setup-node@v4` is deprecated and forced onto Node 24 by the runner. Review supported action versions in a separate maintenance objective; do not misclassify the warning as a failed matrix.
+
+No further generic P1 maturity implementation is active. Return to P0 corpus and foundation maintenance unless repeated real workflow evidence supplies a new bounded gap.

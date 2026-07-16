@@ -97,7 +97,7 @@
 - Authority required: `remote_publication`.
 - Done definition: Linux, macOS, and Windows jobs pass for the exact published commit, with any platform-specific failure classified rather than inferred from local Linux evidence.
 - Reason for priority: the matrix exists locally, but remote execution evidence must remain separate until observed.
-- Status: next active maturity dependency. Local portable coverage includes the three new foundations, but exact-commit remote matrix execution remains `NOT_VERIFIED` until publication is authorised and observed.
+- Status: completed and observed remotely for exact commit `f8968d2`. GitHub Actions run `29484530598` passed the main validation job plus Ubuntu, macOS, and Windows portability jobs. The run emitted a non-failing action-runtime deprecation warning; that warning is maintenance evidence, not a failed portability result.
 
 # P2 - Follow-On Autonomy Improvements
 

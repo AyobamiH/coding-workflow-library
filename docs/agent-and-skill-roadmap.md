@@ -158,7 +158,7 @@ The adapter evaluation found no need for a generic broker. Capability Intelligen
 5. Keep the implemented safe skill-gap recorder current as the structured "no skill fits" queue contract.
 6. Keep read-only autonomy outcome reporting current over safe lane, checkpoint, ledger, and run metadata.
 7. Keep the observed multi-project proof contract current; it has passed across the workflow library, OpsTruth, and Wagging Web Wins without Git or lane-state leakage.
-8. Next: verify the existing Linux/macOS/Windows portable matrix against an exact published commit.
+8. Keep the verified Linux/macOS/Windows portable matrix current. Exact commit `f8968d2` passed all three portability jobs and the main validation job in GitHub Actions run `29484530598`.
 9. Keep `scripts/repo-map` current as the deterministic source-only workspace orientation helper.
 10. Keep `scripts/project-kb` current as the deterministic source-only project memory compiler.
 11. Keep `scripts/pre-commit-check` and `scripts/install-git-hooks` current as the deterministic local commit gate.
@@ -179,4 +179,4 @@ The adapter evaluation found no need for a generic broker. Capability Intelligen
 20. Revisit capability acquisition and prefetch only after at least two real runs prove the same unresolved adapter insufficiency.
 21. Revisit agent-role system only after at least two independent sessions prove a reusable role contract.
 
-The evidence-backed reusable-foundation sequence through capability adapter evaluation is complete locally. Workflow reliability now has a bounded entrypoint, structured skill-gap recording, privacy-safe outcome reporting, and observed three-repository proof. The next active dependency is exact-commit remote Linux/macOS/Windows evidence; local Linux results must not be substituted for that proof. See `docs/workflow-maturity-foundations.md` and `docs/modularity-audit.md`. The adapter evaluation selected narrow workflow-owned adapters, observed one bounded GitHub metadata read, and rejected a generic broker, prefetch, automatic installation, and skill/plugin hard cutover. Capability Intelligence remains parked as a separate product direction.
+The evidence-backed reusable-foundation sequence through capability adapter evaluation and remote portability proof is complete. Workflow reliability now has a bounded entrypoint, structured skill-gap recording, privacy-safe outcome reporting, observed three-repository proof, and exact-commit Ubuntu/macOS/Windows CI evidence. No further generic P1 implementation is active; return to P0 corpus and foundation maintenance unless repeated real workflow evidence creates a new bounded gap. The completed CI run also reported a non-failing GitHub Actions runtime deprecation warning, which should be reviewed as maintenance before it becomes a failure. See `docs/workflow-maturity-foundations.md` and `docs/modularity-audit.md`. Capability Intelligence remains parked as a separate product direction.

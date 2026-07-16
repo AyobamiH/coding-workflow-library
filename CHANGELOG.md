@@ -7,7 +7,7 @@
 - Add a structured, atomic, secret-safe skill-gap recorder with dry-run, JSON, validation, and duplicate/refusal coverage.
 - Add privacy-safe autonomy outcome reporting over local lane, checkpoint, ledger, and run metadata.
 - Add a read-only multi-project proof harness and observe the same bounded contract across the workflow library, OpsTruth, and Wagging Web Wins without Git or lane-state leakage.
-- Keep exact-commit remote Linux/macOS/Windows proof as the next unverified maturity dependency.
+- Verify exact commit `f8968d2` remotely: main validation and Ubuntu, macOS, and Windows portability jobs passed in GitHub Actions run `29484530598`.
 
 ## 0.2.3 - 2026-07-16
 

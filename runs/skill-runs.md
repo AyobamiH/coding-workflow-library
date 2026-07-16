@@ -1693,3 +1693,15 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: the interrupted work was recovered from the dirty tree and focused tests instead of restarted. The broader source audit found review candidates, but their current domain cohesion did not justify a mass mechanical split; explicit follow-up dispositions now prevent that debt from disappearing.
 * Follow-up skill needed: github-handoff-skill only after `remote_publication` is granted for a non-force push and exact-commit CI inspection.
 * Upgrade idea: split scheduler monitoring from scheduler/Vault mutation when that module next changes; do not refactor untouched domain modules solely to reduce line counts.
+
+## 2026-07-16 - Workflow Reliability Remote Publication And Portability Proof
+
+* Skill used: github-handoff-skill and build-verify-skill.
+* Goal: Publish the two validated maturity commits by normal fast-forward and collect exact-commit Linux/macOS/Windows CI evidence.
+* Starting state: clean `main` contained `c81fc66` and `f8968d2`, two commits ahead of `origin/main`; full local, portable, package, installed-CLI, and staged gates had passed.
+* Commands/tools used: Git state and ancestry inspection; read-only fetch; normal `git push origin main`; exact remote SHA verification; exact-commit GitHub Actions lookup, job inspection, and bounded watch.
+* Evidence collected: remote `main` advanced from `aae4c9b` to `f8968d2` with no divergence. GitHub Actions run `29484530598` matched `f8968d2`; main validation and Ubuntu, macOS, and Windows portability jobs all completed successfully.
+* Result: COMPLETE: the recorded remote cross-platform dependency is verified for exact commit `f8968d2`.
+* Failure/recovery notes: the local env file emitted shell parse warnings and was unnecessary because GitHub CLI already had valid independent authentication. CI emitted a non-failing Node 20 action-runtime deprecation warning; no job failed.
+* Follow-up skill needed: coding-workflow-orchestrator-skill for P0 foundation maintenance. GitHub Actions dependency maintenance may be scheduled separately.
+* Upgrade idea: review supported major versions for checkout/setup actions before the runtime warning becomes blocking; do not alter passing CI inside an evidence-only bookkeeping step.
