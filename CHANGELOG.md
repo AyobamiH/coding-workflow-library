@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Harden npm package readiness and release preflight with validated JSON reports, crisp blocker codes, safe pack-manifest inspection, release-note/version baseline checks, and optional aggregate workflow-corpus evidence that never reads raw corpus data.
 - Add a deterministic OpsTruth runtime-truth classifier and built-in self-test covering verified, warning, failure, skipped, and not-verified evidence without collapsing CI into production truth.
 - Add a read-only GitHub deep-review helper, schema, skill, route, CLI command, and synthetic regression suite for thread state, current review decisions, stale approvals, exact patch scope, checks, bounded failed-log categories, and explicit merge/production evidence boundaries.
 

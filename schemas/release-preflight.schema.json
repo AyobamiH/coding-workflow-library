@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/coding-workflow/release-preflight.schema.json",
+  "title": "Release Preflight Report",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "repo",
+    "mode",
+    "mode_contract",
+    "git",
+    "package_readiness",
+    "corpus_evidence",
+    "evidence_pack",
+    "release_notes",
+    "checks",
+    "blockers",
+    "warnings",
+    "not_verified",
+    "commands_not_run",
+    "final_status",
+    "next_safe_step"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "repo": {
+      "type": "object",
+      "required": ["root"],
+      "properties": { "root": { "const": "." } },
+      "additionalProperties": false
+    },
+    "mode": { "enum": ["local", "npm", "cli"] },
+    "mode_contract": {
+      "type": "object",
+      "required": ["package_required", "cli_required", "corpus_required", "pack_dry_run_allowed"]
+    },
+    "package_readiness": { "type": "object" },
+    "corpus_evidence": {
+      "type": "object",
+      "required": [
+        "source",
+        "required",
+        "status",
+        "validation_status",
+        "coverage_reconciled",
+        "coverage",
+        "release_signals",
+        "blocker_code",
+        "evidence"
+      ],
+      "properties": {
+        "source": { "enum": ["not_provided", "local_aggregate_files"] },
+        "required": { "type": "boolean" },
+        "status": { "$ref": "#/$defs/status" },
+        "validation_status": { "$ref": "#/$defs/status" },
+        "coverage_reconciled": { "type": "boolean" },
+        "coverage": { "type": ["object", "null"] },
+        "release_signals": { "type": ["object", "null"] },
+        "blocker_code": { "type": ["string", "null"] },
+        "evidence": { "type": "string" }
+      }
+    },
+    "evidence_pack": { "type": "object" },
+    "release_notes": { "type": "object" },
+    "checks": { "type": "array", "items": { "$ref": "#/$defs/check" } },
+    "blockers": { "type": "array" },
+    "warnings": { "type": "array" },
+    "not_verified": { "type": "array" },
+    "commands_not_run": { "type": "array", "items": { "type": "string" } },
+    "final_status": { "$ref": "#/$defs/status" },
+    "next_safe_step": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "status": {
+      "enum": ["PASS", "WARN", "FAIL", "NOT_VERIFIED", "NOT_APPLICABLE"]
+    },
+    "check": {
+      "type": "object",
+      "required": ["code", "status", "label", "evidence", "next_safe_step"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "status": { "$ref": "#/$defs/status" },
+        "label": { "type": "string" },
+        "evidence": { "type": "string" },
+        "next_safe_step": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    }
+  }
+}

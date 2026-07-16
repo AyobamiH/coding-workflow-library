@@ -23,7 +23,7 @@
 
 # P2 - Follow-On Autonomy Improvements
 
-Next active dependency: `Release and package preflight hardening`.
+Next documented follow-on: `Capability adapter evaluation` (decision-gated; no skill/plugin hard cutover is authorised).
 
 ## Opstruth runtime truth self-test
 
@@ -43,6 +43,7 @@ Next active dependency: `Release and package preflight hardening`.
 - Authority required: `local_execution`; publish, push, tag, and GitHub Release creation require `remote_publication`.
 - Done definition: preflight consumes corpus-backed evidence where useful and reports local/npm/CLI modes with crisp blockers.
 - Reason for priority: release paths are working, but should benefit from the same reproducible evidence foundation.
+- Status: implemented locally through validated package/preflight JSON reports, explicit blockers/warnings/not-verified states, safe pack-manifest inspection, version and release-note baseline checks, aggregate-only corpus evidence, tests, CLI delegation, and pre-commit contract checks.
 
 ## Capability adapter evaluation
 
@@ -52,6 +53,7 @@ Next active dependency: `Release and package preflight hardening`.
 - Authority required: depends on adapter; secret managers require explicit decision and non-printing contract.
 - Done definition: evaluate whether a capability broker is still needed after concrete browser and secret-access adapters exist.
 - Reason for priority: capability acquisition is not first; it follows adapter prerequisites.
+- Status: decision-gated. Capability Intelligence remains parked, and no skill/plugin hard cutover is part of the release-hardening objective.
 
 # P3 - Optional Experiments
 

@@ -45,6 +45,8 @@ Use it after package or workflow changes when the next decision could involve np
 - Explicit statement of which release actions remain forbidden.
 - Whether the package candidate name and repository identity have been confirmed.
 - Whether final registry availability and ownership have been confirmed before publish.
+- Optional generated corpus output directory. Only `coverage-report.json` and `validation-report.json` may be consumed; raw corpus events, source manifests, sessions, and pseudonym maps remain excluded.
+- Baseline Git ref when automatic latest-tag discovery is not appropriate.
 
 ## Commands
 
@@ -56,6 +58,10 @@ Local helper:
 ./scripts/release-preflight --repo "$TARGET_REPO" --mode npm
 ./scripts/release-preflight --repo "$TARGET_REPO" --mode cli
 ./scripts/release-preflight --repo "$TARGET_REPO" --allow-pack-dry-run
+./scripts/release-preflight --repo "$TARGET_REPO" --json --validate
+./scripts/release-preflight --repo "$TARGET_REPO" --corpus-dir "$CORPUS_OUTPUT_DIR"
+./scripts/release-preflight --repo "$TARGET_REPO" --corpus-dir "$CORPUS_OUTPUT_DIR" --require-corpus
+./scripts/release-preflight --repo "$TARGET_REPO" --base-ref v1.2.3 --strict
 ```
 
 Component helpers:
@@ -94,9 +100,12 @@ git -C "$TARGET_REPO" tag --points-at HEAD
 9. Run `npm-package-readiness-skill` or `scripts/npm-package-readiness` with the mode-appropriate expectation flags.
 10. Run evidence-pack planning with `scripts/evidence-pack --dry-run`, or write an evidence pack only if local-edit evidence creation is explicitly approved.
 11. Check README and changelog or release-note presence.
-12. If npm mode is used for a candidate package, record whether the package name is still a John-required blocker.
-13. Classify release readiness.
-14. State exactly which gates remain separate: publish, tag, push, deploy, remote registry mutation, and GitHub release.
+12. Compare release-note surfaces with the explicit baseline ref or latest reachable tag. In npm/CLI mode, a known baseline with no release-note change is a blocker.
+13. Compare package version with the baseline tag. Source changes that retain the previous release version are a blocker in npm/CLI mode, but no version is changed automatically.
+14. When aggregate corpus evidence is supplied, validate coverage reconciliation and corpus validation before recording only count-based release-relevant signals. Never read the raw corpus.
+15. If npm mode is used for a candidate package, record whether the package name is still a John-required blocker.
+16. Classify release readiness and preserve explicit blocker, warning, and not-verified lists in both human and JSON output.
+17. State exactly which gates remain separate: publish, tag, push, deploy, remote registry mutation, and GitHub release.
 
 ## Evidence Required
 
@@ -112,6 +121,9 @@ git -C "$TARGET_REPO" tag --points-at HEAD
 - Evidence pack dry-run or output path.
 - README result.
 - Changelog/release-note result.
+- Release-note change result against the selected baseline.
+- Package-version relationship to the baseline tag.
+- Aggregate corpus coverage/validation status and count-only release signals when supplied.
 - Release blockers and warnings.
 - Final package-name blocker, if any.
 - Final release preflight classification.
@@ -128,6 +140,7 @@ git -C "$TARGET_REPO" tag --points-at HEAD
 - Do not install dependencies unless John separately approves it.
 - Do not read `.env` or token-bearing config values.
 - Do not print secrets, token values, database URLs, or credential values.
+- Do not read or emit raw workflow-corpus events, source roots, source manifests, session files, or pseudonym maps during release preflight.
 
 Forbidden commands by default:
 
@@ -153,6 +166,8 @@ supabase functions deploy
 - Package readiness warnings hidden inside a broader release report.
 - Evidence pack planned but not written, then reported as written.
 - Claiming release readiness without validation evidence.
+- Treating corpus command or skill mention counts as proof that a release check passed.
+- Hiding a stale package version or unchanged release notes inside an overall warning.
 
 ## Output Format
 
@@ -184,9 +199,7 @@ supabase functions deploy
 
 ## Upgrade Ideas
 
-- Add JSON output to `scripts/release-preflight`.
 - Add configured validation command discovery.
-- Add release-note diff checks.
 - Add optional registry read-only version check after explicit network permission.
 - Add integration with GitHub handoff and evidence-pack reports.
 - Add GitHub source handoff mode that proves public repository files, CI, exact-file commit scope, and remote HEAD parity while still blocking publish/version/tag/release.

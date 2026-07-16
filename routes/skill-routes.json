@@ -1169,7 +1169,8 @@
       "skill_file": "skill-files/npm-package-readiness-skill.md",
       "ledger_states_handled": [
         "NPM package readiness requested",
-        "CLI package readiness requested"
+        "CLI package readiness requested",
+        "Release and package preflight hardening requested"
       ],
       "permission_flag": "npm-package-readiness",
       "helper_scripts": [
@@ -1177,8 +1178,11 @@
         "scripts/release-preflight",
         "external:npm"
       ],
-      "permission_level": "read-only-local, local-validation",
-      "explicit_permission_required": true,
+      "permission_level": "local_execution, read-only-local, local-validation",
+      "explicit_permission_required": false,
+      "requires_authority": [
+        "local_execution"
+      ],
       "forbidden_actions": [
         "npm publish",
         "npm version",
@@ -1191,7 +1195,7 @@
       ],
       "success_ledger_state": "NPM package readiness classified",
       "blocked_ledger_state": "NPM package readiness blocked",
-      "next_permission": "approve release preflight local mode, pack dry-run, clean-temp install smoke, or hold",
+      "next_permission": "run local release preflight or clean-temp smoke; grant remote_publication only for an external release consequence",
       "evidence_required": [
         "package metadata",
         "bin entrypoint status when CLI is expected",
@@ -1199,16 +1203,32 @@
         "package contents control",
         "README and release note status",
         "pack dry-run decision",
+        "quality and lifecycle script classifications without script bodies",
+        "pack manifest entry count and forbidden-path classifications",
+        "explicit blockers, warnings, and not-verified checks",
         "final classification"
       ],
-      "provenance": "recovered npm and CLI package candidate lane"
+      "safety_gates": [
+        "npm pack dry-run requires explicit local opt-in",
+        "no raw pack or prepack output",
+        "no package script bodies",
+        "no env, evidence, local state, private corpus, raw session, pseudonym map, or key file in package output",
+        "no publish, version, install, registry mutation, tag, push, or release creation"
+      ],
+      "idempotency_evidence": [
+        "fixed package metadata produces an equivalent structured report",
+        "default mode writes no files",
+        "pack dry-run creates no registry or release state"
+      ],
+      "provenance": "recovered npm and CLI package candidate lane hardened with deterministic report and package-manifest evidence"
     },
     {
       "id": "release-preflight-local-route",
       "skill_file": "skill-files/release-preflight-skill.md",
       "ledger_states_handled": [
         "Release preflight local requested",
-        "Package release preflight requested"
+        "Package release preflight requested",
+        "Release and package preflight hardening requested"
       ],
       "permission_flag": "release-preflight-local",
       "helper_scripts": [
@@ -1216,8 +1236,11 @@
         "scripts/npm-package-readiness",
         "scripts/evidence-pack"
       ],
-      "permission_level": "read-only-local, local-validation",
-      "explicit_permission_required": true,
+      "permission_level": "local_execution, read-only-local, local-validation",
+      "explicit_permission_required": false,
+      "requires_authority": [
+        "local_execution"
+      ],
       "forbidden_actions": [
         "npm publish",
         "npm version",
@@ -1231,17 +1254,34 @@
       ],
       "success_ledger_state": "Release preflight local classified",
       "blocked_ledger_state": "Release preflight local blocked",
-      "next_permission": "approve evidence-pack write, pack dry-run, release gate, or hold",
+      "next_permission": "resolve local blockers or grant remote_publication for a separately reviewed release consequence",
       "evidence_required": [
         "mode",
         "git state",
         "package readiness classification",
         "evidence-pack dry-run",
         "README and release notes",
+        "release-note change against baseline",
+        "package version relationship to baseline tag",
+        "optional aggregate corpus coverage and validation status",
+        "count-only release-relevant corpus signals",
+        "explicit blockers, warnings, and not-verified checks",
         "release boundaries",
         "final classification"
       ],
-      "provenance": "recovered release preflight lane"
+      "safety_gates": [
+        "raw corpus, source manifests, source roots, sessions, and pseudonym maps are never read or emitted",
+        "corpus evidence is optional unless --require-corpus is explicit",
+        "local mode does not fail merely because npm packaging is not applicable",
+        "preflight never changes versions or creates tags",
+        "no publish, push, release creation, deploy, registry mutation, secret read, or production call"
+      ],
+      "idempotency_evidence": [
+        "fixed repository and aggregate corpus inputs produce an equivalent structured report",
+        "preflight performs only reads and evidence-pack dry-run",
+        "no target repository files are written"
+      ],
+      "provenance": "recovered release preflight lane hardened around deterministic package, baseline, and aggregate corpus evidence"
     },
     {
       "id": "docs-list-foundation",

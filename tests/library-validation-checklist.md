@@ -60,6 +60,8 @@ Use this checklist after creating, updating, or reorganizing the coding workflow
 ./scripts/browser-live-proof --help
 ./scripts/github-deep-review --help
 ./scripts/opstruth-classify --self-test --validate
+./scripts/npm-package-readiness --repo . --validate
+./scripts/release-preflight --repo . --mode local --json --validate
 ./scripts/pre-commit-check
 find . -maxdepth 3 -type f | sort
 grep -R "TODO|TBD|placeholder|lorem|changeme" . --exclude=library-validation-checklist.md || true

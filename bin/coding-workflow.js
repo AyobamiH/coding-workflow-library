@@ -88,8 +88,9 @@ Usage:
   coding-workflow routes [--json]
   coding-workflow validate
   coding-workflow cleaner
-  coding-workflow package-readiness --repo /path/to/repo [--expect-package] [--expect-cli]
-  coding-workflow release-preflight --repo /path/to/repo --mode local|npm|cli
+  coding-workflow package-readiness --repo /path/to/repo [--expect-package] [--expect-cli] [--json] [--validate] [--strict]
+  coding-workflow release-preflight --repo /path/to/repo --mode local|npm|cli [--json] [--validate] [--strict]
+  coding-workflow release-preflight --repo /path/to/repo --corpus-dir /path/to/generated-corpus [--require-corpus]
   coding-workflow run-next --repo /path/to/repo --dry-run --allow <flag>
   coding-workflow lanes --state-file /path/to/lanes.json
   coding-workflow lane show <lane-id> --state-file /path/to/lanes.json

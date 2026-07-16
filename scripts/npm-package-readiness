@@ -5,7 +5,15 @@ const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
+const SCHEMA_VERSION = 1;
 const VALID_STATUSES = new Set(["PASS", "WARN", "FAIL", "NOT_VERIFIED", "NOT_APPLICABLE"]);
+const FORBIDDEN_PACK_PATHS = [
+  { code: "ENV_FILE_INCLUDED", pattern: /(^|\/)\.env(?:$|[./-])/i },
+  { code: "EVIDENCE_INCLUDED", pattern: /(^|\/)evidence(?:$|\/)/i },
+  { code: "LOCAL_STATE_INCLUDED", pattern: /(^|\/)(?:node_modules|\.git|\.openclaw|\.run-next|tmp|cache)(?:$|\/)/i },
+  { code: "PRIVATE_CORPUS_INCLUDED", pattern: /(^|\/)(?:private-corpus|raw-sessions|workflow-corpus\.jsonl|pseudonym-map\.json)(?:$|\/)/i },
+  { code: "KEY_FILE_INCLUDED", pattern: /\.(?:pem|key|p12|pfx)$/i },
+];
 
 function usage() {
   console.log(`Usage:
@@ -14,17 +22,27 @@ function usage() {
   ./scripts/npm-package-readiness --repo /path/to/repo --expect-package
   ./scripts/npm-package-readiness --repo /path/to/repo --expect-cli
   ./scripts/npm-package-readiness --repo /path/to/repo --allow-pack-dry-run
+  ./scripts/npm-package-readiness --repo /path/to/repo --validate [--strict]
 
 Default mode is read-only and does not run npm pack.
 No mode publishes, changes versions, installs dependencies, mutates registries, tags, pushes, or creates releases.`);
 }
 
 function parseArgs(argv) {
-  const args = { json: false, allowPackDryRun: false, expectPackage: false, expectCli: false };
-  for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
-    if (arg === "--repo") args.repo = argv[++i];
+  const args = {
+    json: false,
+    validate: false,
+    strict: false,
+    allowPackDryRun: false,
+    expectPackage: false,
+    expectCli: false,
+  };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--repo") args.repo = argv[++index];
     else if (arg === "--json") args.json = true;
+    else if (arg === "--validate") args.validate = true;
+    else if (arg === "--strict") args.strict = true;
     else if (arg === "--allow-pack-dry-run") args.allowPackDryRun = true;
     else if (arg === "--expect-package") args.expectPackage = true;
     else if (arg === "--expect-cli") {
@@ -41,19 +59,24 @@ function normalizeStatus(status) {
   return VALID_STATUSES.has(value) ? value : "NOT_VERIFIED";
 }
 
-function classify(statuses, override) {
-  if (override) return override;
-  const values = statuses.map((item) => normalizeStatus(item.status));
+function classify(checks) {
+  const values = checks.map((item) => normalizeStatus(item.status));
   if (values.includes("FAIL")) return "FAIL";
-  if (values.includes("WARN")) return "WARN";
   if (values.includes("NOT_VERIFIED")) return "NOT_VERIFIED";
+  if (values.includes("WARN")) return "WARN";
   if (values.length && values.every((value) => value === "NOT_APPLICABLE")) return "NOT_APPLICABLE";
   if (values.includes("PASS")) return "PASS";
   return "NOT_VERIFIED";
 }
 
-function check(statuses, status, label, evidence) {
-  statuses.push({ status: normalizeStatus(status), label, evidence });
+function addCheck(report, code, status, label, evidence, nextSafeStep = null) {
+  report.checks.push({
+    code,
+    status: normalizeStatus(status),
+    label,
+    evidence,
+    next_safe_step: nextSafeStep,
+  });
 }
 
 function fileExists(repo, relative) {
@@ -72,18 +95,6 @@ function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
 
-function run(command, args, cwd) {
-  const env = command === "npm" && args[0] === "pack" ? npmPackEnv() : process.env;
-  const result = spawnSync(command, args, { cwd, env, encoding: "utf8", maxBuffer: 1024 * 1024 });
-  return {
-    command: [command, ...args].join(" "),
-    status: result.status,
-    stdout: redact(result.stdout || ""),
-    stderr: redact(result.stderr || ""),
-    error: result.error ? String(result.error.message || result.error) : "",
-  };
-}
-
 function npmPackEnv() {
   const preferred = process.env.CODING_WORKFLOW_NPM_CACHE
     ? path.resolve(process.env.CODING_WORKFLOW_NPM_CACHE)
@@ -96,28 +107,384 @@ function npmPackEnv() {
     cache = fallback;
     fs.mkdirSync(fallback, { recursive: true, mode: 0o700 });
   }
-  return { ...process.env, NPM_CONFIG_CACHE: cache };
+  return { ...process.env, NPM_CONFIG_CACHE: cache, NO_COLOR: "1" };
 }
 
-function redact(input) {
-  let value = String(input || "");
-  value = value.replace(/eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, "[redacted-jwt]");
-  value = value.replace(new RegExp("sk-" + "[A-Za-z0-9_-]{12,}", "g"), "[redacted-api-key]");
-  value = value.replace(/postgres(?:ql)?:\/\/[^\s"'<>]+/gi, "postgres://[redacted]");
-  value = value.replace(/(token|secret|password|api[_-]?key)\s*[:=]\s*[^\s"'<>]+/gi, "$1=[redacted]");
-  return value;
-}
-
-function packRisk(output) {
-  const risky = [];
-  const lines = String(output || "").split(/\r?\n/);
-  for (const line of lines) {
-    if (/(^|\/)\.env($|[./-])/.test(line)) risky.push("env-like file in pack output");
-    if (/(^|\/)evidence($|\/)/.test(line)) risky.push("evidence folder in pack output");
-    if (/(^|\/)(node_modules|\.git|\.openclaw)($|\/)/.test(line)) risky.push("local cache/config folder in pack output");
-    if (/\.(pem|key|p12|pfx)\b/i.test(line)) risky.push("key-like file in pack output");
+function runNpmPack(repo) {
+  const captureDir = fs.mkdtempSync(path.join(os.tmpdir(), "coding-workflow-pack-capture-"));
+  const capturePath = path.join(captureDir, "npm-pack-output.txt");
+  let descriptor;
+  try {
+    descriptor = fs.openSync(capturePath, "w", 0o600);
+    const result = spawnSync("npm", ["pack", "--dry-run", "--json"], {
+      cwd: repo,
+      env: npmPackEnv(),
+      stdio: ["ignore", descriptor, descriptor],
+    });
+    fs.closeSync(descriptor);
+    descriptor = null;
+    return {
+      status: typeof result.status === "number" ? result.status : 1,
+      stdout: fs.readFileSync(capturePath, "utf8"),
+      stderr: "",
+      error: result.error ? String(result.error.message || result.error) : "",
+    };
+  } finally {
+    if (descriptor !== undefined && descriptor !== null) fs.closeSync(descriptor);
+    fs.rmSync(captureDir, { recursive: true, force: true });
   }
-  return [...new Set(risky)];
+}
+
+function extractPackManifest(output) {
+  const text = String(output || "");
+  const starts = [];
+  for (let index = 0; index < text.length; index += 1) {
+    if (text[index] === "[") starts.push(index);
+  }
+  for (let index = starts.length - 1; index >= 0; index -= 1) {
+    const parsed = parseEmbeddedJsonArray(text, starts[index]);
+    if (Array.isArray(parsed) && parsed[0] && Array.isArray(parsed[0].files)) return parsed[0];
+  }
+  return null;
+}
+
+function parseEmbeddedJsonArray(text, start) {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = start; index < text.length; index += 1) {
+    const character = text[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === "\"") inString = false;
+      continue;
+    }
+    if (character === "\"") {
+      inString = true;
+      continue;
+    }
+    if (character === "[") depth += 1;
+    else if (character === "]") {
+      depth -= 1;
+      if (depth === 0) {
+        try {
+          return JSON.parse(text.slice(start, index + 1));
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function inspectPackPaths(paths) {
+  const risks = [];
+  for (const rawPath of paths) {
+    const relativePath = String(rawPath || "").replace(/\\/g, "/");
+    if (!relativePath || relativePath.startsWith("/") || /^[A-Za-z]:\//.test(relativePath)) {
+      risks.push({ code: "NON_PORTABLE_PACK_PATH", path: "<redacted-path>" });
+      continue;
+    }
+    for (const rule of FORBIDDEN_PACK_PATHS) {
+      if (rule.pattern.test(relativePath)) risks.push({ code: rule.code, path: relativePath });
+    }
+  }
+  return risks.sort((left, right) => left.code.localeCompare(right.code) || left.path.localeCompare(right.path));
+}
+
+function packageRepositoryPresent(repository) {
+  if (typeof repository === "string") return Boolean(repository.trim());
+  return Boolean(repository && typeof repository === "object" && String(repository.url || "").trim());
+}
+
+function safePackageName(value) {
+  const name = String(value || "").trim();
+  return /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/.test(name) ? name : null;
+}
+
+function safeLicense(value) {
+  const license = String(value || "").trim();
+  return license && license.length <= 100 && /^[A-Za-z0-9.()+\- ]+$/.test(license) ? license : null;
+}
+
+function safeRelativePackagePath(value) {
+  const raw = String(value || "").replace(/\\/g, "/");
+  if (!raw || raw.startsWith("/") || /^[A-Za-z]:\//.test(raw)) return null;
+  const normalized = path.posix.normalize(raw);
+  if (normalized === ".." || normalized.startsWith("../")) return null;
+  return normalized;
+}
+
+function safeScriptName(value) {
+  const name = String(value || "");
+  return /^[A-Za-z0-9:_-]{1,80}$/.test(name) ? name : null;
+}
+
+function buildPackageReadiness(options, dependencies = {}) {
+  const args = {
+    expectPackage: Boolean(options.expectPackage || options.expectCli),
+    expectCli: Boolean(options.expectCli),
+    allowPackDryRun: Boolean(options.allowPackDryRun),
+  };
+  const repo = path.resolve(options.repo || ".");
+  const report = {
+    schema_version: SCHEMA_VERSION,
+    repo: { root: "." },
+    expectations: {
+      package: args.expectPackage,
+      cli: args.expectCli,
+      pack_dry_run: args.allowPackDryRun,
+    },
+    package: null,
+    bin: {},
+    lockfiles: [],
+    script_inventory: [],
+    quality_scripts: [],
+    lifecycle_scripts: [],
+    pack_dry_run: {
+      status: "NOT_VERIFIED",
+      entry_count: 0,
+      risks: [],
+      evidence: "not run; pass --allow-pack-dry-run to enable",
+    },
+    checks: [],
+    blockers: [],
+    warnings: [],
+    not_verified: [],
+    release_boundaries: [
+      "npm publish",
+      "npm version",
+      "dependency install",
+      "registry mutation",
+      "git tag",
+      "git push",
+      "GitHub release creation",
+    ],
+    final_status: "NOT_VERIFIED",
+    next_safe_step: "Inspect the package metadata before any release action.",
+  };
+
+  if (!fs.existsSync(repo)) {
+    addCheck(report, "REPO_MISSING", "FAIL", "repo exists", "path does not exist", "Provide an existing local repository path.");
+    return finalizeReport(report);
+  }
+
+  const packageJsonPath = path.join(repo, "package.json");
+  if (!fs.existsSync(packageJsonPath)) {
+    addCheck(
+      report,
+      "PACKAGE_JSON_MISSING",
+      args.expectPackage ? "FAIL" : "NOT_APPLICABLE",
+      "package.json",
+      args.expectPackage ? "missing; package was expected" : "missing; package checks not applicable",
+      args.expectPackage ? "Add or select the intended package before npm release work." : null,
+    );
+    return finalizeReport(report, args.expectPackage ? "FAIL" : "NOT_APPLICABLE");
+  }
+
+  addCheck(report, "PACKAGE_JSON_PRESENT", "PASS", "package.json", "found");
+
+  let pkg;
+  try {
+    pkg = readJson(packageJsonPath);
+  } catch {
+    addCheck(report, "PACKAGE_JSON_INVALID", "FAIL", "package.json parse", "invalid JSON", "Repair package.json before release work.");
+    return finalizeReport(report);
+  }
+
+  const packageName = safePackageName(pkg.name);
+  const versionValid = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(String(pkg.version || ""));
+  const packageLicense = safeLicense(pkg.license);
+  report.package = {
+    name: packageName,
+    version: versionValid ? pkg.version : null,
+    description_present: Boolean(pkg.description),
+    license: packageLicense,
+    private: Boolean(pkg.private),
+    repository_present: packageRepositoryPresent(pkg.repository),
+    files_allowlist_present: Array.isArray(pkg.files) && pkg.files.length > 0,
+  };
+
+  addCheck(report, "PACKAGE_JSON_VALID", "PASS", "package.json parse", "valid JSON");
+  addCheck(report, packageName ? "PACKAGE_NAME" : "PACKAGE_NAME_INVALID", packageName ? "PASS" : "FAIL", "name", packageName ? "present and valid" : "missing or invalid", packageName ? null : "Add a valid package name before release work.");
+  addCheck(report, versionValid ? "PACKAGE_VERSION" : "PACKAGE_VERSION_INVALID", versionValid ? "PASS" : "FAIL", "version", versionValid ? "valid semantic version" : "missing or invalid", versionValid ? null : "Use an explicit semantic version before release work.");
+  addCheck(report, pkg.private ? "PACKAGE_PRIVATE" : "PACKAGE_PUBLIC_METADATA", pkg.private ? "FAIL" : "PASS", "private flag", pkg.private ? "package is marked private" : "package is publishable by metadata", pkg.private ? "Remove the private flag only when public distribution is intended." : null);
+  addCheck(report, pkg.description ? "PACKAGE_DESCRIPTION" : "PACKAGE_DESCRIPTION_MISSING", pkg.description ? "PASS" : "WARN", "description", pkg.description ? "present" : "missing");
+  addCheck(report, packageLicense ? "PACKAGE_LICENSE" : "PACKAGE_LICENSE_MISSING", packageLicense ? "PASS" : "WARN", "license", packageLicense ? "present" : "missing or invalid");
+  addCheck(report, report.package.repository_present ? "PACKAGE_REPOSITORY" : "PACKAGE_REPOSITORY_MISSING", report.package.repository_present ? "PASS" : "WARN", "repository", report.package.repository_present ? "present" : "missing");
+
+  const bin = pkg.bin || {};
+  if (typeof bin === "string") {
+    const targetRelative = safeRelativePackagePath(bin);
+    const target = targetRelative ? path.join(repo, targetRelative) : null;
+    report.bin[packageName || "package"] = {
+      target: targetRelative || "<invalid-target>",
+      valid: Boolean(targetRelative),
+      exists: Boolean(target && fs.existsSync(target)),
+      executable: Boolean(target && isExecutable(target)),
+    };
+  } else if (bin && typeof bin === "object") {
+    let binIndex = 0;
+    for (const [name, targetValue] of Object.entries(bin)) {
+      binIndex += 1;
+      const safeName = safePackageName(name) || `invalid-bin-${binIndex}`;
+      const targetRelative = safeRelativePackagePath(targetValue);
+      const target = targetRelative ? path.join(repo, targetRelative) : null;
+      report.bin[safeName] = {
+        target: targetRelative || "<invalid-target>",
+        valid: Boolean(safePackageName(name) && targetRelative),
+        exists: Boolean(target && fs.existsSync(target)),
+        executable: Boolean(target && isExecutable(target)),
+      };
+    }
+  }
+
+  const binEntries = Object.entries(report.bin);
+  if (binEntries.length) {
+    for (const [name, info] of binEntries) {
+      addCheck(report, info.valid ? "CLI_BIN_METADATA" : "CLI_BIN_METADATA_INVALID", info.valid ? "PASS" : "FAIL", `bin ${name} metadata`, info.valid ? "portable name and target" : "invalid name or target", info.valid ? null : "Use a portable CLI name and relative target path.");
+      addCheck(report, info.exists ? "CLI_BIN_TARGET" : "CLI_BIN_MISSING", info.exists ? "PASS" : "FAIL", `bin ${name} exists`, info.exists ? info.target : "target missing", info.exists ? null : "Restore the declared CLI entrypoint.");
+      addCheck(report, info.executable ? "CLI_BIN_EXECUTABLE" : "CLI_BIN_NOT_EXECUTABLE", info.executable ? "PASS" : "WARN", `bin ${name} executable`, info.executable ? "executable bit set" : "not executable");
+    }
+  } else {
+    addCheck(report, "CLI_BIN_UNDECLARED", args.expectCli ? "FAIL" : "NOT_APPLICABLE", "bin", args.expectCli ? "missing; CLI was expected" : "no CLI expected", "Declare the intended CLI bin entrypoint.");
+  }
+
+  report.lockfiles = ["package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "yarn.lock", "bun.lockb"].filter((file) => fileExists(repo, file));
+  addCheck(report, report.lockfiles.length ? "LOCKFILE" : "LOCKFILE_MISSING", report.lockfiles.length ? "PASS" : "WARN", "lockfile", report.lockfiles.length ? report.lockfiles.join(", ") : "none found");
+
+  const hasFiles = report.package.files_allowlist_present;
+  const hasNpmIgnore = fileExists(repo, ".npmignore");
+  addCheck(report, hasFiles || hasNpmIgnore ? "PACKAGE_CONTENTS_CONTROL" : "PACKAGE_CONTENTS_UNCONTROLLED", hasFiles || hasNpmIgnore ? "PASS" : "WARN", "package contents control", hasFiles ? "files allowlist present" : hasNpmIgnore ? ".npmignore present" : "no files allowlist or .npmignore");
+
+  const readme = ["README.md", "readme.md", "README"].find((file) => fileExists(repo, file));
+  addCheck(report, readme ? "README" : "README_MISSING", readme ? "PASS" : "WARN", "README", readme || "missing");
+  const changelog = ["CHANGELOG.md", "RELEASE.md", "RELEASE_NOTES.md", "docs/CHANGELOG.md", "docs/RELEASE.md"].find((file) => fileExists(repo, file));
+  addCheck(report, changelog ? "RELEASE_NOTES" : "RELEASE_NOTES_MISSING", changelog ? "PASS" : "NOT_VERIFIED", "changelog or release notes", changelog || "not found");
+
+  const scripts = pkg.scripts && typeof pkg.scripts === "object" ? pkg.scripts : {};
+  const rawScriptNames = Object.keys(scripts);
+  const unsafeScriptNames = rawScriptNames.filter((name) => !safeScriptName(name));
+  report.script_inventory = rawScriptNames.map(safeScriptName).filter(Boolean).sort((left, right) => left.localeCompare(right));
+  addCheck(report, unsafeScriptNames.length ? "SCRIPT_NAME_INVALID" : "SCRIPT_NAMES", unsafeScriptNames.length ? "FAIL" : "PASS", "script names", unsafeScriptNames.length ? `${unsafeScriptNames.length} invalid script name(s)` : "all script names are portable", unsafeScriptNames.length ? "Rename invalid package scripts before release work." : null);
+  for (const [name, missingStatus, note] of [
+    ["test", "NOT_VERIFIED", "no package test command is configured"],
+    ["build", "NOT_APPLICABLE", "no build command is required for every package"],
+    ["lint", "NOT_APPLICABLE", "no lint command is required for every package"],
+    ["typecheck", "NOT_APPLICABLE", "no typecheck command is required for every package"],
+  ]) {
+    const status = scripts[name] ? "PASS" : missingStatus;
+    report.quality_scripts.push({ name, status, evidence: scripts[name] ? "present" : note });
+    addCheck(report, `QUALITY_SCRIPT_${name.toUpperCase()}`, status, `script ${name}`, scripts[name] ? "present" : note);
+  }
+
+  const lifecycleNames = ["preinstall", "install", "postinstall", "prepare", "prepack", "prepublishOnly"];
+  report.lifecycle_scripts = lifecycleNames.filter((name) => scripts[name]);
+  const consumerLifecycle = report.lifecycle_scripts.filter((name) => ["preinstall", "install", "postinstall"].includes(name));
+  addCheck(
+    report,
+    "CONSUMER_LIFECYCLE_SCRIPTS",
+    consumerLifecycle.length ? "WARN" : "PASS",
+    "consumer lifecycle scripts",
+    consumerLifecycle.length ? consumerLifecycle.join(", ") : "none",
+  );
+
+  if (args.allowPackDryRun) {
+    const pack = dependencies.runPack ? dependencies.runPack(repo) : runNpmPack(repo);
+    const manifest = extractPackManifest(`${pack.stdout || ""}\n${pack.stderr || ""}`);
+    const paths = manifest ? manifest.files.map((file) => file.path) : [];
+    const risks = inspectPackPaths(paths);
+    const status = pack.status !== 0 || !manifest ? "FAIL" : risks.length ? "FAIL" : "PASS";
+    report.pack_dry_run = {
+      status,
+      entry_count: paths.length,
+      risks,
+      evidence: pack.status !== 0 ? `exit_status=${pack.status}` : manifest ? `manifest_entries=${paths.length}` : "npm JSON manifest unavailable",
+    };
+    addCheck(
+      report,
+      status === "PASS" ? "PACK_DRY_RUN" : "PACK_DRY_RUN_FAILED",
+      status,
+      "npm pack dry-run",
+      risks.length ? `${risks.length} forbidden package path(s)` : report.pack_dry_run.evidence,
+      status === "FAIL" ? "Repair the package manifest or remove forbidden files before release work." : null,
+    );
+  } else {
+    addCheck(report, "PACK_DRY_RUN_NOT_RUN", "NOT_VERIFIED", "npm pack dry-run", report.pack_dry_run.evidence);
+  }
+
+  return finalizeReport(report);
+}
+
+function finalizeReport(report, overrideStatus = null) {
+  report.final_status = overrideStatus || classify(report.checks);
+  report.blockers = report.checks
+    .filter((item) => item.status === "FAIL")
+    .map(({ code, label, evidence, next_safe_step }) => ({ code, label, evidence, next_safe_step }));
+  report.warnings = report.checks
+    .filter((item) => item.status === "WARN")
+    .map(({ code, label, evidence }) => ({ code, label, evidence }));
+  report.not_verified = report.checks
+    .filter((item) => item.status === "NOT_VERIFIED")
+    .map(({ code, label, evidence }) => ({ code, label, evidence }));
+  report.next_safe_step = report.blockers[0]?.next_safe_step
+    || (report.final_status === "PASS"
+      ? "Run release preflight before any publish, tag, push, or release gate."
+      : report.final_status === "NOT_APPLICABLE"
+        ? "Use local release preflight or declare package expectations when npm distribution is intended."
+        : "Resolve blockers and inspect warnings or unverified checks before release work.");
+  return report;
+}
+
+function validatePackageReport(report) {
+  const errors = [];
+  if (!report || typeof report !== "object") return ["report must be an object"];
+  if (report.schema_version !== SCHEMA_VERSION) errors.push("unsupported schema_version");
+  if (!VALID_STATUSES.has(report.final_status)) errors.push("invalid final_status");
+  if (!Array.isArray(report.checks)) errors.push("checks must be an array");
+  if (!Array.isArray(report.blockers)) errors.push("blockers must be an array");
+  if (!Array.isArray(report.warnings)) errors.push("warnings must be an array");
+  if (!Array.isArray(report.not_verified)) errors.push("not_verified must be an array");
+  if (!report.repo || report.repo.root !== ".") errors.push("repo root must be portable");
+  if (!report.pack_dry_run || !VALID_STATUSES.has(report.pack_dry_run.status)) errors.push("invalid pack_dry_run status");
+  const serialized = JSON.stringify(report);
+  if (/\/home\/[A-Za-z0-9._-]+|[A-Za-z]:\\Users\\/i.test(serialized)) errors.push("report contains a private absolute path");
+  if (/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|\bgh[pousr]_[A-Za-z0-9_]{12,}\b|\bsk-[A-Za-z0-9_-]{12,}\b/.test(serialized)) errors.push("report contains secret-shaped material");
+  return errors;
+}
+
+function renderHuman(report) {
+  const blockerLines = report.blockers.length
+    ? report.blockers.map((item) => `- ${item.code}: ${item.evidence}`).join("\n")
+    : "- none";
+  const warningLines = report.warnings.length
+    ? report.warnings.map((item) => `- ${item.code}: ${item.evidence}`).join("\n")
+    : "- none";
+  return `# NPM Package Readiness Report
+
+Repo: .
+Expect package: ${report.expectations.package ? "yes" : "no"}
+Expect CLI: ${report.expectations.cli ? "yes" : "no"}
+Pack dry-run allowed: ${report.expectations.pack_dry_run ? "yes" : "no"}
+
+Checks:
+${report.checks.map((item) => `- ${item.status}: ${item.code} - ${item.evidence}`).join("\n")}
+
+Blockers:
+${blockerLines}
+
+Warnings:
+${warningLines}
+
+Final classification: ${report.final_status}
+
+Release boundaries preserved:
+${report.release_boundaries.map((boundary) => `- ${boundary}`).join("\n")}
+
+Next safe step:
+${report.next_safe_step}`;
 }
 
 function main() {
@@ -134,159 +501,33 @@ function main() {
     usage();
     return;
   }
-
   if (!args.repo) {
     usage();
     process.exit(2);
   }
 
-  const repo = path.resolve(args.repo);
-  const statuses = [];
-  const packageJsonPath = path.join(repo, "package.json");
-  const report = {
-    repo,
-    expectPackage: args.expectPackage,
-    expectCli: args.expectCli,
-    allowPackDryRun: args.allowPackDryRun,
-    checks: statuses,
-    scripts: {},
-    bin: {},
-    packDryRun: { status: "NOT_VERIFIED", evidence: "not run; pass --allow-pack-dry-run to enable" },
-  };
-
-  if (!fs.existsSync(repo)) {
-    check(statuses, "FAIL", "repo exists", "path does not exist");
-    finish(report, args.json);
-    return;
+  const report = buildPackageReadiness(args);
+  const validationErrors = validatePackageReport(report);
+  if (validationErrors.length) {
+    console.error(`package readiness report validation failed (${validationErrors.length} error(s))`);
+    process.exit(1);
   }
+  if (args.json) console.log(JSON.stringify(report, null, 2));
+  else console.log(renderHuman(report));
 
-  if (!fs.existsSync(packageJsonPath)) {
-    const status = args.expectPackage ? "FAIL" : "NOT_APPLICABLE";
-    check(statuses, status, "package.json", args.expectPackage ? "missing; package was expected" : "missing; package checks not applicable");
-    report.finalStatus = args.expectPackage ? "FAIL" : "NOT_APPLICABLE";
-    finish(report, args.json);
-    return;
-  }
-
-  check(statuses, "PASS", "package.json", "found");
-
-  let pkg;
-  try {
-    pkg = readJson(packageJsonPath);
-    report.package = {
-      name: pkg.name || null,
-      version: pkg.version || null,
-      description: pkg.description || null,
-      license: pkg.license || null,
-      private: Boolean(pkg.private),
-    };
-    check(statuses, "PASS", "package.json parse", "valid JSON");
-  } catch (error) {
-    check(statuses, "FAIL", "package.json parse", error.message);
-    finish(report, args.json);
-    return;
-  }
-
-  check(statuses, pkg.name ? "PASS" : "FAIL", "name", pkg.name ? "present" : "missing");
-  check(statuses, pkg.version ? "PASS" : "FAIL", "version", pkg.version ? "present" : "missing");
-  check(statuses, pkg.description ? "PASS" : "WARN", "description", pkg.description ? "present" : "missing");
-  check(statuses, pkg.license ? "PASS" : "WARN", "license", pkg.license ? "present" : "missing");
-
-  const bin = pkg.bin || {};
-  if (typeof bin === "string") {
-    const target = path.join(repo, bin);
-    report.bin[pkg.name || "package"] = { target: bin, exists: fs.existsSync(target), executable: isExecutable(target) };
-  } else if (bin && typeof bin === "object") {
-    for (const [name, targetRel] of Object.entries(bin)) {
-      const target = path.join(repo, targetRel);
-      report.bin[name] = { target: targetRel, exists: fs.existsSync(target), executable: isExecutable(target) };
-    }
-  }
-
-  const binEntries = Object.entries(report.bin);
-  if (binEntries.length) {
-    for (const [name, info] of binEntries) {
-      check(statuses, info.exists ? "PASS" : "FAIL", `bin ${name} exists`, info.exists ? info.target : `${info.target} missing`);
-      check(statuses, info.executable ? "PASS" : args.expectCli ? "WARN" : "WARN", `bin ${name} executable`, info.executable ? "executable bit set" : "not executable");
-    }
-  } else {
-    check(statuses, args.expectCli ? "FAIL" : "WARN", "bin", args.expectCli ? "missing; CLI was expected" : "no bin field; package is not declared as a CLI");
-  }
-
-  const lockfiles = ["package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "yarn.lock", "bun.lockb"].filter((file) => fileExists(repo, file));
-  report.lockfiles = lockfiles;
-  check(statuses, lockfiles.length ? "PASS" : "WARN", "lockfile", lockfiles.length ? lockfiles.join(", ") : "none found");
-
-  const hasFiles = Array.isArray(pkg.files) && pkg.files.length > 0;
-  const hasNpmIgnore = fileExists(repo, ".npmignore");
-  check(statuses, hasFiles || hasNpmIgnore ? "PASS" : "WARN", "package contents control", hasFiles ? "files field present" : hasNpmIgnore ? ".npmignore present" : "no files field or .npmignore");
-
-  const readme = ["README.md", "readme.md", "README"].find((file) => fileExists(repo, file));
-  check(statuses, readme ? "PASS" : "WARN", "README", readme || "missing");
-
-  const changelog = ["CHANGELOG.md", "RELEASE.md", "RELEASE_NOTES.md", "docs/CHANGELOG.md", "docs/RELEASE.md"].find((file) => fileExists(repo, file));
-  check(statuses, changelog ? "PASS" : "NOT_VERIFIED", "changelog or release notes", changelog || "not found");
-
-  report.scripts = pkg.scripts || {};
-  const scriptExpectations = [
-    ["check:js", "NOT_VERIFIED", "local JavaScript syntax check is expected for this package"],
-    ["build", "NOT_APPLICABLE", "no compile/build step is required for this JavaScript, Markdown, JSON, and template library"],
-    ["test", "NOT_VERIFIED", "local validation test script is expected for this package"],
-    ["lint", "NOT_APPLICABLE", "no lint tool is configured; do not invent one just to silence readiness"],
-    ["typecheck", "NOT_APPLICABLE", "plain JavaScript package; no TypeScript project is configured"],
-    ["format", "NOT_APPLICABLE", "no formatter is configured; avoid rewriting files without separate approval"],
-    ["prepare", "NOT_APPLICABLE", "no prepare hook is required; avoid unexpected lifecycle side effects"],
-  ];
-  for (const [name, missingStatus, missingEvidence] of scriptExpectations) {
-    check(statuses, report.scripts[name] ? "PASS" : missingStatus, `script ${name}`, report.scripts[name] ? "present" : missingEvidence);
-  }
-
-  if (args.allowPackDryRun) {
-    const pack = run("npm", ["pack", "--dry-run"], repo);
-    const combined = `${pack.stdout}\n${pack.stderr}`;
-    const risks = packRisk(combined);
-    report.packDryRun = {
-      status: pack.status === 0 && !risks.length ? "PASS" : pack.status === 0 ? "WARN" : "FAIL",
-      evidence: `exit_status=${pack.status}`,
-      risks,
-      output: combined.trim().slice(0, 6000),
-    };
-    check(statuses, report.packDryRun.status, "npm pack dry-run", risks.length ? risks.join("; ") : `exit_status=${pack.status}`);
-  } else {
-    check(statuses, "NOT_VERIFIED", "npm pack dry-run", "not run; pass --allow-pack-dry-run to enable");
-  }
-
-  finish(report, args.json);
+  if (args.strict && ["FAIL", "NOT_VERIFIED"].includes(report.final_status)) process.exit(1);
 }
 
-function finish(report, asJson) {
-  if (!report.finalStatus) report.finalStatus = classify(report.checks);
-  report.nextSafeStep =
-    report.finalStatus === "PASS"
-      ? "Create an evidence pack or run release preflight before any publish/tag/push gate."
-      : report.finalStatus === "NOT_APPLICABLE"
-        ? "Use release preflight local mode or provide --expect-package when npm packaging is intended."
-        : "Review FAIL/WARN/NOT_VERIFIED items before any publish/tag/push gate.";
+if (require.main === module) main();
 
-  if (asJson) {
-    console.log(JSON.stringify(report, null, 2));
-    return;
-  }
-
-  console.log(`# NPM Package Readiness Report
-
-Repo: ${report.repo}
-Expect package: ${report.expectPackage ? "yes" : "no"}
-Expect CLI: ${report.expectCli ? "yes" : "no"}
-Pack dry-run allowed: ${report.allowPackDryRun ? "yes" : "no"}
-
-Checks:
-${report.checks.map((item) => `- ${item.status}: ${item.label} - ${item.evidence}`).join("\n")}
-
-Final classification: ${report.finalStatus}
-
-Next safe step:
-${report.nextSafeStep}`);
-}
-
-main();
+module.exports = {
+  SCHEMA_VERSION,
+  buildPackageReadiness,
+  extractPackManifest,
+  inspectPackPaths,
+  parseEmbeddedJsonArray,
+  parseArgs,
+  renderHuman,
+  safeRelativePackagePath,
+  validatePackageReport,
+};

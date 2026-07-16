@@ -150,10 +150,12 @@ Capability acquisition remains `NEWLY_PROPOSED` until browser proof and secret-a
 7. Keep `scripts/browser-live-proof` and `browser-live-proof-skill` current as the bounded browser-observation foundation.
 8. Keep `scripts/github-deep-review` and `github-deep-review-skill` current as the thread-aware, read-only PR evidence foundation.
 9. Keep `scripts/opstruth-classify` current as the deterministic mixed-evidence truth-model self-test.
-10. Harden release/package preflight around generated corpus evidence. This is the next active dependency.
+10. Keep the hardened release/package preflight current: validated human/JSON reports, crisp mode-specific blockers, safe package-manifest inspection, version and release-note baseline checks, and optional aggregate-only corpus evidence are now implemented locally.
 
 ### P3
 
 11. Explore one-password secret access only after a non-printing local contract is approved.
 12. Revisit capability acquisition and prefetch only after adapter prerequisites exist.
 13. Revisit agent-role system only after at least two independent sessions prove a reusable role contract.
+
+The evidence-backed reusable-foundation sequence through release/package preflight is complete locally. Capability adapter evaluation is the next documented follow-on, but it remains decision-gated and does not authorise a skill/plugin hard cutover or revive Capability Intelligence as the library's product direction.

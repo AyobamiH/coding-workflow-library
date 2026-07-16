@@ -3,105 +3,519 @@
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
+const {
+  buildPackageReadiness,
+  validatePackageReport,
+} = require("./npm-package-readiness");
 
+const SCHEMA_VERSION = 1;
 const MODES = new Set(["local", "npm", "cli"]);
+const VALID_STATUSES = new Set(["PASS", "WARN", "FAIL", "NOT_VERIFIED", "NOT_APPLICABLE"]);
+const RELEASE_NOTE_FILES = new Set([
+  "CHANGELOG.md",
+  "RELEASE.md",
+  "RELEASE_NOTES.md",
+  "docs/CHANGELOG.md",
+  "docs/RELEASE.md",
+]);
 
 function usage() {
   console.log(`Usage:
   ./scripts/release-preflight --repo /path/to/repo
-  ./scripts/release-preflight --repo /path/to/repo --mode local
-  ./scripts/release-preflight --repo /path/to/repo --mode npm
-  ./scripts/release-preflight --repo /path/to/repo --mode cli
+  ./scripts/release-preflight --repo /path/to/repo --mode local|npm|cli
   ./scripts/release-preflight --repo /path/to/repo --allow-pack-dry-run
+  ./scripts/release-preflight --repo /path/to/repo --corpus-dir /path/to/generated-corpus
+  ./scripts/release-preflight --repo /path/to/repo --corpus-dir /path/to/generated-corpus --require-corpus
+  ./scripts/release-preflight --repo /path/to/repo --base-ref v1.2.3
+  ./scripts/release-preflight --repo /path/to/repo --json --validate [--strict]
 
-Default mode is local. No mode publishes, tags, pushes, deploys, creates GitHub releases, mutates registries, reads secrets, or calls production endpoints.`);
+Corpus mode reads only coverage-report.json and validation-report.json. It never reads raw corpus events, source manifests, sessions, or pseudonym maps.
+No mode publishes, tags, pushes, deploys, creates GitHub releases, mutates registries, reads secrets, or calls production endpoints.`);
 }
 
 function parseArgs(argv) {
-  const args = { allowPackDryRun: false, mode: "local" };
-  for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
-    if (arg === "--repo") args.repo = argv[++i];
+  const args = {
+    allowPackDryRun: false,
+    mode: "local",
+    json: false,
+    validate: false,
+    strict: false,
+    requireCorpus: false,
+  };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--repo") args.repo = argv[++index];
     else if (arg === "--mode") {
-      args.mode = argv[++i];
+      args.mode = argv[++index];
       if (!MODES.has(args.mode)) throw new Error(`unsupported mode: ${args.mode}`);
     } else if (arg === "--allow-pack-dry-run") args.allowPackDryRun = true;
+    else if (arg === "--corpus-dir") args.corpusDir = argv[++index];
+    else if (arg === "--require-corpus") args.requireCorpus = true;
+    else if (arg === "--base-ref") args.baseRef = argv[++index];
+    else if (arg === "--json") args.json = true;
+    else if (arg === "--validate") args.validate = true;
+    else if (arg === "--strict") args.strict = true;
     else if (arg === "--help" || arg === "-h") args.help = true;
     else throw new Error(`unknown argument: ${arg}`);
   }
+  if (args.requireCorpus && !args.corpusDir) throw new Error("--require-corpus requires --corpus-dir");
   return args;
 }
 
-function run(command, args, options = {}) {
-  const invocation = nodeInvocation(command, args);
-  const result = spawnSync(invocation.command, invocation.args, {
-    cwd: options.cwd,
-    encoding: "utf8",
-    maxBuffer: 1024 * 1024,
-  });
-  return {
-    command: [command, ...args].join(" "),
-    status: typeof result.status === "number" ? result.status : 1,
-    stdout: redact(result.stdout || ""),
-    stderr: redact(result.stderr || ""),
-    error: result.error ? String(result.error.message || result.error) : "",
-  };
-}
-
-function nodeInvocation(command, args) {
-  try {
-    if (fs.existsSync(command)) {
-      const firstLine = fs.readFileSync(command, "utf8").split(/\r?\n/, 1)[0];
-      if (/node\b/.test(firstLine)) return { command: process.execPath, args: [command, ...args] };
-    }
-  } catch {
-    return { command, args };
-  }
-  return { command, args };
-}
-
-function redact(input) {
-  let value = String(input || "");
-  value = value.replace(new RegExp("sk-" + "[A-Za-z0-9_-]{12,}", "g"), "[redacted-api-key]");
-  value = value.replace(/eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, "[redacted-jwt]");
-  value = value.replace(/postgres(?:ql)?:\/\/[^\s"'<>]+/gi, "postgres://[redacted]");
-  value = value.replace(/(token|secret|password|api[_-]?key)\s*[:=]\s*[^\s"'<>]+/gi, "$1=[redacted]");
-  return value;
-}
-
 function normalizeStatus(status) {
-  return String(status || "").trim().toUpperCase().replace(/\s+/g, "_") || "NOT_VERIFIED";
+  const value = String(status || "").trim().toUpperCase().replace(/\s+/g, "_");
+  return VALID_STATUSES.has(value) ? value : "NOT_VERIFIED";
 }
 
-function classify(items) {
-  const values = items.map((item) => normalizeStatus(item.status));
+function classify(checks) {
+  const values = checks.map((item) => normalizeStatus(item.status));
   if (values.includes("FAIL")) return "FAIL";
-  if (values.includes("WARN")) return "WARN";
   if (values.includes("NOT_VERIFIED")) return "NOT_VERIFIED";
+  if (values.includes("WARN")) return "WARN";
   if (values.length && values.every((value) => value === "NOT_APPLICABLE")) return "NOT_APPLICABLE";
   if (values.includes("PASS")) return "PASS";
   return "NOT_VERIFIED";
 }
 
-function check(items, status, label, evidence) {
-  items.push({ status: normalizeStatus(status), label, evidence });
+function addCheck(report, code, status, label, evidence, nextSafeStep = null) {
+  report.checks.push({
+    code,
+    status: normalizeStatus(status),
+    label,
+    evidence,
+    next_safe_step: nextSafeStep,
+  });
 }
 
-function extractFinalClassification(text) {
-  const match = String(text || "").match(/Final classification:\s*([^\n]+)/i);
-  return match ? normalizeStatus(match[1]) : "NOT_VERIFIED";
+function run(command, args, cwd) {
+  const result = spawnSync(command, args, {
+    cwd,
+    env: { ...process.env, NO_COLOR: "1" },
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024 * 8,
+  });
+  return {
+    status: typeof result.status === "number" ? result.status : 1,
+    stdout: result.stdout || "",
+    stderr: result.stderr || "",
+    error: result.error ? String(result.error.message || result.error) : "",
+  };
 }
 
-function packageCheckStatus(mode, classification) {
-  const normalized = normalizeStatus(classification);
-  if (mode === "local") {
-    if (normalized === "NOT_APPLICABLE") return "PASS";
-    if (normalized === "FAIL") return "WARN";
-    return normalized;
+function git(repo, args) {
+  return run("git", ["-C", repo, ...args], repo);
+}
+
+function safeRef(value) {
+  const ref = String(value || "").trim();
+  return /^[A-Za-z0-9._/-]+$/.test(ref) ? ref : null;
+}
+
+function safeCountMap(input, keys) {
+  const output = {};
+  for (const key of keys) {
+    const value = Number(input && input[key]);
+    output[key] = Number.isFinite(value) && value >= 0 ? value : 0;
   }
-  if (normalized === "PASS" || normalized === "WARN") return normalized;
-  if (normalized === "NOT_VERIFIED") return "NOT_VERIFIED";
-  return "FAIL";
+  return output;
+}
+
+function safeIsoTimestamp(value) {
+  if (!value) return null;
+  const timestamp = new Date(value);
+  return Number.isNaN(timestamp.valueOf()) ? null : timestamp.toISOString();
+}
+
+function loadCorpusEvidence(corpusDir, required = false) {
+  const empty = {
+    source: "not_provided",
+    required,
+    status: required ? "FAIL" : "NOT_APPLICABLE",
+    validation_status: "NOT_VERIFIED",
+    coverage_reconciled: false,
+    coverage: null,
+    release_signals: null,
+    blocker_code: required ? "CORPUS_EVIDENCE_REQUIRED" : null,
+    evidence: required ? "aggregate corpus evidence was required but not provided" : "aggregate corpus evidence was not provided",
+  };
+  if (!corpusDir) return empty;
+
+  const directory = path.resolve(corpusDir);
+  const coveragePath = path.join(directory, "coverage-report.json");
+  const validationPath = path.join(directory, "validation-report.json");
+  if (!fs.existsSync(coveragePath) || !fs.existsSync(validationPath)) {
+    return {
+      ...empty,
+      source: "local_aggregate_files",
+      status: "FAIL",
+      blocker_code: "CORPUS_EVIDENCE_FILES_MISSING",
+      evidence: "coverage-report.json and validation-report.json are both required",
+    };
+  }
+
+  let coverage;
+  let validation;
+  try {
+    coverage = JSON.parse(fs.readFileSync(coveragePath, "utf8"));
+    validation = JSON.parse(fs.readFileSync(validationPath, "utf8"));
+  } catch {
+    return {
+      ...empty,
+      source: "local_aggregate_files",
+      status: "FAIL",
+      blocker_code: "CORPUS_EVIDENCE_INVALID_JSON",
+      evidence: "aggregate corpus evidence is not valid JSON",
+    };
+  }
+
+  const totals = coverage && coverage.totals && typeof coverage.totals === "object" ? coverage.totals : {};
+  const discovered = Number(totals.discovered);
+  const buckets = ["parsed", "unsupported", "corrupt", "empty", "duplicate", "excluded"]
+    .map((key) => Number(totals[key]));
+  const numericCoverage = Number.isFinite(discovered) && discovered >= 0 && buckets.every((value) => Number.isFinite(value) && value >= 0);
+  const reconciled = numericCoverage && discovered === buckets.reduce((sum, value) => sum + value, 0);
+  const validationPassed = validation && validation.status === "PASS" && validation.coverage_reconciled === true;
+  const eventCountsValid = Number.isFinite(Number(coverage.total_events))
+    && Number(coverage.total_events) >= 0
+    && Number.isFinite(Number(coverage.ranked_events))
+    && Number(coverage.ranked_events) >= 0;
+  const passed = reconciled && validationPassed && eventCountsValid;
+
+  return {
+    source: "local_aggregate_files",
+    required,
+    status: passed ? "PASS" : "FAIL",
+    validation_status: validationPassed ? "PASS" : "FAIL",
+    coverage_reconciled: reconciled,
+    coverage: numericCoverage ? {
+      discovered,
+      parsed: buckets[0],
+      unsupported: buckets[1],
+      corrupt: buckets[2],
+      empty: buckets[3],
+      duplicate: buckets[4],
+      excluded: buckets[5],
+      extraction_meta_sessions: Number(coverage.extraction_meta_sessions) || 0,
+      total_events: Number(coverage.total_events) || 0,
+      ranked_events: Number(coverage.ranked_events) || 0,
+      date_range: {
+        from: safeIsoTimestamp(coverage.date_range?.from),
+        to: safeIsoTimestamp(coverage.date_range?.to),
+      },
+    } : null,
+    release_signals: {
+      command_mentions: safeCountMap(coverage.command_counts, ["git", "gh", "npm"]),
+      skill_mentions: safeCountMap(coverage.skill_mentions, [
+        "build-verify-skill",
+        "github-handoff-skill",
+        "npm-package-readiness-skill",
+        "release-preflight-skill",
+      ]),
+      helper_mentions: safeCountMap(coverage.helper_mentions, [
+        "scripts/npm-package-readiness",
+        "scripts/release-preflight",
+      ]),
+    },
+    blocker_code: passed ? null : "CORPUS_EVIDENCE_INVALID",
+    evidence: passed
+      ? "aggregate coverage reconciles and corpus validation passed"
+      : "aggregate coverage or validation did not pass",
+  };
+}
+
+function packageGateStatus(mode, packageStatus) {
+  const status = normalizeStatus(packageStatus);
+  if (mode === "local") {
+    if (status === "NOT_APPLICABLE") return "PASS";
+    if (status === "FAIL") return "WARN";
+    return status;
+  }
+  if (status === "NOT_APPLICABLE") return "FAIL";
+  return status;
+}
+
+function isReleaseNotePath(relativePath) {
+  const normalized = String(relativePath || "").replace(/\\/g, "/");
+  return RELEASE_NOTE_FILES.has(normalized) || /^docs\/releases\/[^/]+\.md$/i.test(normalized);
+}
+
+function collectGitEvidence(repo, requestedBaseRef) {
+  const probe = git(repo, ["rev-parse", "--is-inside-work-tree"]);
+  if (probe.status !== 0 || probe.stdout.trim() !== "true") {
+    return {
+      is_git_repo: false,
+      clean: null,
+      changed_file_count: 0,
+      branch: null,
+      head: null,
+      tags_at_head: [],
+      baseline_ref: null,
+      baseline_head: null,
+      release_note_changed: null,
+    };
+  }
+
+  const status = git(repo, ["status", "--short"]);
+  const branch = git(repo, ["branch", "--show-current"]);
+  const head = git(repo, ["rev-parse", "HEAD"]);
+  const tags = git(repo, ["tag", "--points-at", "HEAD"]);
+  const requested = safeRef(requestedBaseRef);
+  const described = requested ? null : git(repo, ["describe", "--tags", "--abbrev=0"]);
+  const baselineRef = requested || (described && described.status === 0 ? safeRef(described.stdout) : null);
+  const baselineHeadResult = baselineRef ? git(repo, ["rev-parse", `${baselineRef}^{commit}`]) : null;
+  const validBaseline = baselineHeadResult && baselineHeadResult.status === 0;
+  const changed = validBaseline ? git(repo, ["diff", "--name-only", baselineRef, "--"]) : null;
+  const changedFiles = changed && changed.status === 0
+    ? changed.stdout.split(/\r?\n/).filter(Boolean)
+    : [];
+
+  return {
+    is_git_repo: true,
+    clean: !status.stdout.trim(),
+    changed_file_count: status.stdout.split(/\r?\n/).filter(Boolean).length,
+    branch: safeRef(branch.stdout) || null,
+    head: head.status === 0 && /^[a-f0-9]{40,64}$/i.test(head.stdout.trim()) ? head.stdout.trim() : null,
+    tags_at_head: tags.stdout.split(/\r?\n/).map(safeRef).filter(Boolean).sort((left, right) => left.localeCompare(right)),
+    baseline_ref: validBaseline ? baselineRef : null,
+    baseline_head: validBaseline && /^[a-f0-9]{40,64}$/i.test(baselineHeadResult.stdout.trim()) ? baselineHeadResult.stdout.trim() : null,
+    release_note_changed: validBaseline ? changedFiles.some(isReleaseNotePath) : null,
+    changes_since_baseline: validBaseline ? changedFiles.length : null,
+  };
+}
+
+function versionEvidence(mode, packageReport, gitEvidence) {
+  if (mode === "local") {
+    return { status: "NOT_APPLICABLE", code: "VERSION_GATE_NOT_REQUIRED", evidence: "local mode does not require a release version change" };
+  }
+  const version = packageReport.package?.version;
+  if (!version) return { status: "FAIL", code: "PACKAGE_VERSION_UNAVAILABLE", evidence: "package version is unavailable" };
+  if (!gitEvidence.baseline_ref) return { status: "NOT_VERIFIED", code: "BASELINE_TAG_UNAVAILABLE", evidence: "no valid baseline tag was found" };
+  const baselineVersion = gitEvidence.baseline_ref.replace(/^v/, "");
+  if (gitEvidence.head === gitEvidence.baseline_head && baselineVersion === version) {
+    return { status: "PASS", code: "VERSION_TAG_MATCH", evidence: "HEAD carries the matching release baseline" };
+  }
+  if (baselineVersion === version) {
+    return {
+      status: "FAIL",
+      code: "VERSION_NOT_ADVANCED",
+      evidence: "package version matches the previous release while source changes exist",
+      next_safe_step: "Choose and approve the intended release version before publication work.",
+    };
+  }
+  return { status: "PASS", code: "VERSION_ADVANCED", evidence: "package version differs from the previous release tag" };
+}
+
+function buildReleasePreflight(options, dependencies = {}) {
+  const args = {
+    mode: options.mode || "local",
+    allowPackDryRun: Boolean(options.allowPackDryRun),
+    corpusDir: options.corpusDir,
+    requireCorpus: Boolean(options.requireCorpus),
+    baseRef: options.baseRef,
+  };
+  if (!MODES.has(args.mode)) throw new Error(`unsupported mode: ${args.mode}`);
+  const repo = path.resolve(options.repo || ".");
+  const report = {
+    schema_version: SCHEMA_VERSION,
+    repo: { root: "." },
+    mode: args.mode,
+    mode_contract: {
+      package_required: args.mode === "npm" || args.mode === "cli",
+      cli_required: args.mode === "cli",
+      corpus_required: args.requireCorpus,
+      pack_dry_run_allowed: args.allowPackDryRun,
+    },
+    git: null,
+    package_readiness: null,
+    corpus_evidence: null,
+    evidence_pack: { status: "NOT_VERIFIED", mode: "dry_run", files_written: 0 },
+    release_notes: { present: [], baseline_ref: null, changed_since_baseline: null },
+    checks: [],
+    blockers: [],
+    warnings: [],
+    not_verified: [],
+    commands_not_run: [
+      "npm publish",
+      "npm version",
+      "git tag",
+      "git push",
+      "gh release create",
+      "deploy commands",
+      "remote registry mutations",
+      "secret reads",
+      "production endpoint calls",
+    ],
+    final_status: "NOT_VERIFIED",
+    next_safe_step: "Inspect release evidence before any external consequence.",
+  };
+
+  if (!fs.existsSync(repo)) {
+    addCheck(report, "REPO_MISSING", "FAIL", "repo path", "path does not exist", "Provide an existing local repository path.");
+    return finalizeReleaseReport(report);
+  }
+  addCheck(report, "REPO_PRESENT", "PASS", "repo path", "found");
+
+  report.git = collectGitEvidence(repo, args.baseRef);
+  addCheck(report, report.git.is_git_repo ? "GIT_REPO" : "GIT_REPO_UNAVAILABLE", report.git.is_git_repo ? "PASS" : "WARN", "git repo", report.git.is_git_repo ? "yes" : "not a git repo");
+  if (report.git.is_git_repo) {
+    addCheck(report, report.git.clean ? "WORKING_TREE_CLEAN" : "WORKING_TREE_DIRTY", report.git.clean ? "PASS" : "WARN", "working tree", report.git.clean ? "clean" : `${report.git.changed_file_count} changed path(s)`);
+    addCheck(report, report.git.branch ? "BRANCH" : "BRANCH_UNAVAILABLE", report.git.branch ? "PASS" : "WARN", "branch", report.git.branch || "unknown");
+  }
+
+  const packageOptions = {
+    repo,
+    expectPackage: args.mode === "npm" || args.mode === "cli",
+    expectCli: args.mode === "cli",
+    allowPackDryRun: args.allowPackDryRun,
+  };
+  report.package_readiness = dependencies.packageBuilder
+    ? dependencies.packageBuilder(packageOptions)
+    : buildPackageReadiness(packageOptions);
+  const packageValidationErrors = validatePackageReport(report.package_readiness);
+  const packageStatus = packageValidationErrors.length ? "FAIL" : packageGateStatus(args.mode, report.package_readiness.final_status);
+  addCheck(
+    report,
+    packageValidationErrors.length ? "PACKAGE_REPORT_INVALID" : "PACKAGE_READINESS",
+    packageStatus,
+    "npm package readiness",
+    packageValidationErrors.length ? "package readiness report failed validation" : `classification=${report.package_readiness.final_status}`,
+    packageStatus === "FAIL" ? "Resolve package readiness blockers before release work." : null,
+  );
+
+  const evidenceResult = dependencies.evidenceDryRun
+    ? dependencies.evidenceDryRun(repo)
+    : run(process.execPath, [path.join(__dirname, "evidence-pack"), "--repo", repo, "--title", "Release preflight", "--dry-run"], repo);
+  report.evidence_pack = {
+    status: evidenceResult.status === 0 ? "PASS" : "FAIL",
+    mode: "dry_run",
+    files_written: 0,
+  };
+  addCheck(report, report.evidence_pack.status === "PASS" ? "EVIDENCE_PACK_DRY_RUN" : "EVIDENCE_PACK_DRY_RUN_FAILED", report.evidence_pack.status, "evidence pack dry-run", `exit_status=${evidenceResult.status}`, report.evidence_pack.status === "FAIL" ? "Repair evidence-pack planning before release work." : null);
+
+  const readme = ["README.md", "readme.md", "README"].find((file) => fs.existsSync(path.join(repo, file)));
+  addCheck(report, readme ? "README" : "README_MISSING", readme ? "PASS" : "WARN", "README", readme || "missing");
+  report.release_notes.present = [
+    ...RELEASE_NOTE_FILES,
+    ...(fs.existsSync(path.join(repo, "docs", "releases"))
+      ? fs.readdirSync(path.join(repo, "docs", "releases"))
+        .filter((name) => name.endsWith(".md"))
+        .map((name) => `docs/releases/${name}`)
+      : []),
+  ].filter((file) => fs.existsSync(path.join(repo, file))).sort((left, right) => left.localeCompare(right));
+  addCheck(
+    report,
+    report.release_notes.present.length ? "RELEASE_NOTES" : "RELEASE_NOTES_MISSING",
+    report.release_notes.present.length ? "PASS" : args.mode === "local" ? "NOT_APPLICABLE" : "FAIL",
+    "release notes",
+    report.release_notes.present.length ? `${report.release_notes.present.length} release-note surface(s)` : "not found",
+    report.release_notes.present.length ? null : "Add a release note or changelog entry for the intended package release.",
+  );
+
+  report.release_notes.baseline_ref = report.git?.baseline_ref || null;
+  report.release_notes.changed_since_baseline = report.git?.release_note_changed ?? null;
+  const releaseDiffStatus = !report.git?.baseline_ref
+    ? args.mode === "local" ? "NOT_APPLICABLE" : "NOT_VERIFIED"
+    : report.git.release_note_changed
+      ? "PASS"
+      : args.mode === "local" ? "NOT_APPLICABLE" : "FAIL";
+  addCheck(
+    report,
+    releaseDiffStatus === "FAIL" ? "RELEASE_NOTE_NOT_CHANGED" : releaseDiffStatus === "NOT_VERIFIED" ? "RELEASE_BASELINE_UNAVAILABLE" : "RELEASE_NOTE_CHANGE",
+    releaseDiffStatus,
+    "release-note diff",
+    !report.git?.baseline_ref ? "no valid baseline tag" : report.git.release_note_changed ? "release notes changed since baseline" : "no release-note change since baseline",
+    releaseDiffStatus === "FAIL" ? "Add or update release notes for the changes since the baseline tag." : null,
+  );
+
+  const version = versionEvidence(args.mode, report.package_readiness, report.git || {});
+  addCheck(report, version.code, version.status, "version readiness", version.evidence, version.next_safe_step || null);
+
+  report.corpus_evidence = loadCorpusEvidence(args.corpusDir, args.requireCorpus);
+  addCheck(
+    report,
+    report.corpus_evidence.blocker_code || "CORPUS_EVIDENCE",
+    report.corpus_evidence.status,
+    "workflow corpus aggregate",
+    report.corpus_evidence.evidence,
+    report.corpus_evidence.status === "FAIL" ? "Regenerate and validate aggregate corpus evidence before relying on it." : null,
+  );
+
+  return finalizeReleaseReport(report);
+}
+
+function finalizeReleaseReport(report) {
+  report.final_status = classify(report.checks);
+  report.blockers = report.checks
+    .filter((item) => item.status === "FAIL")
+    .map(({ code, label, evidence, next_safe_step }) => ({ code, label, evidence, next_safe_step }));
+  report.warnings = report.checks
+    .filter((item) => item.status === "WARN")
+    .map(({ code, label, evidence }) => ({ code, label, evidence }));
+  report.not_verified = report.checks
+    .filter((item) => item.status === "NOT_VERIFIED")
+    .map(({ code, label, evidence }) => ({ code, label, evidence }));
+  report.next_safe_step = report.blockers[0]?.next_safe_step
+    || (report.final_status === "PASS"
+      ? "Review the report and request the exact external consequence separately."
+      : "Resolve blockers and inspect warnings or unverified checks before requesting publication, tagging, push, or release creation.");
+  return report;
+}
+
+function validateReleaseReport(report) {
+  const errors = [];
+  if (!report || typeof report !== "object") return ["report must be an object"];
+  if (report.schema_version !== SCHEMA_VERSION) errors.push("unsupported schema_version");
+  if (!MODES.has(report.mode)) errors.push("invalid mode");
+  if (!VALID_STATUSES.has(report.final_status)) errors.push("invalid final_status");
+  if (!report.repo || report.repo.root !== ".") errors.push("repo root must be portable");
+  if (!Array.isArray(report.checks)) errors.push("checks must be an array");
+  if (!Array.isArray(report.blockers)) errors.push("blockers must be an array");
+  if (!Array.isArray(report.warnings)) errors.push("warnings must be an array");
+  if (!Array.isArray(report.not_verified)) errors.push("not_verified must be an array");
+  if (!Array.isArray(report.commands_not_run)) errors.push("commands_not_run must be an array");
+  if (!report.corpus_evidence || !VALID_STATUSES.has(report.corpus_evidence.status)) errors.push("invalid corpus_evidence status");
+  if (!report.package_readiness || validatePackageReport(report.package_readiness).length) errors.push("invalid package_readiness report");
+  const serialized = JSON.stringify(report);
+  if (/\/home\/[A-Za-z0-9._-]+|[A-Za-z]:\\Users\\/i.test(serialized)) errors.push("report contains a private absolute path");
+  if (/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|\bgh[pousr]_[A-Za-z0-9_]{12,}\b|\bsk-[A-Za-z0-9_-]{12,}\b/.test(serialized)) errors.push("report contains secret-shaped material");
+  return errors;
+}
+
+function renderHuman(report) {
+  const blockers = report.blockers.length
+    ? report.blockers.map((item) => `- ${item.code}: ${item.evidence}`).join("\n")
+    : "- none";
+  const notVerified = report.not_verified.length
+    ? report.not_verified.map((item) => `- ${item.code}: ${item.evidence}`).join("\n")
+    : "- none";
+  return `# Release Preflight Report
+
+Repo: .
+Mode: ${report.mode}
+Pack dry-run allowed: ${report.mode_contract.pack_dry_run_allowed ? "yes" : "no"}
+Corpus aggregate required: ${report.mode_contract.corpus_required ? "yes" : "no"}
+
+Checks:
+${report.checks.map((item) => `- ${item.status}: ${item.code} - ${item.evidence}`).join("\n")}
+
+Blockers:
+${blockers}
+
+Not verified:
+${notVerified}
+
+Corpus evidence:
+- status: ${report.corpus_evidence.status}
+- source: ${report.corpus_evidence.source}
+- coverage reconciled: ${report.corpus_evidence.coverage_reconciled ? "yes" : "no"}
+
+Final classification: ${report.final_status}
+
+Commands not run:
+${report.commands_not_run.map((command) => `- ${command}`).join("\n")}
+
+Next safe step:
+${report.next_safe_step}`;
 }
 
 function main() {
@@ -113,161 +527,37 @@ function main() {
     usage();
     process.exit(2);
   }
-
   if (args.help) {
     usage();
     return;
   }
-
   if (!args.repo) {
     usage();
     process.exit(2);
   }
 
-  const repo = path.resolve(args.repo);
-  const scriptDir = __dirname;
-  const checks = [];
-
-  check(checks, fs.existsSync(repo) ? "PASS" : "FAIL", "repo path", fs.existsSync(repo) ? repo : "missing");
-  if (!fs.existsSync(repo)) return finish(repo, args, checks, "", "");
-
-  const gitProbe = run("git", ["-C", repo, "rev-parse", "--is-inside-work-tree"]);
-  const isGitRepo = gitProbe.status === 0 && gitProbe.stdout.trim() === "true";
-  check(checks, isGitRepo ? "PASS" : "WARN", "git repo", isGitRepo ? "yes" : "not a git repo");
-
-  const status = isGitRepo ? run("git", ["-C", repo, "status", "--short"]) : null;
-  const branch = isGitRepo ? run("git", ["-C", repo, "branch", "--show-current"]) : null;
-  const tags = isGitRepo ? run("git", ["-C", repo, "tag", "--points-at", "HEAD"]) : null;
-
-  if (isGitRepo) {
-    check(checks, status.stdout.trim() ? "WARN" : "PASS", "working tree", status.stdout.trim() ? "uncommitted changes present" : "clean");
-    check(checks, branch.stdout.trim() ? "PASS" : "WARN", "branch", branch.stdout.trim() || "unknown");
-    check(checks, tags.stdout.trim() ? "PASS" : args.mode === "local" ? "NOT_APPLICABLE" : "NOT_VERIFIED", "tag at HEAD", tags.stdout.trim() || "none");
+  const report = buildReleasePreflight(args);
+  const validationErrors = validateReleaseReport(report);
+  if (validationErrors.length) {
+    console.error(`release preflight report validation failed (${validationErrors.length} error(s))`);
+    process.exit(1);
   }
+  if (args.json) console.log(JSON.stringify(report, null, 2));
+  else console.log(renderHuman(report));
 
-  const npmArgs = ["--repo", repo];
-  if (args.mode === "npm" || args.mode === "cli") npmArgs.push("--expect-package");
-  if (args.mode === "cli") npmArgs.push("--expect-cli");
-  if (args.allowPackDryRun) npmArgs.push("--allow-pack-dry-run");
-  const npmReadiness = run(path.join(scriptDir, "npm-package-readiness"), npmArgs);
-  if (!npmReadiness.stdout.trim()) {
-    Object.assign(npmReadiness, fallbackPackageReadiness(repo, args.mode));
-  }
-  const npmClassification = extractFinalClassification(npmReadiness.stdout);
-  const npmGateStatus = npmReadiness.status === 0 ? packageCheckStatus(args.mode, npmClassification) : "FAIL";
-  check(checks, npmGateStatus, "npm package readiness helper", `exit_status=${npmReadiness.status}; classification=${npmClassification}`);
-
-  const evidenceDryRun = run(path.join(scriptDir, "evidence-pack"), ["--repo", repo, "--title", "Release preflight", "--dry-run"]);
-  if (!evidenceDryRun.stdout.trim()) {
-    Object.assign(evidenceDryRun, fallbackEvidencePackDryRun(repo, "Release preflight"));
-  }
-  check(checks, evidenceDryRun.status === 0 ? "PASS" : "FAIL", "evidence pack dry-run", `exit_status=${evidenceDryRun.status}`);
-
-  const readme = ["README.md", "readme.md", "README"].find((file) => fs.existsSync(path.join(repo, file)));
-  check(checks, readme ? "PASS" : "WARN", "README", readme || "missing");
-
-  const releaseNotes = ["CHANGELOG.md", "RELEASE.md", "RELEASE_NOTES.md", "docs/CHANGELOG.md", "docs/RELEASE.md"].find((file) => fs.existsSync(path.join(repo, file)));
-  check(checks, releaseNotes ? "PASS" : args.mode === "local" ? "NOT_APPLICABLE" : "NOT_VERIFIED", "release notes", releaseNotes || "not found");
-
-  finish(repo, args, checks, npmReadiness.stdout, evidenceDryRun.stdout);
+  if (args.strict && ["FAIL", "NOT_VERIFIED"].includes(report.final_status)) process.exit(1);
 }
 
-function fallbackPackageReadiness(repo, mode) {
-  const packageJsonPath = path.join(repo, "package.json");
-  const expectPackage = mode === "npm" || mode === "cli";
-  const expectCli = mode === "cli";
-  if (!fs.existsSync(packageJsonPath)) {
-    const finalStatus = expectPackage ? "FAIL" : "NOT_APPLICABLE";
-    return {
-      status: 0,
-      stdout: `# NPM Package Readiness Report
+if (require.main === module) main();
 
-Repo: ${repo}
-Expect package: ${expectPackage ? "yes" : "no"}
-Expect CLI: ${expectCli ? "yes" : "no"}
-Pack dry-run allowed: no
-
-Checks:
-- ${finalStatus}: package.json - ${expectPackage ? "missing; package was expected" : "missing; package checks not applicable"}
-
-Final classification: ${finalStatus}
-
-Next safe step:
-${expectPackage ? "Review FAIL items before any publish/tag/push gate." : "Use release preflight local mode or provide --expect-package when npm packaging is intended."}
-`,
-      stderr: "",
-      error: "",
-    };
-  }
-  return {
-    status: 0,
-    stdout: `# NPM Package Readiness Report
-
-Repo: ${repo}
-
-Checks:
-- PASS: package.json - found
-
-Final classification: PASS
-
-Next safe step:
-Create an evidence pack or run release preflight before any publish/tag/push gate.
-`,
-    stderr: "",
-    error: "",
-  };
-}
-
-function fallbackEvidencePackDryRun(repo, title) {
-  const outputDir = path.join(repo, "evidence", "dry-run-release-preflight");
-  return {
-    status: 0,
-    stdout: `# Evidence Pack Dry Run
-
-Target repo: ${repo}
-Title: ${title}
-Would create: ${outputDir}
-
-No files were written. No env files were read. No git staging, commit, push, deploy, publish, migration, database mutation, or external call was run.
-`,
-    stderr: "",
-    error: "",
-  };
-}
-
-function finish(repo, args, checks, npmOutput, evidenceOutput) {
-  const finalStatus = classify(checks);
-  const nextSafeStep =
-    finalStatus === "PASS" || finalStatus === "NOT_APPLICABLE"
-      ? "Review evidence and request an explicit publish/tag/push/deploy gate if needed."
-      : "Resolve FAIL/WARN/NOT_VERIFIED items before requesting publish/tag/push/deploy.";
-
-  console.log(`# Release Preflight Report
-
-Repo: ${repo}
-Mode: ${args.mode}
-Pack dry-run allowed: ${args.allowPackDryRun ? "yes" : "no"}
-
-Checks:
-${checks.map((item) => `- ${item.status}: ${item.label} - ${item.evidence}`).join("\n")}
-
-Package readiness summary:
-\`\`\`text
-${String(npmOutput || "").trim().slice(0, 4000)}
-\`\`\`
-
-Evidence pack dry-run summary:
-\`\`\`text
-${String(evidenceOutput || "").trim().slice(0, 3000)}
-\`\`\`
-
-Final classification: ${finalStatus}
-
-Commands not run:
-npm publish, npm version, git tag, git push, gh release create, deploy commands, remote registry mutations, secret reads, production endpoint calls.
-
-Next safe step:
-${nextSafeStep}`);
-}
-
-main();
+module.exports = {
+  SCHEMA_VERSION,
+  buildReleasePreflight,
+  collectGitEvidence,
+  isReleaseNotePath,
+  loadCorpusEvidence,
+  parseArgs,
+  renderHuman,
+  validateReleaseReport,
+  versionEvidence,
+};

@@ -255,12 +255,16 @@ Examples:
 ./scripts/npm-package-readiness --repo "$TARGET_REPO"
 ./scripts/npm-package-readiness --repo "$TARGET_REPO" --json
 ./scripts/npm-package-readiness --repo "$TARGET_REPO" --allow-pack-dry-run
+./scripts/npm-package-readiness --repo "$TARGET_REPO" --json --validate --strict
 ```
 
 Rules:
 
 - Default mode must not run `npm pack`.
 - `--allow-pack-dry-run` is not publish permission.
+- JSON output contains script names and classification codes, not package script bodies or raw pack/prepack output.
+- Pack manifests reject env files, evidence, local state, private corpus outputs, raw sessions, pseudonym maps, and key-like files.
+- `--strict` exits non-zero for `FAIL` or `NOT_VERIFIED`; `--validate` checks report structure independently of readiness status.
 - Never runs `npm publish`, changes versions, installs dependencies, mutates registries, reads `.npmrc` token values, tags, pushes, or creates releases.
 
 Evidence required:
@@ -285,6 +289,8 @@ Examples:
 ```bash
 ./scripts/release-preflight --repo "$TARGET_REPO"
 ./scripts/release-preflight --repo "$TARGET_REPO" --allow-pack-dry-run
+./scripts/release-preflight --repo "$TARGET_REPO" --json --validate
+./scripts/release-preflight --repo "$TARGET_REPO" --corpus-dir "$CORPUS_OUTPUT_DIR" --require-corpus
 ```
 
 Rules:
@@ -292,6 +298,9 @@ Rules:
 - Never publishes, tags, pushes, deploys, creates GitHub releases, mutates registries, sets secrets, reads secret values, or calls production endpoints.
 - Calls `scripts/npm-package-readiness` and `scripts/evidence-pack --dry-run`.
 - Treats package dry-run as a separate opt-in flag.
+- In npm/CLI modes, compares release-note changes and package version with an explicit baseline or latest reachable tag.
+- Corpus integration reads only `coverage-report.json` and `validation-report.json`, validates aggregate reconciliation, and emits count-only release signals without raw corpus or source-root data.
+- Emits explicit blocker, warning, and not-verified arrays in human and JSON modes.
 
 Evidence required:
 
@@ -1008,9 +1017,12 @@ Commands:
 ./scripts/npm-package-readiness --repo "$TARGET_REPO" --expect-package
 ./scripts/npm-package-readiness --repo "$TARGET_REPO" --expect-cli
 ./scripts/npm-package-readiness --repo "$TARGET_REPO" --allow-pack-dry-run
+./scripts/npm-package-readiness --repo "$TARGET_REPO" --json --validate
 ./scripts/release-preflight --repo "$TARGET_REPO" --mode local
 ./scripts/release-preflight --repo "$TARGET_REPO" --mode npm
 ./scripts/release-preflight --repo "$TARGET_REPO" --mode cli
+./scripts/release-preflight --repo "$TARGET_REPO" --json --validate
+./scripts/release-preflight --repo "$TARGET_REPO" --corpus-dir "$CORPUS_OUTPUT_DIR" --require-corpus
 ./scripts/failure-evidence --input /path/to/log.txt
 cat /path/to/log.txt | ./scripts/failure-evidence --stdin
 ```
@@ -1020,9 +1032,12 @@ Rules:
 - `evidence-pack` without `--dry-run` writes local files only and never stages or commits them.
 - `npm-package-readiness` must distinguish `PASS`, `WARN`, `FAIL`, `NOT_VERIFIED`, and `NOT_APPLICABLE`.
 - `npm-package-readiness` must not run `npm pack --dry-run` unless `--allow-pack-dry-run` is present.
+- Package JSON reports must omit script bodies and raw pack/prepack output while retaining script names, manifest counts, risks, and classification codes.
 - `release-preflight --mode local` must not fail merely because a repo is not an npm package.
 - `release-preflight --mode npm` expects package readiness.
 - `release-preflight --mode cli` expects package and CLI bin readiness.
+- `release-preflight` may consume only aggregate corpus coverage and validation files; raw events, roots, sessions, manifests, and pseudonym maps remain excluded.
+- npm/CLI preflight reports release-note and package-version relationships to a baseline without changing versions or tags.
 - `failure-evidence` redacts secret-shaped values and classifies the recovery path; it does not fix the failure by itself.
 - These helpers never publish, change versions, tag, push, create PRs, deploy, set secrets, mutate registries, run Supabase or Cloudflare mutation commands, or call production endpoints.
 

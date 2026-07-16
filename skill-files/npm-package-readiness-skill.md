@@ -67,6 +67,8 @@ Helper script:
 ./scripts/npm-package-readiness --repo "$TARGET_REPO" --expect-package
 ./scripts/npm-package-readiness --repo "$TARGET_REPO" --expect-cli
 ./scripts/npm-package-readiness --repo "$TARGET_REPO" --allow-pack-dry-run
+./scripts/npm-package-readiness --repo "$TARGET_REPO" --json --validate
+./scripts/npm-package-readiness --repo "$TARGET_REPO" --expect-cli --allow-pack-dry-run --strict
 ```
 
 Optional package dry-run, only when explicitly allowed:
@@ -104,9 +106,10 @@ Local CLI smoke, only when CLI package smoke is approved:
 16. Check for README presence.
 17. Check for changelog or release notes when available.
 18. Identify build, test, lint, typecheck, format, and prepare scripts.
-19. Run `npm pack --dry-run` only when explicitly allowed.
-20. Inspect dry-run output for accidental env files, evidence folders, caches, local configs, or private artifacts.
-21. Produce a readiness judgement: `PASS`, `WARN`, `FAIL`, `NOT_VERIFIED`, or `NOT_APPLICABLE`.
+19. Emit script names and quality classifications only. Do not emit package script bodies because they may contain local commands or sensitive literals.
+20. Run `npm pack --dry-run --json` only when explicitly allowed.
+21. Parse the final npm manifest without preserving raw prepack output. Reject env files, evidence, local state, private corpus outputs, raw sessions, pseudonym maps, and key-like files.
+22. Produce a readiness judgement plus explicit blocker, warning, and not-verified arrays: `PASS`, `WARN`, `FAIL`, `NOT_VERIFIED`, or `NOT_APPLICABLE`.
 
 ## Evidence Required
 
@@ -125,6 +128,7 @@ Local CLI smoke, only when CLI package smoke is approved:
 - Script inventory.
 - `npm pack --dry-run` result or explicit not-run reason.
 - Risk findings.
+- Explicit blocker, warning, and not-verified codes.
 - Final readiness classification.
 - Next safe step.
 
@@ -138,6 +142,7 @@ Local CLI smoke, only when CLI package smoke is approved:
 - Do not push.
 - Do not read `.npmrc` token values.
 - Do not print npm tokens.
+- Do not emit package script bodies or raw `npm pack`/prepack logs in structured evidence.
 - Do not include `.env`, evidence folders, credential files, package-manager caches, or local-only config in the package.
 
 Forbidden commands by default:
@@ -199,6 +204,3 @@ gh release create
 - Add registry read-only version checks behind a network permission gate.
 - Add temp-prefix CLI install smoke testing behind a dependency/tooling gate.
 - Add package denylist configuration.
-- Add integration with `release-preflight-skill`.
-- Add machine-readable report output for release automation.
-- Add package quality script classifier that distinguishes `PASS`, `WARN`, `NOT_VERIFIED`, and `NOT_APPLICABLE`.

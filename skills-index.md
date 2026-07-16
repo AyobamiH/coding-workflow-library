@@ -69,7 +69,7 @@ Use to build local redacted evidence packs from repo state, validation output, l
 ### npm-package-readiness-skill
 
 File: `skill-files/npm-package-readiness-skill.md`
-Use for local npm package and CLI readiness checks: package metadata, lockfiles, bin entrypoints, package contents control, docs, scripts, and optional `npm pack --dry-run` when explicitly allowed. It never publishes by default.
+Use for local npm package and CLI readiness checks: package metadata, lockfiles, bin entrypoints, controlled package contents, quality-script classifications, safe JSON manifests, and optional `npm pack --dry-run --json` when explicitly allowed. It reports crisp blockers without emitting script bodies or raw prepack output and never publishes by default.
 
 ### skills-library-packaging-skill
 
@@ -79,7 +79,7 @@ Use to decide whether this library is a local library, reusable template, npm pa
 ### release-preflight-skill
 
 File: `skill-files/release-preflight-skill.md`
-Use for local release gates that combine Git state, validation evidence, npm package readiness, evidence-pack planning, changelog/release-note checks, and explicit publish/tag/push/deploy boundaries. `scripts/run-next --allow verification-bundle-self-test` can now select the local verification/release bundle from ledger state and keep evidence-pack writing gated behind `--allow evidence-pack-write`.
+Use for local release gates that combine Git state, validation evidence, npm package readiness, evidence-pack planning, version/release-note baseline checks, optional aggregate workflow-corpus evidence, crisp blocker codes, and explicit publish/tag/push/deploy boundaries. `scripts/run-next --allow verification-bundle-self-test` can select the local verification/release bundle from ledger state and keep evidence-pack writing gated behind `--allow evidence-pack-write`.
 
 ### runtime-verification-skill
 
@@ -226,8 +226,8 @@ Use for source-only migration risk review before any apply/deploy step. Run `scr
 - `scripts/evidence-pack`: local redacted evidence-pack generator.
 - `scripts/failure-evidence`: local redacted failure classifier for logs or stdin.
 - `scripts/library-packaging-readiness`: local reusable/open-source/package-readiness inspector for this skills library, including explicit `--expect-open-source`, `--expect-npm`, and `--expect-cli` modes.
-- `scripts/npm-package-readiness`: local npm package and CLI readiness inspector.
-- `scripts/release-preflight`: local release gate combining package readiness and evidence-pack planning.
+- `scripts/npm-package-readiness`: local npm package and CLI readiness inspector with validated JSON reports and safe pack-manifest checks.
+- `scripts/release-preflight`: local release gate combining package readiness, evidence-pack planning, baseline checks, and optional aggregate corpus evidence.
 - `routes/skill-routes.json`: local route manifest mapping ledger states to skill files, permission flags, helper scripts, forbidden actions, success states, blocked states, next permissions, and evidence requirements.
 - `scripts/route-audit`: local route metadata validator.
 - `scripts/skill-cleaner`: advisory skill hygiene scanner.

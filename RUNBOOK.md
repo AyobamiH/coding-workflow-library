@@ -218,9 +218,12 @@ Default boundaries:
 - `scripts/npm-package-readiness --expect-package` turns a missing package into a failure.
 - `scripts/npm-package-readiness --expect-cli` requires package and CLI bin readiness.
 - `scripts/npm-package-readiness --allow-pack-dry-run` may run `npm pack --dry-run` but is not publish permission.
+- `scripts/npm-package-readiness --json --validate` emits a machine-readable report with blocker, warning, and not-verified codes; it omits package script bodies and raw prepack output.
 - `scripts/release-preflight --mode local` is the default and must not fail merely because a repo is not an npm package.
 - `scripts/release-preflight --mode npm` expects npm package readiness.
 - `scripts/release-preflight --mode cli` expects package and bin readiness.
+- `scripts/release-preflight --corpus-dir "$CORPUS_OUTPUT_DIR"` may read only aggregate `coverage-report.json` and `validation-report.json`; use `--require-corpus` only when those aggregates are an explicit release requirement.
+- npm/CLI preflight compares release-note changes and the package version with `--base-ref` or the latest reachable tag. It reports a blocker but never changes the version or creates a tag.
 - `scripts/release-preflight` is local validation/orchestration and must not publish, tag, push, deploy, create GitHub releases, mutate registries, read secret values, or call production endpoints.
 
 Recommended sequence:
@@ -230,8 +233,10 @@ Recommended sequence:
 3. Run `scripts/evidence-pack --repo "$TARGET_REPO" --title "Short title" --dry-run`.
 4. Run `scripts/release-preflight --repo "$TARGET_REPO" --mode local`.
 5. Use `--mode npm` or `--mode cli` only when that release lane is intended.
-6. Write evidence files only if John approves local evidence creation.
-7. Stop before publish, tag, push, deploy, registry mutation, or GitHub release gates.
+6. Add `--corpus-dir` only for validated generated aggregate evidence; never pass the raw corpus directory when its aggregate files cannot be isolated safely.
+7. Use `--strict` only when `FAIL` and `NOT_VERIFIED` should stop the caller.
+8. Write evidence files only if John approves local evidence creation.
+9. Stop before publish, tag, push, deploy, registry mutation, or GitHub release gates.
 
 Autonomous sequence when the ledger status is `Local verification and release evidence bundle built`:
 
