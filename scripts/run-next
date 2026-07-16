@@ -3356,15 +3356,26 @@ function runSemverPublication({ version, tag, packageName, releaseNotesPath }) {
   evidence.push(`release commit: ${localHead}`);
   evidence.push(`remote main verification: ${remoteHead}`);
 
-  const ci = waitForExactValidateWorkflow(localHead, ghEnv);
-  if (!ci.ok) return failure(ci.state, ci.summary, ci.next);
-  evidence.push(`exact-commit CI: success (run ${ci.run.databaseId})`);
+  const releaseTarget = resolveSemverReleaseTarget(tag, version, localHead);
+  if (!releaseTarget.ok) return failure(releaseTarget.state, releaseTarget.summary);
+  const releaseCommit = releaseTarget.commit;
 
-  const tagResult = ensureAnnotatedReleaseTag(tag, localHead);
+  const ci = waitForExactValidateWorkflow(releaseCommit, ghEnv);
+  if (!ci.ok) return failure(ci.state, ci.summary, ci.next);
+  evidence.push(`release exact-commit CI: success (run ${ci.run.databaseId})`);
+
+  let mainCi = ci;
+  if (localHead !== releaseCommit) {
+    mainCi = waitForExactValidateWorkflow(localHead, ghEnv);
+    if (!mainCi.ok) return failure(mainCi.state, mainCi.summary, mainCi.next);
+    evidence.push(`post-release main exact-commit CI: success (run ${mainCi.run.databaseId})`);
+  }
+
+  const tagResult = ensureAnnotatedReleaseTag(tag, releaseCommit);
   if (!tagResult.ok) return failure(tagResult.state, tagResult.summary);
   evidence.push(`${tag} remote tag commit: ${tagResult.commit}`);
 
-  const npmResult = ensureNpmPublication(packageName, version, localHead);
+  const npmResult = ensureNpmPublication(packageName, version, releaseCommit);
   if (!npmResult.ok) return failure(npmResult.state, npmResult.summary, npmResult.next);
   evidence.push(`npm publication: ${packageName}@${version} verified${npmResult.created ? " after publish" : " (already present)"}`);
 
@@ -3378,14 +3389,46 @@ function runSemverPublication({ version, tag, packageName, releaseNotesPath }) {
     state: "COMPLETE",
     version,
     tag,
-    releaseCommit: localHead,
+    releaseCommit,
     remoteMain: remoteHead,
     ciRun: ci.run,
+    mainCiRun: mainCi.run,
     tagCommit: tagResult.commit,
     npm: npmResult.metadata,
     githubRelease: releaseResult,
     deployment: "NOT_APPLICABLE",
   };
+}
+
+function resolveSemverReleaseTarget(tag, version, localHead) {
+  const local = run("git", ["rev-list", "-n", "1", tag], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const remoteObject = run("git", ["ls-remote", "origin", `refs/tags/${tag}`], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const remotePeeled = run("git", ["ls-remote", "origin", `refs/tags/${tag}^{}`], { cwd: LIBRARY_ROOT, allowFailure: true });
+  const localCommit = firstNonEmptyLine(local.stdout);
+  const remoteObjectCommit = firstNonEmptyLine(remoteObject.stdout).split(/\s+/)[0] || "";
+  const remoteCommit = firstNonEmptyLine(remotePeeled.stdout).split(/\s+/)[0] || "";
+
+  if (remoteObjectCommit && !remoteCommit) {
+    return { ok: false, state: "BLOCKED_SAFETY", summary: `${tag} exists remotely but is not an annotated tag` };
+  }
+  if (localCommit && remoteCommit && localCommit !== remoteCommit) {
+    return { ok: false, state: "BLOCKED_SAFETY", summary: `${tag} local and remote targets differ` };
+  }
+  const commit = remoteCommit || localCommit || localHead;
+  if (localCommit && !remoteCommit && localCommit !== localHead) {
+    return { ok: false, state: "BLOCKED_SAFETY", summary: `${tag} exists only locally at a commit other than current HEAD` };
+  }
+  if (commit !== localHead) {
+    const ancestor = run("git", ["merge-base", "--is-ancestor", commit, localHead], { cwd: LIBRARY_ROOT, allowFailure: true });
+    if (ancestor.code !== 0) return { ok: false, state: "BLOCKED_SAFETY", summary: `${tag} release commit is not an ancestor of current main` };
+    const taggedPackage = run("git", ["show", `${commit}:package.json`], { cwd: LIBRARY_ROOT, allowFailure: true });
+    let taggedVersion = "";
+    try { taggedVersion = JSON.parse(taggedPackage.stdout).version || ""; } catch { taggedVersion = ""; }
+    if (taggedPackage.code !== 0 || taggedVersion !== version) {
+      return { ok: false, state: "BLOCKED_SAFETY", summary: `${tag} does not contain package version ${version}` };
+    }
+  }
+  return { ok: true, commit };
 }
 
 function waitForExactValidateWorkflow(commit, ghEnv) {

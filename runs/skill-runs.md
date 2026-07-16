@@ -16,6 +16,20 @@ This file records every real use of the coding workflow skills library.
 * Follow-up skill needed:
 * Upgrade idea:
 
+## 2026-07-16 - v0.2.3 Workflow-Owned Publication
+
+* Skill used: release-preflight-skill, skills-library-packaging-skill, github-auth-gate-skill, and github-handoff-skill through lane-scoped `run-next`.
+* Goal: Publish the accumulated maturity work, prove Linux/macOS/Windows CI on the exact release commit, and verify tag, npm, and GitHub Release without inventing a deploy target.
+* Starting state: local `main` was eight validated maturity commits ahead of `origin/main`; package, tag, and GitHub Release latest versions were `0.2.2`; the first release route was hard-coded to v0.2.0 and the private objective carried stale checkpoints.
+* Commands/tools used: objective reset and authority grants; `run-next` dry-run and real/resume runs; full, portable, package, preflight, route, and skill validation; exact-file commits; non-force push; exact GitHub Actions inspection; annotated tag verification; npm web-auth publication; GitHub Release creation and verification.
+* Files inspected: lane/objective controls, semver release route, package and lockfile, changelog and release notes, package manifest, CI matrix, exact failed logs, npm and GitHub public metadata, local and remote tag/main refs.
+* Files changed: release metadata/docs and generic route controls in `46f5a6e`; the Windows ESM import correction in `dace5bf`; post-release resume hardening in `scripts/run-next`; public ledger and this run record.
+* Evidence collected: initial run `29476093283` passed validation/Linux/macOS and failed Windows only; the raw Windows path import was converted with `pathToFileURL`; exact replacement run `29476196152` passed all four jobs; remote `v0.2.3` dereferences to `dace5bff6f26a4a97548e5801e582b334e978814`; npm and GitHub Release both expose v0.2.3; package deploy is `NOT_APPLICABLE`.
+* Result: COMPLETE. `v0.2.3` is published to npm and GitHub, its exact source commit passed the three-platform matrix, and the selected private lane is complete.
+* Failure/recovery notes: npm read authentication was valid but publish required a one-time official web approval. The route stopped safely at both failed CI and missing publish capability, then resumed idempotently without moving the tag or duplicating the npm artifact.
+* Follow-up skill needed: none for this release; use the evidence-backed roadmap for the next objective.
+* Upgrade idea: preserve separate `releaseCommit` and `remoteMain` evidence so post-release bookkeeping can advance `main` while immutable package/tag artifacts remain tied to the exact release commit.
+
 ## 2026-07-16 - v0.2.3 Semver Publication Preparation
 
 * Skill used: release-preflight-skill, skills-library-packaging-skill, github-auth-gate-skill, and github-handoff-skill through lane-scoped `run-next`.

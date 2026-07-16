@@ -4,6 +4,20 @@ This is the persistent control-plane ledger for `coding-workflow-orchestrator-sk
 
 Each entry records the active repo, objective, permission boundary, selected skill, evidence, blockers, and exact next action. The ledger is operational state, not a polished report.
 
+## 2026-07-16 - v0.2.3 Published With Three-Platform CI
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Complete the workflow-owned `v0.2.3` publication sequence and verify every remote artifact.
+* Current permission level: `local_execution` and `remote_publication` were exercised under objective `release-coding-workflow-library-v0.2.3`; the granted `production_mutation` class was not used because this package declares no deployment target. Destructive and secret mutation remained ungranted.
+* Current status: `v0.2.3 published to npm and GitHub`.
+* Selected skills: `release-preflight-skill`, `skills-library-packaging-skill`, `github-auth-gate-skill`, and `github-handoff-skill` through lane-scoped `run-next`.
+* Evidence: release commit `dace5bff6f26a4a97548e5801e582b334e978814`; GitHub Actions run `29476196152` passed the full validation job and Linux, macOS, and Windows portability jobs; annotated remote tag `v0.2.3` dereferences to the release commit; npm version `autonomous-coding-workflow-library@0.2.3` is public; GitHub Release is `https://github.com/AyobamiH/coding-workflow-library/releases/tag/v0.2.3`.
+* Recovery evidence: the first exact run `29476093283` failed only on Windows because a test imported an absolute path as a raw ESM specifier. Commit `dace5bf` changed that import to a file URL; local full/portable tests and the replacement exact CI run passed before tag or publication.
+* Files changed after the release tag: `scripts/run-next` now distinguishes the immutable release commit from a later post-release `main` bookkeeping commit, and these public evidence records capture the completed objective.
+* Blockers: None. npm required official short-lived web approval during publish; no permanent credential was printed or committed.
+* Exact next action: Push this exact post-release evidence commit through the same route, verify its exact CI, then select the next evidence-backed maintenance objective.
+* Whether John is needed: No for completion of this objective. A future application or infrastructure deploy requires a repository that actually declares a deploy target.
+
 ## 2026-07-16 - v0.2.3 Semver Publication Preparation
 
 * Active repo: `<LIBRARY_REPO>`.
