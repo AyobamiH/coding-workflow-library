@@ -28,7 +28,7 @@
 - Dependency: dependency-free helpers and package lockfile.
 - Authority required: `local_execution` for tests; `remote_publication` for CI execution on GitHub.
 - Done definition: focused path, hook, corpus, browser-proof, and GitHub-review contracts run on Linux, macOS, and Windows without external service calls.
-- Status: implemented and remotely proven. Exact commit `f8968d2` passed the main validation job plus Ubuntu, macOS, and Windows portability jobs in GitHub Actions run `29484530598`. The action-runtime warning from that run is addressed locally by upgrading `actions/checkout` and `actions/setup-node` from v4 to v7; exact remote proof for that dependency update remains separate until publication is authorised.
+- Status: implemented and remotely proven. Exact commit `f8968d2` passed the main validation job plus Ubuntu, macOS, and Windows portability jobs in GitHub Actions run `29484530598`. The action-runtime warning from that run was addressed by upgrading `actions/checkout` and `actions/setup-node` from v4 to v7; exact commit `e535230` passed validation plus Ubuntu, macOS, and Windows in run `29517093422`.
 
 ## Routing shape review
 
@@ -56,7 +56,7 @@
 - Dependency: open-source SOPS and age executables plus workstation and recovery age identities stored outside source.
 - Authority required: `local_execution` for tool/identity status and encrypted-file metadata validation; explicit `secret-access` for one injection; child consequences retain their own authority.
 - Done definition: helper classifies tooling and identity readiness without identity output, validates SOPS encryption metadata without decryption, refuses plaintext, requires explicit injection approval, suppresses provider/child output, and writes no decrypted value.
-- Status: implemented through `scripts/sops-age-secret-access`, a report schema, active skill, CLI delegation, route metadata, verified local SOPS and age binaries, synthetic provider tests, a two-recipient private policy, recovery-recipient decryption proof, and one real output-suppressed read-only GitHub identity check. The subscription-backed 1Password adapter and system package are removed.
+- Status: implemented and published through `scripts/sops-age-secret-access`, a report schema, active skill, CLI delegation, route metadata, verified local SOPS and age binaries, synthetic provider tests, a two-recipient private policy, recovery-recipient decryption proof, real output-suppressed GitHub checks, and one SOPS-backed non-force publication. Exact commit `e535230` passed all GitHub Actions jobs in run `29517093422`. The subscription-backed 1Password adapter, system package, trust files, executable, and daemon are removed. Independent recovery storage remains an operator task.
 
 # P1 - Current Maturity Gaps
 

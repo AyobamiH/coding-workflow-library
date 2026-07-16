@@ -89,7 +89,7 @@ The selected secret path is the open-source combination of SOPS and age. The wor
 6. injection grants no publication, deploy, production, secret-mutation, or destructive authority to the child command.
 7. direct decrypt, `exec-file`, edit, set, unset, publish, rotate, updatekeys, ignore-MAC, and identity generation are outside runtime injection.
 
-SOPS and age are external open-source tools, not bundled package dependencies. Private age identities remain outside source. The observed local contract uses separate workstation and recovery recipients; the recovery identity still belongs in independent secure storage. Synthetic tests prove permission and refusal paths, while one real read-only GitHub identity check proves bounded credential injection with output suppressed.
+SOPS and age are external open-source tools, not bundled package dependencies. Private age identities remain outside source. The observed local contract uses separate workstation and recovery recipients; the recovery identity still belongs in independent secure storage. Synthetic tests prove permission and refusal paths, while real read-only GitHub checks and one non-force publication prove bounded credential injection with output suppressed and without cached GitHub authentication.
 
 ## Stop Conditions
 
