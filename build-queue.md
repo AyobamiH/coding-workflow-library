@@ -78,7 +78,7 @@ No active P1 gaps are currently evidence-backed. The entries below remain in thi
 - Dependency: existing route and objective-authority contracts.
 - Authority required: `local_execution`.
 - Done definition: the entrypoint owns only composition and dispatch; domain logic, reports, checkpoints, and runtime support live in focused modules; recursive syntax checks cover nested code; a deterministic hard line budget prevents another monolith.
-- Status: implemented and published. `scripts/run-next` is 964 lines, 17 modules live under `scripts/lib/run-next/`, every checked file is below 2,200 lines, and focused module, resume, authority, and lane-isolation tests pass. `scripts/check-module-size --json` exposes files above the 1,000-line review threshold; their current responsibility decisions are recorded in `docs/modularity-audit.md`.
+- Status: implemented, hardened, and pending publication of the latest refactor. Eight oversized domain modules now use thin compatibility facades over twenty focused parts, and workflow extraction uses a thin CLI over core, corpus, and snapshot modules. Every checked source file is below the new 1,000-line hard maximum; 750-line review candidates remain explicit in `docs/modularity-audit.md`.
 
 ## Safe skill-gap recorder
 

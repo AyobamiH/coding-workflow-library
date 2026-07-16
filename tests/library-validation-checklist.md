@@ -52,8 +52,8 @@ Use this checklist after creating, updating, or reorganizing the coding workflow
 - [ ] GitHub deep review leaves ambiguous branch-protection 404s as metadata unavailable
 - [ ] `skill-cleaner` reports duplicate triggers and reviewed shape exceptions separately
 - [ ] Command entrypoints remain thin and responsibility-owned implementation lives in focused modules
-- [ ] Every source file above 1,000 lines has a current cohesion decision in `docs/modularity-audit.md`
-- [ ] Hand-written JavaScript and Node scripts remain below the enforced 2,200-line source-size maximum
+- [ ] Every source file above 750 lines has a current cohesion decision in `docs/modularity-audit.md`
+- [ ] Hand-written JavaScript and Node scripts remain below the enforced 1,000-line source-size maximum
 - [ ] Missing-skill records use the structured recorder and reject duplicate, private-path, and secret-shaped input
 - [ ] Autonomy outcomes remain aggregate-only and do not emit paths, notes, commands, or raw logs
 - [ ] Multi-project proof preserves target Git status and temporary lane state

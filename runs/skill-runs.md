@@ -16,6 +16,20 @@ This file records every real use of the coding workflow skills library.
 * Follow-up skill needed:
 * Upgrade idea:
 
+## 2026-07-16 - Retained Role Credentials And Source Cohesion
+
+* Skill used: `secret-bundle-delivery-skill` and `coding-workflow-orchestrator-skill` with the modularity validation contract.
+* Goal: retain every held specialist-role credential, report actual active/configured status without reading values, and split every source file above the source-cohesion ceiling.
+* Starting state: four encrypted role credentials were intentionally held with no proven active consumer; nine source files exceeded the former 1,000-line review threshold.
+* Commands/tools used: name-only private manifest inspection; secret-free OpenClaw agent/binding/session metadata; read-only gateway status; structured private retention record; manifest validation; mechanical responsibility extraction; focused tests; full and portable suites; full pre-commit gate; package manifest and clean install smoke.
+* Files inspected: encrypted-bundle metadata without ciphertext values, OpenClaw configured-agent metadata without message content, module-size audit, run-next runtime composition, workflow extractor tests, modularity policy, queue, and architecture docs.
+* Files changed: private owner-only retention metadata; eight thin run-next facades; twenty labelled run-next parts; workflow-extraction core/corpus/snapshot modules and CLI facade; source-size guard/tests; modularity docs; queue, changelog, ledger, and this run record.
+* Evidence collected: Main default runtime and active gateway; four configured specialist roles with zero bindings and no active held-credential consumer; six-bundle manifest PASS; 110 checked source files with zero over 1,000 lines; 37 run-next modules, 421 exports, and 595 validated lazy dependencies; full, portable, route, skill, package, and clean-consumer PASS.
+* Result: LOCAL IMPLEMENTATION COMPLETE. Credentials are retained but inactive; modularity behavior is preserved; exact-file publication and exact-commit CI remain.
+* Failure/recovery notes: the ESM extractor split exposed two formerly implicit hashing/privacy helper dependencies; both became explicit imports and the complete extractor privacy/determinism suite passed. No production or credential consequence was used to manufacture activity.
+* Follow-up skill needed: none. Specialist activation requires a real routed consumer and separate consequence review.
+* Upgrade idea: extract one responsibility from a 750-line review candidate before adding materially new behavior to it; never raise or bypass the 1,000-line hard ceiling.
+
 ## 2026-07-16 - Purpose-Scoped Encrypted Secret Delivery
 
 * Skill used: `secret-bundle-delivery-skill`, `sops-age-secret-access-skill`, and `coding-workflow-orchestrator-skill`.

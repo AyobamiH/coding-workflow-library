@@ -54,8 +54,8 @@ Preserve safety gates. Failed tests, failed validation, unsafe package contents,
 
 - Keep command entrypoints thin: argument parsing, dependency composition, dispatch, and top-level error handling only.
 - Split implementation by stable responsibility before a source file becomes difficult to review, test, or safely resume.
-- Treat 1,000 lines as a review threshold. Explain why a file should remain cohesive or extract a focused module.
-- `scripts/check-module-size` enforces a 2,200-line hard maximum for JavaScript and Node scripts under `bin/`, `scripts/`, and `tests/`.
+- Treat 750 lines as an early review threshold. Explain why a file should remain cohesive or extract a focused module.
+- `scripts/check-module-size` enforces a 1,000-line hard maximum for JavaScript and Node scripts under `bin/`, `scripts/`, and `tests/`.
 - Do not add an allowlist merely to let a hand-written file keep growing. Generated, dependency, cache, build, coverage, and private runtime output are excluded by source boundary instead.
 - Put shared behaviour in one named primitive rather than copying it across route modules.
 - Preserve behaviour with focused module-contract and route/resume tests when splitting an established executable.
@@ -146,4 +146,4 @@ Real repo paths, monitoring baselines, private evidence, and product-specific ru
 
 Real `run-next` executions also write secret-free local checkpoint metadata under `.run-next/`. This directory is ignored by git and is used only to inspect or resume interrupted bounded runs.
 
-Hand-written JavaScript and Node scripts above 1,000 lines require a cohesion review. Either extract a focused responsibility or record why the file remains cohesive in `docs/modularity-audit.md`. No hand-written file may bypass the 2,200-line hard maximum.
+Hand-written JavaScript and Node scripts above 750 lines require a cohesion review. Either extract a focused responsibility or record why the file remains cohesive in `docs/modularity-audit.md`. No hand-written file may bypass the 1,000-line hard maximum.

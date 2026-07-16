@@ -48,7 +48,7 @@ For later library releases, select an objective id shaped as `release-coding-wor
 
 Use `scripts/pre-commit-check` before local commits in this library. Default mode is fast and local; `--staged` adds staged diff safety and secret-shaped marker scanning without values; `--full` adds `npm test` and `skill-cleaner`. `scripts/install-git-hooks` can install the optional managed `.git/hooks/pre-commit` template, but it must preserve unmanaged hooks unless `--force` is explicitly chosen. The hook does not grant commit, push, publish, deploy, or release authority.
 
-Use `scripts/check-module-size` after adding or reorganising JavaScript. Entry points should contain composition and dispatch, while route execution, evidence collection, report rendering, and checkpoint handling belong in responsibility-owned modules. Review files at 1,000 lines; the 2,200-line hard gate is enforced by `npm test` and pre-commit validation. Do not bypass the gate with a hand-written-file allowlist. For `run-next`, follow `docs/run-next-modular-architecture.md` and extend the owning module instead of restoring the old monolith.
+Use `scripts/check-module-size` after adding or reorganising JavaScript. Entry points should contain composition and dispatch, while route execution, evidence collection, report rendering, and checkpoint handling belong in responsibility-owned modules. Review files at 750 lines; the 1,000-line hard gate is enforced by `npm test` and pre-commit validation. Do not bypass the gate with a hand-written-file allowlist. For `run-next`, follow `docs/run-next-modular-architecture.md` and extend the owning module instead of restoring the old monolith.
 
 Use `<LIBRARY_REPO>`, `<TARGET_REPO>`, `<LOCAL_ENV_FILE>`, and `<TEMP_ROOT>` in tracked documentation and evidence. `scripts/run-next` defaults `--repo` to the current working directory and supports `CODING_WORKFLOW_HOME`, `CODING_WORKFLOW_ENV_FILE`, `CODING_WORKFLOW_TMPDIR`, and `CODING_WORKFLOW_NPM_CACHE` for local runtime placement. `scripts/check-public-paths` is deterministic and reports path categories without echoing matched private paths.
 
@@ -376,7 +376,7 @@ Every real use of this library must be logged in `runs/skill-runs.md`.
 
 Lane-aware runs use `--lane <id> --state-file <path>`. They read and update only the selected lane, never append product-specific runtime evidence to the public ledger/run log, and require explicit monitoring baselines rather than deriving production time boundaries from ledger file timestamps.
 
-Run `scripts/check-module-size --json` during broad source work. Review every file above 1,000 lines against `docs/modularity-audit.md`; split a focused responsibility when the current change would weaken cohesion. The 2,200-line maximum is a hard validation failure.
+Run `scripts/check-module-size --json` during broad source work. Review every file above 750 lines against `docs/modularity-audit.md`; split a focused responsibility when the current change would weaken cohesion. The 1,000-line maximum is a hard validation failure.
 
 Minimum ledger fields:
 

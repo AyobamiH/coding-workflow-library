@@ -27,19 +27,19 @@ Command-line parsing, route-access decisions, and route-kind dispatch are separa
 | `cli-control.js` | Argument parsing, help, control-file reads, and lane/ledger work-item selection |
 | `route-access.js` | Authority checks, stop-boundary decisions, and next-approval classification |
 | `route-dispatch.js` | Declarative route-kind to executor dispatch |
-| `runtime-core.js` | Process execution, sanitisation, Git helpers, shared runtime utilities |
+| `runtime-core.js` | Compatibility facade over process/evidence/state and safe-summary utility parts |
 | `checkpoints.js` | Secret-free interrupted-run checkpoint creation, status, and resume support |
-| `reports.js` | Route-specific human report selection and rendering |
-| `local-foundations.js` | Verification bundles, package smoke, docs, repo-map, project-KB, migration, and local foundations |
-| `release-routes.js` | Versioned release preparation and publication route execution |
+| `reports.js` | Compatibility facade over general/runtime and scheduler/tooling report families |
+| `local-foundations.js` | Compatibility facade over verification, package-candidate, and handoff foundations |
+| `release-routes.js` | Compatibility facade over versioned publication and local-foundation route parts |
 | `github-routes.js` | GitHub handoff, PR readiness, merge, and scheduler PR route execution |
 | `github-support.js` | Shared GitHub inspection, scope, commit, and PR metadata helpers |
-| `supabase-control.js` | Supabase route orchestration and bounded control-plane decisions |
+| `supabase-control.js` | Compatibility facade over preflight/deploy, runtime/scheduler, and PR-draft control parts |
 | `supabase-auth.js` | Supabase local auth, link, secret-file, and repository evidence helpers |
 | `supabase-planning.js` | Deployment, tooling, scheduler, and application planning evidence |
-| `runtime-routes.js` | Function deployment and bounded runtime verification routes |
-| `scheduler-routes.js` | Scheduler, Vault, monitoring, and read-only database evidence routes |
-| `observability-routes.js` | Zero-output and production-observability investigation routes |
+| `runtime-routes.js` | Compatibility facade over negative-runtime and controlled-success route parts |
+| `scheduler-routes.js` | Compatibility facade over monitoring, application/Vault preflight, and mutation/report parts |
+| `observability-routes.js` | Compatibility facade over investigation/lifecycle, telemetry, and evidence/outcome parts |
 
 ## Runtime Composition
 
@@ -59,9 +59,9 @@ Modules receive immutable-at-load configuration and shared state through `runtim
 
 Modularity is a repository rule, not a one-time refactor.
 
-- Review a hand-written source file when it reaches 1,000 lines.
+- Review a hand-written source file when it reaches 750 lines.
 - Explain why it remains cohesive or extract a focused responsibility.
-- `scripts/check-module-size` enforces a 2,200-line hard maximum.
+- `scripts/check-module-size` enforces a 1,000-line hard maximum.
 - `scripts/check-module-size --json` exposes review candidates for deterministic audit tooling.
 - The checker scans JavaScript and Node scripts recursively under `bin/`, `scripts/`, and `tests/`.
 - Generated output, dependencies, caches, builds, coverage, and private `.run-next` state are excluded by directory boundary.

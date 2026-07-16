@@ -25,10 +25,10 @@ try {
   assert.equal(passed.oversized.length, 0, "bounded modules should pass");
   assert.deepEqual(passed.reviewCandidates, [{ path: "scripts/lib/large.js", lines: 4 }], "review threshold should not fail bounded modules");
 
-  const repository = inspectRepository({ repo: ROOT, reviewLines: 1000, maxLines: 2200 });
+  const repository = inspectRepository({ repo: ROOT, reviewLines: 750, maxLines: 1000 });
   assert.equal(repository.oversized.length, 0, `repository module-size check failed: ${JSON.stringify(repository.oversized)}`);
   assert.ok(repository.reviewCandidates.length > 0, "repository review candidates should remain visible");
-  assert.ok(!repository.reviewCandidates.some((item) => item.path === "scripts/run-next"), "run-next entrypoint should remain below the review threshold");
+  assert.ok(!repository.reviewCandidates.some((item) => item.path.includes("-part-")), "extracted domain parts should remain below the review threshold");
 
   console.log("module size tests passed: nested discovery, review threshold, hard limit, exclusions, and repository budget.");
 } finally {

@@ -31,7 +31,7 @@ Run the source-size guard after adding or reorganising JavaScript:
 npm run check:modules
 ```
 
-The repository uses a 1,000-line review threshold and a tested 2,200-line hard maximum for hand-written JavaScript and Node scripts under `bin/`, `scripts/`, and `tests/`. Use `./scripts/check-module-size --json` to inspect review candidates. The hard gate is part of `npm test`, portable tests, and the default pre-commit check. Current cohesion decisions are recorded in [docs/modularity-audit.md](docs/modularity-audit.md).
+The repository uses a 750-line early-review threshold and a tested 1,000-line hard maximum for hand-written JavaScript and Node scripts under `bin/`, `scripts/`, and `tests/`. Use `./scripts/check-module-size --json` to inspect review candidates. The hard gate is part of `npm test`, portable tests, and the default pre-commit check. Current cohesion decisions are recorded in [docs/modularity-audit.md](docs/modularity-audit.md).
 
 ## Layout
 

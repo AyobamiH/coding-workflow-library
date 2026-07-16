@@ -4,6 +4,19 @@ This is the persistent control-plane ledger for `coding-workflow-orchestrator-sk
 
 Each entry records the active repo, objective, permission boundary, selected skill, evidence, blockers, and exact next action. The ledger is operational state, not a polished report.
 
+## 2026-07-16 - Retained Role Credentials And Source Cohesion
+
+* Active repo: `<LIBRARY_REPO>` with private credential metadata outside source.
+* Current objective: retain all specialist-role credentials, distinguish configured roles from active runtime use, and remove every source file above the established cohesion ceiling.
+* Current permission level: `local_execution`, private retention-metadata update, and approved `remote_publication` for the reusable refactor. No credential value read, production mutation, deploy, npm publication, version change, tag, or release.
+* Current status: complete locally and ready for exact-file publication. Banker, Executioner, Researcher, and Trader remain encrypted and retained; all are configured but unbound, and none currently consumes its held credential. Main is the default active OpenClaw runtime and the gateway service is active.
+* Selected skills: `secret-bundle-delivery-skill`, `coding-workflow-orchestrator-skill`, and the repository modularity contract.
+* Retention evidence: owner decision `RETAIN` is recorded in private owner-only metadata; the six-bundle manifest still validates with no findings; no ciphertext was changed and no decrypted value was read or emitted.
+* Modularity evidence: eight former oversized `run-next` domain files are compatibility facades over twenty responsibility-labelled parts. The workflow extractor is a thin CLI over core, corpus, and snapshot modules. All 110 checked JavaScript/Node files are below the 1,000-line hard maximum; six 750-line review candidates have explicit cohesion decisions and no allowlist.
+* Validation evidence: focused module, resume, workflow-extraction, authority, and size tests passed; full and portable package suites passed; the full pre-commit gate, 36-route audit, skill cleaner, and 33-skill validation passed; a 212-file package manifest contained every required module and no risky path; clean tarball CLI help and route smoke passed.
+* Exact next action: commit only the reusable modularity implementation and public evidence, push non-force through the encrypted GitHub profile, then verify validation plus Linux, macOS, and Windows for the exact commit.
+* Whether John is needed: No. Retention and publication were explicitly approved. Activating a specialist credential remains a separate routed-consumer decision.
+
 ## 2026-07-16 - Purpose-Scoped Encrypted Secret Delivery
 
 * Active repo: `<LIBRARY_REPO>` with private runtime state outside source.
