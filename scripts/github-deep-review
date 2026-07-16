@@ -1,0 +1,661 @@
+#!/usr/bin/env node
+
+const { spawnSync } = require("child_process");
+
+const BOUNDARIES = [
+  "read-only GitHub inspection only; no replies, reviews, thread resolution, commits, pushes, merges, approvals, or branch deletion",
+  "review text is bounded and redacted; PR bodies, raw check logs, headers, tokens, and credentials are never emitted",
+  "ready-for-handoff is evidence about the observed PR state, not permission or a guarantee that the PR should be merged",
+  "branch-protection and review metadata may be unavailable to the current GitHub identity and must remain explicit",
+  "one inspection does not prove future check results, future review state, deployment state, or production correctness",
+];
+
+const SECRET_PATTERNS = [
+  { category: "github_token", pattern: /\bgh[pousr]_[A-Za-z0-9_]{12,}\b/gi },
+  { category: "api_key", pattern: /\bsk-[A-Za-z0-9_-]{12,}\b/gi },
+  { category: "jwt", pattern: /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g },
+  { category: "bearer_token", pattern: /\bBearer\s+[A-Za-z0-9._~+/=-]{12,}\b/gi },
+  { category: "database_url", pattern: /\bpostgres(?:ql)?:\/\/[^\s'"<>]+/gi },
+  { category: "private_key", pattern: /-----BEGIN [A-Z ]*PRIVATE KEY-----/g },
+  { category: "credential_url", pattern: /https?:\/\/[^:\s'"<>]+:[^@\s'"<>]+@[^\s'"<>]+/gi },
+  { category: "secret_assignment", pattern: /\b(?:TOKEN|SECRET|PASSWORD|API[_-]?KEY|PRIVATE[_-]?KEY|AUTHORIZATION)\s*[:=]\s*[^\s'"<>]{12,}/gi },
+];
+
+const THREAD_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String) {
+  repository(owner:$owner,name:$name) {
+    pullRequest(number:$number) {
+      reviewThreads(first:100,after:$cursor) {
+        nodes {
+          id
+          isResolved
+          isOutdated
+          path
+          line
+          originalLine
+          comments(last:1) {
+            nodes { author { login } body createdAt }
+          }
+        }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+  }
+}`;
+
+const REVIEW_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String) {
+  repository(owner:$owner,name:$name) {
+    pullRequest(number:$number) {
+      reviews(first:100,after:$cursor) {
+        nodes { id state submittedAt author { login } commit { oid } }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+  }
+}`;
+
+const FILE_QUERY = `query($owner:String!,$name:String!,$number:Int!,$cursor:String) {
+  repository(owner:$owner,name:$name) {
+    pullRequest(number:$number) {
+      files(first:100,after:$cursor) {
+        nodes { path additions deletions changeType }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+  }
+}`;
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/github-deep-review --repo OWNER/REPO --pr NUMBER
+  ./scripts/github-deep-review --repo OWNER/REPO --pr NUMBER --json --validate
+  ./scripts/github-deep-review --repo OWNER/REPO --pr NUMBER --inspect-failed-checks
+
+Inspect one GitHub pull request without mutating it. The report includes exact patch
+scope, review-thread state, current review decisions, stale approvals, checks,
+branch-protection metadata when readable, and optional count-only failed-log
+categories. It never replies, resolves threads, reviews, commits, pushes, or merges.
+
+Options:
+  --repo OWNER/REPO       GitHub repository.
+  --pr NUMBER             Pull request number.
+  --inspect-failed-checks Inspect failed Actions logs in memory and emit categories only.
+  --json                  Print structured JSON.
+  --validate              Validate the evidence contract before success.
+  --help                  Show this help.`);
+}
+
+function parseArgs(argv) {
+  const args = {
+    repo: null,
+    pr: null,
+    inspectFailedChecks: false,
+    json: false,
+    validate: false,
+    help: false,
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--repo") {
+      args.repo = argv[++index];
+      if (!args.repo) throw new Error("--repo requires OWNER/REPO");
+    } else if (arg === "--pr") {
+      const value = argv[++index];
+      if (!value || !/^\d+$/.test(value) || Number(value) < 1) throw new Error("--pr requires a positive integer");
+      args.pr = Number(value);
+    } else if (arg === "--inspect-failed-checks") {
+      args.inspectFailedChecks = true;
+    } else if (arg === "--json") {
+      args.json = true;
+    } else if (arg === "--validate") {
+      args.validate = true;
+    } else if (arg === "--help" || arg === "-h") {
+      args.help = true;
+    } else {
+      throw new Error(`unknown argument: ${arg}`);
+    }
+  }
+
+  if (!args.help) {
+    normalizeRepo(args.repo);
+    if (!args.pr) throw new Error("--pr is required");
+  }
+  return args;
+}
+
+function normalizeRepo(value) {
+  const normalized = String(value || "").trim();
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(normalized)) {
+    throw new Error("--repo requires OWNER/REPO");
+  }
+  return normalized;
+}
+
+function classifyGhFailure(text) {
+  const value = String(text || "");
+  if (/not logged|authentication|bad credentials|401/i.test(value)) return "authentication_unavailable";
+  if (/403|resource not accessible|permission/i.test(value)) return "permission_unavailable";
+  if (/404|not found/i.test(value)) return "not_found";
+  if (/rate limit/i.test(value)) return "rate_limited";
+  if (/timeout|ENOTFOUND|ECONNRESET|network/i.test(value)) return "network_unavailable";
+  return "github_metadata_unavailable";
+}
+
+function runGh(args, options = {}) {
+  const result = spawnSync("gh", args, {
+    encoding: "utf8",
+    env: { ...process.env, NO_COLOR: "1", GH_PAGER: "cat", PAGER: "cat" },
+    maxBuffer: options.maxBuffer || 1024 * 1024 * 16,
+    timeout: options.timeout || 60000,
+  });
+  if (result.error) {
+    return { ok: false, category: classifyGhFailure(result.error.message) };
+  }
+  if (result.status !== 0) {
+    return { ok: false, category: classifyGhFailure(`${result.stdout || ""}${result.stderr || ""}`) };
+  }
+  return { ok: true, stdout: result.stdout || "" };
+}
+
+function runGhJson(args) {
+  const result = runGh(args);
+  if (!result.ok) return result;
+  try {
+    return { ok: true, data: JSON.parse(result.stdout) };
+  } catch {
+    return { ok: false, category: "malformed_github_metadata" };
+  }
+}
+
+function redactExcerpt(value, maximum = 240) {
+  let output = String(value || "");
+  output = output.replace(/\/home\/[^/\s]+\/[^\s'"<>]+/g, "[private-path]");
+  output = output.replace(/https?:\/\/[^\s'"<>]+/gi, "[link]");
+  for (const item of SECRET_PATTERNS) {
+    item.pattern.lastIndex = 0;
+    output = output.replace(item.pattern, `[redacted:${item.category}]`);
+  }
+  return output.replace(/\s+/g, " ").trim().slice(0, maximum);
+}
+
+function secretCategories(value) {
+  const categories = new Set();
+  const text = String(value || "");
+  for (const item of SECRET_PATTERNS) {
+    item.pattern.lastIndex = 0;
+    if (item.pattern.test(text)) categories.add(item.category);
+  }
+  return [...categories].sort();
+}
+
+function safeRelativePath(value) {
+  const path = String(value || "").replace(/\\/g, "/");
+  if (!path || path.startsWith("/") || path.split("/").includes("..") || /[\u0000-\u001f]/.test(path)) {
+    return "[invalid-path]";
+  }
+  return path;
+}
+
+function graphqlPage(repo, pr, query, cursor) {
+  const [owner, name] = normalizeRepo(repo).split("/");
+  const args = [
+    "api",
+    "graphql",
+    "-f",
+    `query=${query}`,
+    "-F",
+    `owner=${owner}`,
+    "-F",
+    `name=${name}`,
+    "-F",
+    `number=${pr}`,
+  ];
+  if (cursor) args.push("-F", `cursor=${cursor}`);
+  return runGhJson(args);
+}
+
+function collectConnection(repo, pr, query, selector) {
+  const nodes = [];
+  let cursor = null;
+  for (let page = 0; page < 20; page += 1) {
+    const result = graphqlPage(repo, pr, query, cursor);
+    if (!result.ok) return { available: false, category: result.category, nodes: [] };
+    const connection = selector(result.data);
+    if (!connection || !Array.isArray(connection.nodes) || !connection.pageInfo) {
+      return { available: false, category: "malformed_github_metadata", nodes: [] };
+    }
+    nodes.push(...connection.nodes);
+    if (!connection.pageInfo.hasNextPage) return { available: true, category: null, nodes };
+    if (!connection.pageInfo.endCursor || connection.pageInfo.endCursor === cursor) {
+      return { available: false, category: "pagination_incomplete", nodes: [] };
+    }
+    cursor = connection.pageInfo.endCursor;
+  }
+  return { available: false, category: "pagination_limit_reached", nodes: [] };
+}
+
+function normalizeThread(thread) {
+  const comment = thread?.comments?.nodes?.[0] || {};
+  return {
+    id: String(thread?.id || "unknown"),
+    path: safeRelativePath(thread?.path),
+    line: Number.isInteger(thread?.line) ? thread.line : (Number.isInteger(thread?.originalLine) ? thread.originalLine : null),
+    resolved: Boolean(thread?.isResolved),
+    outdated: Boolean(thread?.isOutdated),
+    last_author: redactExcerpt(comment?.author?.login || "unknown", 80),
+    last_comment_at: comment?.createdAt || null,
+    last_comment_excerpt: redactExcerpt(comment?.body || ""),
+  };
+}
+
+function latestReviews(reviews, headSha) {
+  const latest = new Map();
+  const sorted = [...reviews].sort((left, right) => String(left?.submittedAt || "").localeCompare(String(right?.submittedAt || "")));
+  for (const review of sorted) {
+    const reviewer = redactExcerpt(review?.author?.login || "unknown", 80);
+    if (!reviewer || reviewer === "unknown") continue;
+    latest.set(reviewer, {
+      reviewer,
+      state: String(review?.state || "UNKNOWN").toUpperCase(),
+      submitted_at: review?.submittedAt || null,
+      commit_matches_head: Boolean(review?.commit?.oid && review.commit.oid === headSha),
+    });
+  }
+  return [...latest.values()].sort((left, right) => left.reviewer.localeCompare(right.reviewer));
+}
+
+function normalizeCheck(check) {
+  const name = redactExcerpt(check?.name || check?.context || "unnamed_check", 160);
+  const workflow = redactExcerpt(check?.workflowName || "", 160) || null;
+  const status = String(check?.status || check?.state || "UNKNOWN").toUpperCase();
+  const conclusion = String(check?.conclusion || check?.state || "").toUpperCase() || null;
+  let classification = "pending";
+  if (["SUCCESS", "PASS", "PASSED"].includes(conclusion)) classification = "passed";
+  else if (["NEUTRAL", "SKIPPED"].includes(conclusion)) classification = "neutral";
+  else if (["FAILURE", "FAILED", "ERROR", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE", "CANCELLED"].includes(conclusion)) classification = "failed";
+  else if (["COMPLETED"].includes(status) && !conclusion) classification = "neutral";
+  return {
+    name,
+    workflow,
+    status,
+    conclusion,
+    classification,
+    run_id: extractRunId(check?.detailsUrl),
+  };
+}
+
+function extractRunId(value) {
+  const match = String(value || "").match(/\/actions\/runs\/(\d+)/);
+  return match ? match[1] : null;
+}
+
+function countBy(items, key) {
+  const counts = {};
+  for (const item of items) counts[item[key]] = (counts[item[key]] || 0) + 1;
+  return counts;
+}
+
+function classifyFailedLog(text) {
+  const value = String(text || "");
+  const categories = new Set();
+  if (/\b(lint|eslint|prettier|format)\b/i.test(value)) categories.add("lint");
+  if (/\b(test|vitest|jest|pytest|assertion)\b/i.test(value)) categories.add("test");
+  if (/\b(typecheck|tsc|type error|typescript)\b/i.test(value)) categories.add("typecheck");
+  if (/\b(build|compile|bundl|webpack|vite|next build)\b/i.test(value)) categories.add("build");
+  if (/\b(timeout|timed out|cancelled|canceled)\b/i.test(value)) categories.add("timeout_or_cancelled");
+  if (/\b(dependency|npm|pnpm|yarn|package-lock|module not found)\b/i.test(value)) categories.add("dependency");
+  if (/\b(permission|forbidden|resource not accessible|authentication)\b/i.test(value)) categories.add("permission_or_auth");
+  if (!categories.size) categories.add("unknown");
+  return [...categories].sort();
+}
+
+function inspectFailedLogs(repo, checks) {
+  const runIds = [...new Set(checks.filter((check) => check.classification === "failed").map((check) => check.run_id).filter(Boolean))].slice(0, 10);
+  const categories = {};
+  const secretMarkers = {};
+  let runsInspected = 0;
+  let unavailable = 0;
+
+  for (const runId of runIds) {
+    const result = runGh(["run", "view", runId, "--repo", repo, "--log-failed"], { maxBuffer: 1024 * 1024 * 32 });
+    if (!result.ok) {
+      unavailable += 1;
+      continue;
+    }
+    runsInspected += 1;
+    for (const category of classifyFailedLog(result.stdout)) categories[category] = (categories[category] || 0) + 1;
+    for (const category of secretCategories(result.stdout)) secretMarkers[category] = (secretMarkers[category] || 0) + 1;
+  }
+
+  return {
+    inspection: runIds.length === 0 ? "no_failed_actions_runs" : (runsInspected ? "completed" : "metadata_unavailable"),
+    requested: true,
+    candidate_runs: runIds.length,
+    runs_inspected: runsInspected,
+    unavailable_runs: unavailable,
+    categories,
+    secret_shaped_marker_categories: secretMarkers,
+    raw_logs_emitted: false,
+  };
+}
+
+function branchProtection(repo, branch) {
+  const encoded = encodeURIComponent(String(branch || ""));
+  const result = runGhJson(["api", `repos/${repo}/branches/${encoded}/protection`]);
+  if (!result.ok) {
+    return {
+      state: result.category === "not_found" ? "not_configured" : "metadata_unavailable",
+      required_checks: null,
+      required_approving_reviews: null,
+      dismisses_stale_reviews: null,
+      requires_code_owner_reviews: null,
+    };
+  }
+  const data = result.data || {};
+  return {
+    state: "verified",
+    required_checks: Array.isArray(data?.required_status_checks?.contexts) ? data.required_status_checks.contexts.length : 0,
+    required_approving_reviews: Number.isInteger(data?.required_pull_request_reviews?.required_approving_review_count)
+      ? data.required_pull_request_reviews.required_approving_review_count
+      : 0,
+    dismisses_stale_reviews: Boolean(data?.required_pull_request_reviews?.dismiss_stale_reviews),
+    requires_code_owner_reviews: Boolean(data?.required_pull_request_reviews?.require_code_owner_reviews),
+  };
+}
+
+function buildSignals(report) {
+  const signals = [
+    { id: "pull_request_metadata", state: "VERIFIED", detail: "PR identity and head metadata observed" },
+    { id: "patch_scope", state: report.patch_scope.metadata_available ? "VERIFIED" : "METADATA_UNAVAILABLE", detail: `${report.patch_scope.changed_files} changed files observed` },
+    { id: "review_threads", state: report.threads.metadata_available ? (report.threads.actionable_unresolved ? "FAILED" : (report.threads.outdated_unresolved ? "WARNING" : "VERIFIED")) : "METADATA_UNAVAILABLE", detail: `${report.threads.actionable_unresolved} actionable unresolved threads` },
+    { id: "requested_changes", state: report.reviews.metadata_available ? (report.reviews.current_changes_requested ? "FAILED" : "VERIFIED") : "METADATA_UNAVAILABLE", detail: `${report.reviews.current_changes_requested} current change requests` },
+    { id: "stale_approvals", state: report.reviews.metadata_available ? (report.reviews.stale_approvals.length ? "WARNING" : "VERIFIED") : "METADATA_UNAVAILABLE", detail: `${report.reviews.stale_approvals.length} stale approvals` },
+    { id: "checks", state: report.checks.failed ? "FAILED" : (report.checks.pending ? "PENDING" : "VERIFIED"), detail: `${report.checks.failed} failed, ${report.checks.pending} pending` },
+    { id: "branch_protection", state: report.branch_protection.state === "verified" ? "VERIFIED" : (report.branch_protection.state === "not_configured" ? "NOT_CONFIGURED" : "METADATA_UNAVAILABLE"), detail: report.branch_protection.state },
+    { id: "failed_check_logs", state: report.failed_check_logs.inspection === "completed" ? "EXTERNAL_EVIDENCE" : (report.failed_check_logs.inspection === "not_requested" ? "NOT_VERIFIED" : "METADATA_UNAVAILABLE"), detail: report.failed_check_logs.inspection },
+    { id: "merge_permission", state: "NOT_VERIFIED", detail: "read-only review never grants merge permission" },
+    { id: "production_state", state: "NOT_VERIFIED", detail: "PR evidence is not production evidence" },
+  ];
+  return signals;
+}
+
+function deriveStatus(report) {
+  if (
+    report.pull_request.state !== "OPEN" ||
+    report.pull_request.mergeable === "CONFLICTING" ||
+    report.threads.actionable_unresolved > 0 ||
+    report.reviews.current_changes_requested > 0 ||
+    report.checks.failed > 0
+  ) return "BLOCKED";
+  if (report.checks.pending > 0 || ["UNKNOWN", "UNSTABLE"].includes(report.pull_request.mergeable)) return "PENDING";
+  if (
+    !report.threads.metadata_available ||
+    !report.reviews.metadata_available ||
+    !report.patch_scope.metadata_available ||
+    report.threads.outdated_unresolved > 0 ||
+    report.reviews.stale_approvals.length > 0 ||
+    report.branch_protection.state === "metadata_unavailable"
+  ) return "ATTENTION";
+  return "READY_FOR_HANDOFF";
+}
+
+function buildGithubDeepReview(input, options = {}) {
+  const metadata = input.metadata || {};
+  const headSha = String(metadata.headRefOid || "");
+  const normalizedThreads = input.threads.available ? input.threads.nodes.map(normalizeThread) : [];
+  const latest = input.reviews.available ? latestReviews(input.reviews.nodes, headSha) : [];
+  const files = input.files.available
+    ? input.files.nodes.map((file) => ({
+      path: safeRelativePath(file?.path),
+      additions: Number(file?.additions || 0),
+      deletions: Number(file?.deletions || 0),
+      change_type: String(file?.changeType || "UNKNOWN").toUpperCase(),
+    })).sort((left, right) => left.path.localeCompare(right.path))
+    : [];
+  const checks = (metadata.statusCheckRollup || []).map(normalizeCheck).sort((left, right) => `${left.workflow || ""}/${left.name}`.localeCompare(`${right.workflow || ""}/${right.name}`));
+  const checkCounts = countBy(checks, "classification");
+  const report = {
+    schema_version: 1,
+    mode: "github_read_only",
+    collected_at: options.collectedAt || new Date().toISOString(),
+    status: "PENDING",
+    repository: normalizeRepo(input.repo),
+    pull_request: {
+      number: Number(metadata.number || input.pr),
+      url: `https://github.com/${normalizeRepo(input.repo)}/pull/${Number(metadata.number || input.pr)}`,
+      state: String(metadata.state || "UNKNOWN").toUpperCase(),
+      draft: Boolean(metadata.isDraft),
+      base_branch: redactExcerpt(metadata.baseRefName || "unknown", 160),
+      head_branch: redactExcerpt(metadata.headRefName || "unknown", 160),
+      head_sha: headSha,
+      mergeable: String(metadata.mergeable || "UNKNOWN").toUpperCase(),
+      merge_state_status: String(metadata.mergeStateStatus || "UNKNOWN").toUpperCase(),
+      review_decision: String(metadata.reviewDecision || "").toUpperCase() || null,
+    },
+    patch_scope: {
+      metadata_available: input.files.available,
+      changed_files: files.length,
+      additions: files.reduce((total, file) => total + file.additions, 0),
+      deletions: files.reduce((total, file) => total + file.deletions, 0),
+      files,
+    },
+    threads: {
+      metadata_available: input.threads.available,
+      unavailable_reason: input.threads.available ? null : input.threads.category,
+      total: normalizedThreads.length,
+      resolved: normalizedThreads.filter((thread) => thread.resolved).length,
+      actionable_unresolved: normalizedThreads.filter((thread) => !thread.resolved && !thread.outdated).length,
+      outdated_unresolved: normalizedThreads.filter((thread) => !thread.resolved && thread.outdated).length,
+      items: normalizedThreads.sort((left, right) => `${left.path}:${left.line || 0}:${left.id}`.localeCompare(`${right.path}:${right.line || 0}:${right.id}`)),
+    },
+    reviews: {
+      metadata_available: input.reviews.available,
+      unavailable_reason: input.reviews.available ? null : input.reviews.category,
+      total: input.reviews.available ? input.reviews.nodes.length : 0,
+      current_approvals: latest.filter((review) => review.state === "APPROVED").length,
+      current_changes_requested: latest.filter((review) => review.state === "CHANGES_REQUESTED").length,
+      stale_approvals: latest.filter((review) => review.state === "APPROVED" && !review.commit_matches_head).map((review) => review.reviewer),
+      latest,
+    },
+    checks: {
+      total: checks.length,
+      passed: checkCounts.passed || 0,
+      failed: checkCounts.failed || 0,
+      pending: checkCounts.pending || 0,
+      neutral: checkCounts.neutral || 0,
+      items: checks.map(({ run_id, ...check }) => check),
+    },
+    branch_protection: input.branchProtection,
+    failed_check_logs: input.failedCheckLogs || {
+      inspection: "not_requested",
+      requested: false,
+      candidate_runs: 0,
+      runs_inspected: 0,
+      unavailable_runs: 0,
+      categories: {},
+      secret_shaped_marker_categories: {},
+      raw_logs_emitted: false,
+    },
+    signals: [],
+    not_verified: [
+      "merge permission or human approval to merge",
+      "future check and review state",
+      "deployment, runtime, database, and production state",
+      "security properties beyond the metadata and bounded excerpts observed",
+    ],
+    redactions_applied: ["secret-shaped values", "credential-bearing links", "URLs in review text", "private absolute paths", "review excerpts after 240 characters"],
+    boundaries: [...BOUNDARIES],
+  };
+  report.status = deriveStatus(report);
+  report.signals = buildSignals(report);
+  return report;
+}
+
+function collectGithubDeepReview(args) {
+  const auth = runGh(["auth", "status", "--hostname", "github.com"]);
+  if (!auth.ok) throw new Error(`GitHub auth gate failed: ${auth.category}`);
+
+  const metadataResult = runGhJson([
+    "pr", "view", String(args.pr), "--repo", args.repo,
+    "--json", "number,state,isDraft,headRefName,baseRefName,headRefOid,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup",
+  ]);
+  if (!metadataResult.ok) throw new Error(`pull request metadata unavailable: ${metadataResult.category}`);
+
+  const threads = collectConnection(args.repo, args.pr, THREAD_QUERY, (data) => data?.data?.repository?.pullRequest?.reviewThreads);
+  const reviews = collectConnection(args.repo, args.pr, REVIEW_QUERY, (data) => data?.data?.repository?.pullRequest?.reviews);
+  const files = collectConnection(args.repo, args.pr, FILE_QUERY, (data) => data?.data?.repository?.pullRequest?.files);
+  const checks = (metadataResult.data.statusCheckRollup || []).map(normalizeCheck);
+  const failedCheckLogs = args.inspectFailedChecks ? inspectFailedLogs(args.repo, checks) : null;
+
+  return buildGithubDeepReview({
+    repo: args.repo,
+    pr: args.pr,
+    metadata: metadataResult.data,
+    threads,
+    reviews,
+    files,
+    branchProtection: branchProtection(args.repo, metadataResult.data.baseRefName),
+    failedCheckLogs,
+  });
+}
+
+function validateGithubDeepReview(report) {
+  const errors = [];
+  if (!report || typeof report !== "object") return ["report must be an object"];
+  if (report.schema_version !== 1) errors.push("schema_version must be 1");
+  if (report.mode !== "github_read_only") errors.push("mode must be github_read_only");
+  if (!new Set(["READY_FOR_HANDOFF", "ATTENTION", "PENDING", "BLOCKED"]).has(report.status)) errors.push("status is invalid");
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(report.repository || "")) errors.push("repository must be OWNER/REPO");
+  if (!Number.isInteger(report?.pull_request?.number) || report.pull_request.number < 1) errors.push("pull_request.number is invalid");
+  if (!/^[0-9a-f]{7,64}$/i.test(report?.pull_request?.head_sha || "")) errors.push("pull_request.head_sha is invalid");
+  if (!Array.isArray(report?.patch_scope?.files)) errors.push("patch_scope.files must be an array");
+  for (const file of report?.patch_scope?.files || []) {
+    if (safeRelativePath(file.path) !== file.path || file.path === "[invalid-path]") errors.push("patch_scope contains an unsafe path");
+  }
+  if (!Array.isArray(report.signals) || !report.signals.length) errors.push("signals must be a non-empty array");
+  if (report?.failed_check_logs?.raw_logs_emitted !== false) errors.push("raw failed logs must not be emitted");
+
+  const serialized = JSON.stringify(report);
+  if (/\/home\/[^/\s]+\//.test(serialized)) errors.push("report contains a private absolute path");
+  if (secretCategories(serialized).length) errors.push("report contains secret-shaped values");
+  for (const forbidden of ["authorization_header", "request_headers", "raw_log", "raw_logs", "pr_body", "token_value"]) {
+    if (serialized.includes(`\"${forbidden}\"`)) errors.push(`report contains forbidden field ${forbidden}`);
+  }
+  return [...new Set(errors)];
+}
+
+function renderHuman(report) {
+  const fileLines = report.patch_scope.files.length
+    ? report.patch_scope.files.map((file) => `- ${file.change_type} ${file.path} (+${file.additions}/-${file.deletions})`).join("\n")
+    : "- none observed";
+  const threadLines = report.threads.items.length
+    ? report.threads.items.map((thread) => `- ${thread.resolved ? "resolved" : (thread.outdated ? "outdated-unresolved" : "actionable-unresolved")} ${thread.path}${thread.line ? `:${thread.line}` : ""}${thread.last_comment_excerpt ? ` — ${thread.last_comment_excerpt}` : ""}`).join("\n")
+    : "- none observed";
+  const signalLines = report.signals.map((signal) => `- ${signal.state}: ${signal.id} — ${signal.detail}`).join("\n");
+  return `# GitHub Deep Review
+
+## Pull Request
+
+- Repository: ${report.repository}
+- PR: #${report.pull_request.number}
+- State: ${report.pull_request.state}${report.pull_request.draft ? " (draft)" : ""}
+- Head: ${report.pull_request.head_sha}
+- Base/head: ${report.pull_request.base_branch} <- ${report.pull_request.head_branch}
+- Mergeable: ${report.pull_request.mergeable}
+- Review decision: ${report.pull_request.review_decision || "not reported"}
+
+## Classification
+
+${report.status}
+
+## Patch Scope
+
+- Files: ${report.patch_scope.changed_files}
+- Additions/deletions: +${report.patch_scope.additions}/-${report.patch_scope.deletions}
+${fileLines}
+
+## Review Threads
+
+- Metadata available: ${report.threads.metadata_available ? "yes" : "no"}
+- Actionable unresolved: ${report.threads.actionable_unresolved}
+- Outdated unresolved: ${report.threads.outdated_unresolved}
+${threadLines}
+
+## Reviews
+
+- Current approvals: ${report.reviews.current_approvals}
+- Current changes requested: ${report.reviews.current_changes_requested}
+- Stale approvals: ${report.reviews.stale_approvals.length}
+
+## Checks
+
+- Passed: ${report.checks.passed}
+- Failed: ${report.checks.failed}
+- Pending: ${report.checks.pending}
+- Neutral: ${report.checks.neutral}
+- Failed-log inspection: ${report.failed_check_logs.inspection}
+
+## Branch Protection
+
+- State: ${report.branch_protection.state}
+- Required checks: ${report.branch_protection.required_checks === null ? "not verified" : report.branch_protection.required_checks}
+- Required approvals: ${report.branch_protection.required_approving_reviews === null ? "not verified" : report.branch_protection.required_approving_reviews}
+
+## Signals
+
+${signalLines}
+
+## Not Verified
+
+${report.not_verified.map((item) => `- ${item}`).join("\n")}
+
+## Safety Boundaries
+
+${report.boundaries.map((item) => `- ${item}`).join("\n")}`;
+}
+
+function main() {
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    usage();
+    process.exit(2);
+  }
+  if (args.help) {
+    usage();
+    return;
+  }
+
+  let report;
+  try {
+    report = collectGithubDeepReview(args);
+  } catch (error) {
+    console.error(redactExcerpt(error.message, 240));
+    process.exit(1);
+  }
+  const errors = validateGithubDeepReview(report);
+  if (args.validate && errors.length) {
+    console.error(`github-deep-review validation failed (${errors.length} errors)`);
+    for (const error of errors) console.error(`- ${error}`);
+    process.exit(1);
+  }
+  console.log(args.json ? JSON.stringify(report, null, 2) : renderHuman(report));
+}
+
+if (require.main === module) main();
+
+module.exports = {
+  parseArgs,
+  normalizeRepo,
+  redactExcerpt,
+  secretCategories,
+  safeRelativePath,
+  latestReviews,
+  normalizeCheck,
+  classifyFailedLog,
+  buildGithubDeepReview,
+  validateGithubDeepReview,
+  renderHuman,
+};

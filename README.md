@@ -53,6 +53,7 @@ skills/coding-workflow-library/
     pre-commit-check.schema.json
     migration-review.schema.json
     browser-live-proof.schema.json
+    github-deep-review.schema.json
   runs/
     decisions/
     skill-runs.md
@@ -78,6 +79,7 @@ skills/coding-workflow-library/
     check-public-paths
     migration-review
     browser-live-proof
+    github-deep-review
     install-git-hooks
     run-next
     route-audit
@@ -101,6 +103,7 @@ skills/coding-workflow-library/
     pre-commit-check.test.js
     migration-review.test.js
     browser-live-proof.test.js
+    github-deep-review.test.js
     public-paths.test.js
     library-validation-checklist.md
   skill-files/
@@ -116,6 +119,7 @@ skills/coding-workflow-library/
     release-preflight-skill.md
     runtime-verification-skill.md
     browser-live-proof-skill.md
+    github-deep-review-skill.md
     opstruth-runtime-truth-skill.md
     supabase-function-deploy-skill.md
     supabase-scheduler-vault-skill.md
@@ -286,6 +290,20 @@ coding-workflow browser-live-proof \
 ```
 
 The helper defaults to loopback targets. `--allow-remote` permits one explicitly selected read-only remote navigation. It records safe URL metadata, viewport/document dimensions, horizontal overflow, basic accessibility counts, count-only console/network classifications, and optional screenshot metadata. It never clicks, submits forms, logs in, prints raw console messages, emits headers/bodies/cookies/storage/page text, or treats one browser observation as proof of deployment history, database state, authentication paths, production correctness, or ongoing reliability.
+
+## GitHub Deep Review
+
+Use `scripts/github-deep-review` after the GitHub auth gate when a pull request needs thread-aware evidence beyond flat comments and top-level check status:
+
+```bash
+./scripts/github-deep-review --repo OWNER/REPO --pr 123
+./scripts/github-deep-review --repo OWNER/REPO --pr 123 --json --validate
+./scripts/github-deep-review --repo OWNER/REPO --pr 123 --inspect-failed-checks
+
+coding-workflow github-deep-review --repo OWNER/REPO --pr 123 --validate
+```
+
+The helper reads exact changed files, review-thread resolution/outdated state, each reviewer's latest decision, approvals against an older head, checks, and branch-protection metadata when available. Optional failed-log inspection emits categories only; raw logs are never returned. Review excerpts are bounded and redacted. The command never replies, resolves threads, submits reviews, commits, pushes, merges, or treats `READY_FOR_HANDOFF` as merge permission. GitHub CI evidence remains separate from deployment and production evidence.
 
 ## Objective-Level Autonomy
 

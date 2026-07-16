@@ -9,7 +9,7 @@
 - Done definition: extractor tests pass, private corpus validates, source coverage reconciles, extraction-meta sessions are excluded from rankings by default, and public docs use aggregate evidence only.
 - Reason for priority: without reproducible source coverage, newer agent and capability ideas are memory-led rather than evidence-led.
 
-# P1 - Documented Missing Reusable Components
+# Completed Reusable Foundations
 
 ## GitHub deep review skill
 
@@ -19,17 +19,11 @@
 - Authority required: read-only GitHub inspection by default; replies, resolutions, commits, merges, and pushes require `remote_publication`.
 - Done definition: skill inspects review threads, requested changes, check logs, stale approvals, and exact patch scope without mutating remote state by default.
 - Reason for priority: it completes the PR lifecycle beyond branch/PR creation and merge readiness.
+- Status: implemented locally with `scripts/github-deep-review`, a validated JSON contract, synthetic regression tests, CLI delegation, route metadata, and a bounded real GitHub evidence run.
 
 # P2 - Follow-On Autonomy Improvements
 
-## Release and package preflight hardening
-
-- Evidence source: `release-preflight-skill.md`, `npm-package-readiness-skill.md`, v0.1/v0.2 release docs.
-- Primary type: `RELEASE_WORK`.
-- Dependency: corrected corpus and docs inventory.
-- Authority required: `local_execution`; publish, push, tag, and GitHub Release creation require `remote_publication`.
-- Done definition: preflight consumes corpus-backed evidence where useful and reports local/npm/CLI modes with crisp blockers.
-- Reason for priority: release paths are working, but should benefit from the same reproducible evidence foundation.
+Next active dependency: `Opstruth runtime truth self-test`.
 
 ## Opstruth runtime truth self-test
 
@@ -39,6 +33,15 @@
 - Authority required: `local_execution`.
 - Done definition: self-test classifies mixed evidence into verified, warning, failure, skipped, and not-verified without overclaiming.
 - Reason for priority: it protects final reports from treating skipped checks as proof.
+
+## Release and package preflight hardening
+
+- Evidence source: `release-preflight-skill.md`, `npm-package-readiness-skill.md`, v0.1/v0.2 release docs.
+- Primary type: `RELEASE_WORK`.
+- Dependency: corrected corpus and docs inventory.
+- Authority required: `local_execution`; publish, push, tag, and GitHub Release creation require `remote_publication`.
+- Done definition: preflight consumes corpus-backed evidence where useful and reports local/npm/CLI modes with crisp blockers.
+- Reason for priority: release paths are working, but should benefit from the same reproducible evidence foundation.
 
 ## Capability adapter evaluation
 

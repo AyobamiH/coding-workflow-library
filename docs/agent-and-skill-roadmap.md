@@ -18,7 +18,7 @@ corrected workflow corpus
   -> pre-commit validation hook (implemented)
   -> migration-review helper (implemented)
   -> browser/live proof (implemented)
-  -> GitHub deep review
+  -> GitHub deep review (implemented)
   -> secret-access adapter, if approved
   -> capability acquisition/prefetch, if still needed
   -> agent-role system, only after repeated role contracts are proven
@@ -47,13 +47,13 @@ Implemented and active:
 - Cloudflare deploy planning
 - runtime verification
 - browser live proof
+- GitHub deep review
 - production handoff
 - release/package readiness
 - skills-library packaging
 
 Documented missing skills:
 
-- GitHub deep review
 - one-password secret access
 
 ## Scripts And Helpers
@@ -68,6 +68,7 @@ Implemented:
 - `scripts/install-git-hooks`
 - `scripts/migration-review`
 - `scripts/browser-live-proof`
+- `scripts/github-deep-review`
 - `scripts/run-next`
 - `scripts/lane-state`
 - `scripts/objective-authority`
@@ -83,7 +84,7 @@ Implemented:
 
 Missing helpers:
 
-- GitHub deep review helper/skill automation
+- none in the currently approved source/docs/review foundation sequence
 
 ## Routes And Control Plane
 
@@ -106,6 +107,7 @@ New route added:
 - `pre-commit-validation-hook`
 - `migration-review-helper`
 - `browser-live-proof`
+- `github-deep-review`
 
 ## Capability Adapters
 
@@ -142,8 +144,8 @@ Capability acquisition remains `NEWLY_PROPOSED` until browser proof and secret-a
 ### P2
 
 7. Keep `scripts/browser-live-proof` and `browser-live-proof-skill` current as the bounded browser-observation foundation.
-8. Build GitHub deep review skill.
-9. Add Opstruth runtime truth self-test if still needed.
+8. Keep `scripts/github-deep-review` and `github-deep-review-skill` current as the thread-aware, read-only PR evidence foundation.
+9. Add Opstruth runtime truth self-test if still needed. This is the next active dependency.
 10. Harden release/package preflight around generated corpus evidence.
 
 ### P3

@@ -107,6 +107,20 @@ Required boundaries:
 - Do not execute SQL, connect to a database, run Supabase CLI, apply migrations, mutate schedulers/Vault, deploy, call production endpoints, read `.env` values, print secret values, stage files, commit, push, tag, publish, or prove deployed database truth.
 - Treat `HIGH` risk as a blocker for apply/deploy decisions until a separate authority gate and human review approve the next step.
 
+## GitHub Deep Review
+
+`scripts/github-deep-review` is a read-only GitHub evidence helper. It requires a repository and pull-request number, plus a valid local `gh` read identity. It pages through exact file scope, thread-aware review metadata, and reviewer decisions; classifies stale approvals and checks; and reads branch protection when available.
+
+Required boundaries:
+
+- Emit only bounded, redacted review excerpts and structural metadata.
+- Never emit PR bodies, authorization headers, tokens, raw failed-check logs, or private absolute paths.
+- `--inspect-failed-checks` may inspect failed Actions logs in memory but emits category counts only.
+- Never reply, resolve threads, submit reviews, approve, commit, push, merge, or delete branches.
+- Preserve inaccessible metadata as `METADATA_UNAVAILABLE`.
+- Treat `READY_FOR_HANDOFF` as observed evidence, not merge permission.
+- Keep GitHub CI evidence separate from deployment, runtime, database, and production evidence.
+
 ## Tool Catalogue
 
 ### git

@@ -1504,3 +1504,22 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: GitHub deep review skill, the next documented missing reusable component.
 * Exact next action: create one exact-file local commit for the validated browser-live-proof foundation, then hold before any remote publication.
 * Whether John is needed: No for the local commit; yes before push, versioning, tag, release, npm publication, or remote browser work.
+
+## 2026-07-16 - GitHub Deep Review Foundation Complete Locally
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Continue the evidence-backed coding-workflow-library maturity sequence while keeping Capability Intelligence parked as a separate future product decision.
+* Current permission level: `local_execution` plus read-only GitHub metadata inspection. No GitHub writes, remote publication, package publication, version change, tag, release, deploy, production mutation, secret mutation, destructive action, review submission, thread resolution, or merge.
+* Current status: GitHub deep review foundation complete locally.
+* Selected skill: coding-workflow-orchestrator-skill, github-auth-gate-skill, github-handoff-skill, github-deep-review-skill, build-verify-skill, and the external `gh-address-comments` guidance for thread-aware reads.
+* Documentation evidence: `build-queue.md`, `docs/agent-and-skill-roadmap.md`, and `github-handoff-skill.md` identified thread-aware review triage as the next missing foundation after browser live proof. The contract is read-only by default; replies, resolutions, reviews, commits, pushes, and merges remain consequence-gated.
+* Files changed: GitHub deep-review helper, JSON schema, skill, route metadata, CLI delegation, focused tests, pre-commit syntax coverage, package script, README/RUNBOOK/tools/index/checklist, changelog, build queue, roadmap, ledger, and run log.
+* Real GitHub evidence: a bounded read-only run against repository PR `#4` validated the JSON contract and observed the exact head, two-file patch scope, available review-thread/review metadata, one completed passing check, and branch-protection classification. It emitted no raw logs and preserved merge permission, future check state, deployment, runtime, database, and production state as `NOT_VERIFIED`. The already-merged PR was not misclassified as a new open handoff.
+* Validation evidence: focused tests and the full `npm test` suite passed; the final staged/full pre-commit gate passed all 19 checks; route audit passed with 34 routes; skill validation passed with 31 active skills; docs validation reported 69 documents with no missing H1s, duplicate titles, or current-document orphans; CLI help and JSON validation passed. Package dry-run contained 123 public entries, included the helper/schema/skill/test, and contained no private corpus output, raw sessions, env files, caches, or generated directories.
+* Boundaries: review excerpts are bounded and redact links, private paths, and secret-shaped values. PR bodies, raw failed-check logs, authorization headers, tokens, and credentials are not emitted. The helper performs no reply, resolution, review, approval, commit, push, merge, branch deletion, deploy, or production mutation.
+* Deferred idea: no skill/plugin hard cutover was designed or executed. Capability Intelligence resources and product files were not used or changed in this objective.
+* Recovery evidence: the staged safety gate initially rejected literal bearer-shaped and user-home-shaped synthetic test fixtures. The fixtures now assemble those markers only at runtime, preserving redaction regression coverage while keeping committed source free of token-shaped values and maintainer paths.
+* Blockers: none for local implementation. Remote publication remains outside this objective.
+* Next recommended skill: opstruth-runtime-truth-skill for the documented runtime-truth self-test foundation.
+* Exact next action: complete package/staged validation and create one exact-file local commit, then hold before remote publication.
+* Whether John is needed: No for the local commit; yes before push, versioning, tag, release, npm publication, GitHub write operations, or production work.

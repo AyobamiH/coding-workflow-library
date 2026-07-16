@@ -1625,6 +1625,68 @@
       "provenance": "P1 browser evidence gap identified by the corrected workflow corpus roadmap and existing runtime-verification boundaries"
     },
     {
+      "id": "github-deep-review",
+      "skill_file": "skill-files/github-deep-review-skill.md",
+      "ledger_states_handled": [
+        "PR opened, deep review pending",
+        "PR checks or reviews need triage",
+        "PR handoff evidence incomplete"
+      ],
+      "permission_flag": "github-deep-review",
+      "helper_scripts": [
+        "scripts/github-deep-review",
+        "external:gh"
+      ],
+      "permission_level": "local_execution, github-read",
+      "explicit_permission_required": false,
+      "requires_authority": [
+        "local_execution"
+      ],
+      "forbidden_actions": [
+        "GitHub comment replies",
+        "review-thread resolution",
+        "review submission or approval",
+        "raw failed-check log output",
+        "PR body output",
+        "authorization header output",
+        "commit",
+        "push",
+        "merge",
+        "branch deletion",
+        "remote publication",
+        "deploy",
+        "production mutation",
+        "secret value printing"
+      ],
+      "success_ledger_state": "GitHub deep review evidence collected",
+      "blocked_ledger_state": "GitHub deep review blocked or metadata unavailable",
+      "next_permission": "address local findings or grant remote_publication for a specific GitHub write consequence",
+      "evidence_required": [
+        "repository and pull-request number",
+        "exact head SHA and patch scope",
+        "resolved, actionable unresolved, and outdated unresolved thread counts",
+        "latest review decisions and stale approval count",
+        "passed, failed, pending, and neutral check counts",
+        "branch-protection state or metadata-unavailable classification",
+        "optional count-only failed-log categories",
+        "explicit merge-permission and production-state not-verified signals"
+      ],
+      "safety_gates": [
+        "read-only GitHub commands only",
+        "bounded redacted review excerpts",
+        "no raw check logs",
+        "no PR body or authentication material",
+        "ready-for-handoff is not merge authority",
+        "CI evidence is not production evidence"
+      ],
+      "idempotency_evidence": [
+        "synthetic repeated report construction is deterministic with a fixed collection time",
+        "repeated live runs perform only reads",
+        "helper writes no repository or GitHub state"
+      ],
+      "provenance": "P1 review-thread triage gap identified by the corrected workflow corpus roadmap and the existing GitHub handoff upgrade notes"
+    },
+    {
       "id": "capability-intelligence-hard-cutover",
       "skill_file": "skill-files/capability-intelligence-builder-skill.md",
       "ledger_states_handled": [

@@ -128,6 +128,11 @@ Use for read-only repository environment and secret-surface audits: env/config f
 File: `skill-files/github-handoff-skill.md`
 Use for local git handoff, commit readiness, push handoff, and PR preparation after the GitHub auth gate passes.
 
+### github-deep-review-skill
+
+File: `skill-files/github-deep-review-skill.md`
+Use for read-only, thread-aware pull-request triage after the GitHub auth gate passes. It delegates to `scripts/github-deep-review` for exact patch scope, current review decisions, stale approvals, check state, bounded review excerpts, and optional count-only failed-log categories without replying, resolving, reviewing, pushing, or merging.
+
 ### github-auth-gate-skill
 
 File: `skill-files/github-auth-gate-skill.md`

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AyobamiH/coding-workflow-library/schemas/github-deep-review.schema.json",
+  "title": "GitHub Deep Review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mode",
+    "collected_at",
+    "status",
+    "repository",
+    "pull_request",
+    "patch_scope",
+    "threads",
+    "reviews",
+    "checks",
+    "branch_protection",
+    "failed_check_logs",
+    "signals",
+    "not_verified",
+    "redactions_applied",
+    "boundaries"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "mode": { "const": "github_read_only" },
+    "collected_at": { "type": "string", "format": "date-time" },
+    "status": { "enum": ["READY_FOR_HANDOFF", "ATTENTION", "PENDING", "BLOCKED"] },
+    "repository": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+    "pull_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["number", "url", "state", "draft", "base_branch", "head_branch", "head_sha", "mergeable", "merge_state_status", "review_decision"],
+      "properties": {
+        "number": { "type": "integer", "minimum": 1 },
+        "url": { "type": "string", "format": "uri" },
+        "state": { "type": "string" },
+        "draft": { "type": "boolean" },
+        "base_branch": { "type": "string" },
+        "head_branch": { "type": "string" },
+        "head_sha": { "type": "string", "pattern": "^[0-9a-fA-F]{7,64}$" },
+        "mergeable": { "type": "string" },
+        "merge_state_status": { "type": "string" },
+        "review_decision": { "type": ["string", "null"] }
+      }
+    },
+    "patch_scope": { "type": "object" },
+    "threads": { "type": "object" },
+    "reviews": { "type": "object" },
+    "checks": { "type": "object" },
+    "branch_protection": { "type": "object" },
+    "failed_check_logs": { "type": "object" },
+    "signals": { "type": "array", "minItems": 1, "items": { "type": "object" } },
+    "not_verified": { "type": "array", "items": { "type": "string" } },
+    "redactions_applied": { "type": "array", "items": { "type": "string" } },
+    "boundaries": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+  }
+}

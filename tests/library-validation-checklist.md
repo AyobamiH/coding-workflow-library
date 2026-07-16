@@ -58,6 +58,7 @@ Use this checklist after creating, updating, or reorganizing the coding workflow
 ./scripts/project-kb --repo . --validate
 ./scripts/migration-review --repo . --validate
 ./scripts/browser-live-proof --help
+./scripts/github-deep-review --help
 ./scripts/pre-commit-check
 find . -maxdepth 3 -type f | sort
 grep -R "TODO|TBD|placeholder|lorem|changeme" . --exclude=library-validation-checklist.md || true
