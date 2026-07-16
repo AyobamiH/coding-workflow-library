@@ -4,6 +4,7 @@ const assert = require("assert");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { pathToFileURL } = require("url");
 
 const root = path.resolve(__dirname, "..");
 const script = path.join(root, "scripts", "extract-session-workflows.mjs");
@@ -25,7 +26,7 @@ async function main() {
     validateExistingOutput,
     validateWorkflowSnapshot,
     writeOutputs,
-  } = await import(script);
+  } = await import(pathToFileURL(script).href);
 
   assert.throws(() => parseArgs(["--require-unchanged"]), /requires --compare-to/);
   assert.equal(parseArgs(["--compare-to", "baseline", "--require-unchanged"]).requireUnchanged, true);
