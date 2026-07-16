@@ -8,6 +8,10 @@ const LOW_LEVEL_HELPER = path.join(ROOT, "scripts", "sops-age-secret-access");
 const ASSERT_ENV = path.join(__dirname, "assert-env.js");
 const adapter = require(LOW_LEVEL_HELPER);
 
+function portableCommandName(commandPath) {
+  return String(commandPath).split(/[\\/]/).pop().replace(/\.exe$/i, "");
+}
+
 function adapterArguments(manifest, bundle, allowSecretAccess, command) {
   return [
     "run",
@@ -43,8 +47,9 @@ function invokeAdapter(manifest, bundle, allowSecretAccess, command) {
 
 function assertAllowed(profile, command) {
   if (!command.length) fail("CHILD_COMMAND_MISSING");
-  const commandName = path.basename(command[0]);
-  if (!profile.allowed_commands.includes(commandName)) fail("CHILD_COMMAND_NOT_ALLOWED", 3);
+  const commandName = portableCommandName(command[0]);
+  const allowed = profile.allowed_commands.map(portableCommandName);
+  if (!allowed.includes(commandName)) fail("CHILD_COMMAND_NOT_ALLOWED", 3);
 }
 
 function runProfile(manifest, profileId, command, allowSecretAccess, options = {}) {
@@ -113,4 +118,4 @@ async function resolveRequest(manifest, profileId, request, allowSecretAccess, o
   return { protocolVersion: 1, values, errors: {} };
 }
 
-module.exports = { proveBundles, resolveRequest, runProfile };
+module.exports = { portableCommandName, proveBundles, resolveRequest, runProfile };

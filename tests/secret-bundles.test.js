@@ -9,7 +9,12 @@ const ROOT = path.resolve(__dirname, "..");
 const { loadManifest } = require(path.join(ROOT, "scripts/lib/secret-bundles/manifest"));
 const { buildInventory } = require(path.join(ROOT, "scripts/lib/secret-bundles/inventory"));
 const { migrate, retireSource, validateBundleFiles } = require(path.join(ROOT, "scripts/lib/secret-bundles/migration"));
-const { proveBundles, resolveRequest, runProfile } = require(path.join(ROOT, "scripts/lib/secret-bundles/delivery"));
+const {
+  portableCommandName,
+  proveBundles,
+  resolveRequest,
+  runProfile,
+} = require(path.join(ROOT, "scripts/lib/secret-bundles/delivery"));
 const { postgresEnvironment } = require(path.join(ROOT, "scripts/lib/secret-bundles/read-only-probes"));
 
 function temporaryDirectory() {
@@ -208,6 +213,11 @@ function testPublicTemplateIsNeutralAndParseable() {
   assert(!serialized.includes(privateHomeMarker));
 }
 
+function testPortableCommandNames() {
+  assert.strictEqual(portableCommandName("/usr/local/bin/node"), "node");
+  assert.strictEqual(portableCommandName("C:\\hostedtoolcache\\node.exe"), "node");
+}
+
 function testPostgresProbeKeepsCredentialsOutOfArguments() {
   const fixtureUrl = new URL(["postgresql", "://", "example.invalid:6543/fixture-db?sslmode=require"].join(""));
   fixtureUrl.username = "fixture-user";
@@ -223,6 +233,7 @@ function testPostgresProbeKeepsCredentialsOutOfArguments() {
   await testInventoryMigrationDeliveryAndRetirement();
   await testIncompleteCoverageRefusesMigrationAndDeletion();
   testPublicTemplateIsNeutralAndParseable();
+  testPortableCommandNames();
   testPostgresProbeKeepsCredentialsOutOfArguments();
   console.log("secret-bundles tests passed");
 })().catch((error) => {
