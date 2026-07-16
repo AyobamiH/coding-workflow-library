@@ -3353,7 +3353,7 @@ function runSemverPublication({ version, tag, packageName, releaseNotesPath }) {
   });
   remoteHead = firstNonEmptyLine(remoteVerify.stdout).split(/\s+/)[0] || "";
   if (remoteVerify.code !== 0 || remoteHead !== localHead) return failure("BLOCKED_SAFETY", "remote main does not match the exact release commit after push");
-  evidence.push(`release commit: ${localHead}`);
+  evidence.push(`local main commit: ${localHead}`);
   evidence.push(`remote main verification: ${remoteHead}`);
 
   const releaseTarget = resolveSemverReleaseTarget(tag, version, localHead);
