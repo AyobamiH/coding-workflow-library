@@ -65,7 +65,7 @@
 - Dependency: `sops-age-secret-access-skill`, SOPS age identities, and private runtime storage outside source.
 - Authority required: `local_execution` for inventory/validation; `secret_mutation` for encrypted-bundle creation; explicit secret access for delivery; `destructive_action` for source retirement. Child consequences remain separate.
 - Done definition: exact name coverage, purpose bundles, runtime aliases, command allowlists, SOPS status, output-suppressed delivery proof, OpenClaw SecretRef compatibility, same-run retirement gate, synthetic portability tests, and no public private-state leakage.
-- Status: implemented and locally proven with six private encrypted bundles covering sixteen source names exactly. GitHub, Cloudflare, Supabase connectivity, OpenClaw config resolution, and every runtime-name delivery path passed without value or child-output emission. Public helper, schema, template, skill, route, CLI, tests, and documentation are ready for exact-file publication.
+- Status: implemented, locally proven, and published. Six private encrypted bundles cover sixteen source names exactly; GitHub, Cloudflare, read-only PostgreSQL connectivity, OpenClaw config resolution, and every runtime-name delivery path passed without value or child-output emission. The plaintext source is retired. Exact commit `7ba036b` passed validation plus Ubuntu, macOS, and Windows portability in GitHub Actions run `29539973961`.
 
 # P1 - Current Maturity Gaps
 
