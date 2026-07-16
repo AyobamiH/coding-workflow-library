@@ -896,13 +896,13 @@ Evidence required:
 - Response status.
 - Redacted response summary.
 
-### Secret manager / 1Password / env files
+### Secret manager / SOPS + age / encrypted env files
 
-Purpose: check secret presence, names, locations, and deployment readiness without exposing values.
+Purpose: verify local open-source secret tooling and encrypted-file readiness without exposing values, or inject one approved SOPS-encrypted environment into one exact subprocess.
 
-Availability: verify before use.
+Availability: verify SOPS, age, age-keygen, and a private age identity before use.
 
-Default permission: `secret-access`.
+Default permission: `local_execution` for tool status and encrypted-file metadata validation; explicit `secret-access` for one real injection. Child mutations retain their own higher authority.
 
 Rules:
 
@@ -911,13 +911,32 @@ Rules:
 - Report shape-only: name, location/category, present/missing.
 - Never print values.
 - `.env.example` may contain names and placeholders only.
+- Prefer `scripts/sops-age-secret-access` over direct decryption.
+- Status checks must not emit the age identity or decrypted values.
+- The selected file must already be SOPS-encrypted for an age recipient.
+- Never use `sops decrypt`, `exec-file`, `edit`, `set`, `unset`, `publish`, `rotate`, `updatekeys`, or `--ignore-mac` through the adapter.
+- A real injection requires `--allow-secret-access`.
+- Capture and suppress provider and child stdout/stderr.
+- Secret injection never grants the child command publish, deploy, production, mutation, or destructive authority.
+- Keep the age identity outside source with owner-only permissions and a secure backup.
+
+Examples:
+
+```bash
+./scripts/sops-age-secret-access status --validate
+./scripts/sops-age-secret-access validate-file --file /private/path/runtime.enc.env --validate
+./scripts/sops-age-secret-access run --file /private/path/runtime.enc.env --dry-run -- command arg
+./scripts/sops-age-secret-access run --file /private/path/runtime.enc.env --allow-secret-access -- command arg
+```
 
 Evidence required:
 
-- Secret name only.
-- Location or category.
-- Present or missing.
+- Tool versions and identity readiness category.
+- Encrypted filename, input type, size, and `filestatus` result.
 - Whether value access was avoided or approved.
+- Child command basename, exit state, and suppressed output byte counts.
+- Confirmation that no decrypted value, private identity, or plaintext file was emitted.
+- Commands deliberately not run.
 
 ### Docker
 

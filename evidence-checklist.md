@@ -164,6 +164,20 @@ Use this before final response or before saying a workflow is complete.
 - Push and PR work skipped unless separately permitted and auth gate returned `PASS`.
 - Next skill recorded, usually `github-handoff-skill` after `PASS`.
 
+## SOPS + age Secret Access
+
+- `sops-age-secret-access-skill` selected for SOPS + age status, encrypted-file validation, or approved injection.
+- `scripts/sops-age-secret-access status --validate` classified SOPS, age, age-keygen, and private identity readiness without emitting identity contents.
+- Identity source was recorded only as a safe category; private key material and private paths were not emitted.
+- `sops filestatus` proved the selected file was encrypted; plaintext or unknown file types failed before decryption.
+- Dry-run completed before any real injection.
+- Real injection, if run, used explicit `--allow-secret-access`.
+- Exact child consequence authority was checked separately; injection did not grant publish, deploy, production, secret-mutation, or destructive authority.
+- Provider and child stdout/stderr were suppressed.
+- Report contained only tool versions, identity category, encrypted filename metadata, command basename, exit state, signal, and suppressed byte counts.
+- `sops decrypt`, `exec-file`, `edit`, `set`, `unset`, `publish`, `rotate`, `updatekeys`, `--ignore-mac`, and secret mutation were not run.
+- Missing tools or identity were recorded as `BLOCKED_CAPABILITY`, not as adapter success or a permission request.
+
 ## OpenClaw Route Trace
 
 - `allowAgents` searched in config/docs.

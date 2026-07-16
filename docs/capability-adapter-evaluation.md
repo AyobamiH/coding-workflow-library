@@ -49,7 +49,8 @@ An adapter belongs in the workflow only when all of these conditions hold:
 | `skill-installer` and `find-skills` | Reject for automatic acquisition | Network installation, provenance, version drift, instruction trust, and destination mutation require a separate intake contract. They may be used manually only for an explicit installation objective. |
 | `verification`, `investigation-mode`, `track-findings`, and `triage-finding` catalogue skills | Hold | They are catalogue discoveries rather than verified local runtime dependencies and overlap existing evidence, error, security, and orchestration skills. |
 | Figma and HyperFrames stacks | Keep task-specific | They are valuable for design and media objectives, not core autonomous coding control. Load them only when the selected product task requires them. |
-| Secret-manager adapter | `BLOCKED_DECISION` | A non-printing identity, scope, provider, retrieval, injection, expiry, audit, and revocation contract has not been selected. |
+| SOPS + age secret adapter | Adopt narrowly | John rejected the subscription-backed 1Password direction and selected a reputable open-source local path. `scripts/sops-age-secret-access` owns tool and identity readiness, non-decrypting encrypted-file validation, explicit output-suppressed `sops exec-env --pristine`, and precise capability blockers. Direct decryption, plaintext materialisation, secret mutation, and generic brokering remain rejected. |
+| 1Password secret-manager adapter | Superseded | The adapter contract was implemented and tested, but the account/subscription model did not fit the local workflow. It is retained only in historical evidence and is not an active route, skill, helper, schema, or CLI command. |
 | Generic capability broker or prefetch | Reject for the current roadmap | Current adapters can be selected directly. A broker would recreate Capability Intelligence inside the workflow library and add routing complexity before repeated adapter insufficiency is proven. |
 
 ## Optional Provider Contract
@@ -76,6 +77,20 @@ The observed repository read proves only:
 
 It does not prove connector reliability, all repository access, Actions log coverage, comment/thread completeness, write permission, merge safety, deployment state, or production state.
 
+## SOPS + age Adapter Boundary
+
+The selected secret path is the open-source combination of SOPS and age. The workflow adapter is intentionally smaller than either tool:
+
+1. `status` checks only tool versions and whether an age identity source exists with private permissions; it never emits identity contents.
+2. encrypted-file validation delegates only to `sops filestatus` and does not decrypt.
+3. supported files are SOPS-encrypted dotenv, INI, JSON, or YAML.
+4. real injection requires `--allow-secret-access` and delegates only to `sops exec-env --pristine --decryption-order age`.
+5. provider and child stdout/stderr are captured and suppressed; reports contain byte counts, never raw output.
+6. injection grants no publication, deploy, production, secret-mutation, or destructive authority to the child command.
+7. direct decrypt, `exec-file`, edit, set, unset, publish, rotate, updatekeys, ignore-MAC, and identity generation are outside runtime injection.
+
+SOPS and age are external open-source tools, not bundled package dependencies. Private age identities remain outside source. The observed local contract uses separate workstation and recovery recipients; the recovery identity still belongs in independent secure storage. Synthetic tests prove permission and refusal paths, while one real read-only GitHub identity check proves bounded credential injection with output suppressed.
+
 ## Stop Conditions
 
 Stop adapter expansion when any of these occur:
@@ -89,6 +104,6 @@ Stop adapter expansion when any of these occur:
 
 ## Result
 
-Capability adapter evaluation is complete. The library should keep direct, workflow-owned adapters, recognise the GitHub plugin as an optional read provider, and retain task-specific skills as task-specific. No capability broker, prefetch layer, automatic installer, plugin distribution, secret adapter, or bulk skill cutover is justified now.
+Capability adapter evaluation is complete. The library should keep direct, workflow-owned adapters, recognise the GitHub plugin as an optional read provider, use the narrow open-source SOPS + age adapter for approved credential injection, and retain task-specific skills as task-specific. No capability broker, prefetch layer, automatic installer, plugin distribution, broad secret broker, or bulk skill cutover is justified now.
 
 The next automatic work remains maintenance of the proven workflow foundations. A future adapter should enter the queue only after a real workflow records repeated `BLOCKED_CAPABILITY` evidence that existing helpers and fallbacks cannot resolve.

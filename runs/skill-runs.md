@@ -16,6 +16,35 @@ This file records every real use of the coding workflow skills library.
 * Follow-up skill needed:
 * Upgrade idea:
 
+## 2026-07-16 - Open-Source SOPS + age Secret Access Replacement
+
+* Skill used: sops-age-secret-access-skill, coding-workflow-orchestrator-skill, and github-auth-gate-skill.
+* Goal: Replace the rejected subscription-backed 1Password path with a local open-source SOPS + age adapter while preserving non-printing runtime injection and consequence-authority boundaries.
+* Starting state: the previous local commit implemented a 1Password adapter and the system CLI had been installed but never authenticated. John rejected the subscription model and requested a reputable open-source alternative.
+* Commands/tools used: official GitHub release metadata and digest verification; user-local SOPS and age installation; private age identity creation outside source; dependency-free adapter implementation; synthetic fake-provider tests; real temporary SOPS encryption and output-suppressed `exec-env --pristine` proof; CLI/route/schema/docs integration; focused syntax/tests; full `npm test`; route audit; skill cleaner; skill validation; public-path and module-size checks.
+* Files inspected: capability-adapter evaluation, GitHub auth skill, orchestrator controls, route metadata, CLI/package wiring, queue/roadmap, operator docs, evidence controls, historical 1Password records, and the installed package/source state.
+* Files changed: `scripts/sops-age-secret-access`; `schemas/sops-age-secret-access.schema.json`; `skill-files/sops-age-secret-access-skill.md`; `tests/sops-age-secret-access.test.js`; removal of their 1Password predecessors; CLI/package wiring; route metadata; GitHub auth integration; README, RUNBOOK, tools, command library, evidence checklist, queue, roadmap, index, changelog, ledger, and this run record.
+* Evidence collected: SOPS `3.13.2`; age and age-keygen `1.3.1`; owner-only workstation and recovery identity readiness without identity output; two-recipient private policy; plaintext refusal; encrypted `filestatus`; missing-capability and unsafe-permission classification; dry-run immutability; explicit injection permission; synthetic child exit `0`; real read-only GitHub API and Git remote checks exiting `0`; recovery-recipient decryption proof; provider and child output suppression; package-boundary assertions; 35-route audit; 32-skill validation.
+* Result: LOCAL FOUNDATION AND FIRST REAL READ-ONLY ADOPTION COMPLETE. SOPS + age is the canonical adapter, a real credential path is encrypted without a plaintext file, and no credential, private identity, provider output, or child output was printed.
+* Failure/recovery notes: the full suite first exposed that isolated tests could see the real identity because the helper ignored an injected `HOME`; identity lookup now respects `XDG_CONFIG_HOME`, `HOME`, and `USERPROFILE`. Skill validation then required an explicit output contract, which was added. SOPS requires its global `--config` flag before the operation and does not accept `/dev/stdin` through Node `spawnSync`; the credential migration used a direct shell pipe from `gh auth token` into SOPS, writing only encrypted output. The 1Password package and repository trust files were removed by John.
+* Follow-up skill needed: none. Use `sops-age-secret-access-skill` when an encrypted workflow credential is selected.
+* Upgrade idea: automate recipient rotation only after repeated real use proves the manual two-recipient procedure insufficient; do not introduce a hosted provider, broad broker, or plaintext export.
+
+## 2026-07-16 - Non-Printing 1Password Secret Access Foundation
+
+* Superseded: John later rejected the subscription/account model. The active adapter is SOPS + age; 1Password was never authenticated and no real secret was accessed.
+* Skill used: one-password-secret-access-skill, coding-workflow-orchestrator-skill, and github-auth-gate-skill.
+* Goal: Implement the previously decision-gated 1Password capability as a narrow, reusable, non-printing adapter without reading or mutating real secrets.
+* Starting state: the roadmap held 1Password access as an approved-provider decision rather than a missing generic broker; no adapter, skill, schema, route, CLI command, or live `op` binary was present.
+* Commands/tools used: official 1Password CLI and secret-reference documentation review; dependency-free helper implementation; synthetic fake-provider tests; CLI/route/schema/docs integration; focused syntax/tests; full `npm test`; docs inventory validation; route audit; skill cleaner; skill validation; package dry-run; local non-printing capability status.
+* Files inspected: capability-adapter evaluation, GitHub auth skill, orchestrator controls, route metadata, CLI/package wiring, queue/roadmap, operator docs, evidence controls, private secret-free lane metadata, and official 1Password documentation.
+* Files changed: `scripts/one-password-secret-access`; `schemas/one-password-secret-access.schema.json`; `skill-files/one-password-secret-access-skill.md`; `tests/one-password-secret-access.test.js`; CLI/package wiring; route metadata; GitHub auth integration; README, RUNBOOK, tools, command library, evidence checklist, queue, roadmap, index, changelog, ledger, and this run record.
+* Evidence collected: value-reference and reference-only env validation; plaintext refusal; missing-CLI classification; auth output suppression; explicit permission gate; synthetic `op run` injection with resolved and child output suppression; redacted child-failure reporting; package-boundary assertions; 35-route audit; 32-skill validation; controlled package manifest.
+* Result: LOCAL FOUNDATION COMPLETE. The adapter is ready for installation/authentication proof but has not accessed a real vault, item, field, or secret.
+* Failure/recovery notes: nested subprocess execution was restricted in the default sandbox, while the same focused and full suites passed with normal local process permission. The machine lacks `op`; the proposed official APT installation was not executed because system-level package trust/install approval was unavailable. No alternative installer or trust bypass was used.
+* Follow-up skill needed: superseded by `sops-age-secret-access-skill`; no 1Password authentication proof is needed.
+* Upgrade idea: keep provider access narrow. Add another provider or a broker only after repeated evidence shows this adapter cannot satisfy a real workflow need without weakening permission or output boundaries.
+
 ## 2026-07-16 - Foundation Truth Reconciliation
 
 * Skill used: coding-workflow-orchestrator-skill and build-verify-skill.

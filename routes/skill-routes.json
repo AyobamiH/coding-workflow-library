@@ -1768,6 +1768,73 @@
       "provenance": "P1 review-thread triage gap identified by the corrected workflow corpus roadmap and the existing GitHub handoff upgrade notes"
     },
     {
+      "id": "sops-age-secret-access",
+      "skill_file": "skill-files/sops-age-secret-access-skill.md",
+      "ledger_states_handled": [
+        "Open-source secret access requested",
+        "SOPS, age, or identity unavailable",
+        "SOPS encrypted runtime injection ready"
+      ],
+      "permission_flag": "sops-age-secret-access",
+      "helper_scripts": [
+        "scripts/sops-age-secret-access"
+      ],
+      "permission_level": "local_execution, secret-access",
+      "explicit_permission_required": true,
+      "requires_authority": [
+        "local_execution"
+      ],
+      "forbidden_actions": [
+        "sops decrypt",
+        "sops exec-file",
+        "sops edit",
+        "sops set or unset",
+        "sops publish",
+        "sops rotate or updatekeys",
+        "ignore MAC validation",
+        "provider output relay",
+        "child stdout or stderr relay",
+        "plaintext secret files",
+        "private age identity output",
+        "secret mutation",
+        "remote publication without separate authority",
+        "deploy without separate authority",
+        "production mutation without separate authority",
+        "destructive action without separate authority"
+      ],
+      "success_ledger_state": "SOPS plus age secret access adapter ready",
+      "blocked_ledger_state": "SOPS, age, or identity unavailable",
+      "next_permission": "select the exact encrypted file, child command, and child consequence authority",
+      "evidence_required": [
+        "SOPS, age, and age-keygen versions",
+        "age identity source category and private permission result",
+        "SOPS filestatus encrypted-file validation",
+        "dry-run before decryption",
+        "explicit secret-access flag for injection",
+        "child command basename and exit state",
+        "suppressed stdout and stderr byte counts",
+        "decrypted-value, private-identity, and provider-output non-emission proof",
+        "plaintext-file non-write proof",
+        "commands deliberately not run"
+      ],
+      "safety_gates": [
+        "age-only decryption order",
+        "owner-only identity permissions",
+        "no direct decrypt output",
+        "no plaintext file materialisation",
+        "no raw child output",
+        "no child consequence authority inheritance",
+        "encrypted file status required"
+      ],
+      "idempotency_evidence": [
+        "status and filestatus validation write no files",
+        "dry-run decrypts no values and runs no child",
+        "synthetic repeated reports preserve the same redacted shape",
+        "repeated exec-env attempts do not modify the encrypted file"
+      ],
+      "provenance": "approved open-source replacement after the subscription-based provider was rejected; SOPS and age preserve the non-printing local injection contract"
+    },
+    {
       "id": "capability-intelligence-hard-cutover",
       "skill_file": "skill-files/capability-intelligence-builder-skill.md",
       "ledger_states_handled": [

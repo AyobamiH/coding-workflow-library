@@ -186,6 +186,7 @@ Use this mapping before acting:
 - Need Supabase scheduler, Vault, pg_cron, pg_net, scheduler secret storage, or scheduler mutation boundary handling: `supabase-scheduler-vault-skill`
 - Need production handoff, scheduled-run monitoring, run history review, or final observed-versus-pending status: `production-handoff-skill`
 - Need to inspect environment variables or secret exposure risk: `env-audit-skill`
+- Need non-printing open-source SOPS + age status, encrypted-file validation, or one approved output-suppressed injection: `sops-age-secret-access-skill` with `scripts/sops-age-secret-access`
 - Need to inspect Supabase database/auth/RLS risk: `supabase-rls-audit-skill`
 - Need to resolve blocked or invalid GitHub CLI auth before push/PR work: `github-auth-gate-skill`
 - Need to inspect Cloudflare deployment/runtime state: `cloudflare-deploy-skill`
@@ -203,7 +204,7 @@ Use this mapping before acting:
 - Need source-only migration risk classification without SQL execution: `scripts/migration-review`
 - Need one bounded browser observation without interaction or raw browser data: `scripts/browser-live-proof`
 - Need a read-only GitHub PR deep review without replies, resolutions, pushes, or merges: `scripts/github-deep-review`
-- Need an optional provider capability: read `docs/capability-adapter-evaluation.md`, keep the selected workflow skill/route canonical, verify the exact provider surface separately, and preserve its deterministic fallback or `BLOCKED_CAPABILITY` result
+- Need an optional provider capability: read `docs/capability-adapter-evaluation.md`, keep the selected workflow skill/route canonical, verify the exact provider surface separately, and preserve its deterministic fallback or `BLOCKED_CAPABILITY` result. For local encrypted credentials, use `sops-age-secret-access-skill`; never substitute direct decryption or plaintext files.
 - Need to prove skipped/not-verified/CI/production classifications stay distinct: `scripts/opstruth-classify --self-test --validate`
 - Need to trace OpenClaw subagent routing: `route-trace-skill`
 - Need to compare OpenClaw config backups: `openclaw-config-diff-skill`
@@ -215,7 +216,7 @@ Use `npm run test:portable` for the dependency-free path/hook/evidence subset th
 
 When frontmatter and this prose mapping disagree, treat `./scripts/validate-skills` output and the active skill file as the source of truth, then update stale docs.
 
-Do not select work by copying the capability catalogue into this library. Discovery, installation, enablement, authentication, runnability, and verification are distinct states. Use the GitHub plugin only as an optional provider beneath the existing GitHub skills; keep provider writes behind `remote_publication`. Automatic skill installation, secret-manager access, generic brokering, and prefetch remain out of scope until a separate objective proves the need and authority contract.
+Do not select work by copying the capability catalogue into this library. Discovery, installation, key readiness, runnability, and verification are distinct states. Use the GitHub plugin only as an optional provider beneath the existing GitHub skills; keep provider writes behind `remote_publication`. Use the narrow SOPS + age adapter only for tooling status, encrypted-file validation, and explicitly authorised output-suppressed `sops exec-env`; direct decryption, plaintext materialisation, secret mutation, automatic skill installation, generic brokering, and prefetch remain out of scope.
 
 ## Local Verification Bundle
 

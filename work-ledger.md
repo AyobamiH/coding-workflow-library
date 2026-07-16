@@ -4,6 +4,38 @@ This is the persistent control-plane ledger for `coding-workflow-orchestrator-sk
 
 Each entry records the active repo, objective, permission boundary, selected skill, evidence, blockers, and exact next action. The ledger is operational state, not a polished report.
 
+## 2026-07-16 - Open-Source SOPS + age Secret Access Replacement
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Remove the subscription-backed 1Password workflow dependency and replace it with a reputable open-source, local, non-printing secret-access adapter.
+* Current permission level: `local_execution` only. No remote publication, real workflow secret read, secret mutation, npm publication, version change, tag, release, deploy, production mutation, or destructive repository action.
+* Current status: SOPS + age is the canonical active adapter. The helper, schema, skill, route metadata, CLI delegation, package scripts, tests, operator docs, queue, and roadmap have been replaced and validated locally. The former 1Password helper, schema, skill, tests, route, CLI command, active documentation, CLI package, APT source, and signing keys were removed.
+* Selected skills: `sops-age-secret-access-skill`, `coding-workflow-orchestrator-skill`, and `github-auth-gate-skill`.
+* Tool evidence: user-local SOPS `3.13.2`, age `1.3.1`, and age-keygen `1.3.1` are available. Their downloaded release assets were checked against official GitHub release digests before installation.
+* Identity evidence: separate workstation and recovery age identities exist outside the repository with owner-only permissions. A private local SOPS policy encrypts for both public recipients. Neither private identity, recipient, private path, length, nor shape was emitted or recorded. The recovery identity must be moved to independent secure storage.
+* Runtime proof: synthetic refusal and injection fixtures passed. A real existing GitHub credential was then piped directly into a two-recipient encrypted dotenv file without a plaintext file, validated with `filestatus`, and used for one read-only `gh api user` check and one `git ls-remote` check. Both commands exited `0`; all provider and child output was suppressed. The recovery identity independently proved decryption through a no-network child presence check.
+* Safety evidence: the adapter rejects plaintext and unknown file types; requires `--allow-secret-access`; restricts decryption order to age; reports only safe metadata; writes no plaintext; and forbids direct decrypt, `exec-file`, edit, set, unset, publish, rotate, updatekeys, ignore-MAC, provider output relay, and inherited child consequence authority.
+* Validation evidence: focused adapter tests passed; route audit passed with 35 routes and no warnings; skill validation passed with 32 active skills and no warnings; skill cleaner reported no duplicate names or triggers; public path and source-size gates passed; and the full package validation suite passed after correcting isolated `HOME` identity lookup and the required skill output contract.
+* System cleanup result: the `1password-cli` package, signed APT source, signing keys, and `op` executable are absent. No 1Password authentication or real secret access occurred.
+* Blockers: the recovery identity still needs independent secure storage. Remote exact-commit proof remains pending until the clean unpushed history is published.
+* Exact next action: rewrite the unpushed provider history into the canonical SOPS + age change, validate, push `main`, verify exact-commit Linux/macOS/Windows CI, then remove cached GitHub authentication after proving SOPS-backed publication access.
+* Whether John is needed: No for the approved publication. John remains responsible for placing the recovery identity on independent secure storage.
+
+## 2026-07-16 - Non-Printing 1Password Secret Access Foundation
+
+* Superseded later on 2026-07-16: John rejected the subscription/account model. The active implementation is now `sops-age-secret-access-skill`; 1Password was never authenticated and no real secret was accessed.
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Implement a narrow 1Password CLI capability adapter that validates secret references and reference-only environment templates, proves permission boundaries, and can inject values into an explicitly approved child process without emitting provider or child output.
+* Current permission level: `local_execution` only. No remote publication, provider mutation, real secret access, secret mutation, npm publication, version change, tag, release, deploy, production mutation, or destructive action.
+* Current status: Adapter, reusable skill, schema, route metadata, CLI delegation, synthetic tests, and operator documentation are implemented and validated locally. Live CLI/authentication proof is blocked because the 1Password CLI is not installed.
+* Selected skills: `one-password-secret-access-skill`, `coding-workflow-orchestrator-skill`, and `github-auth-gate-skill`.
+* Evidence: `scripts/one-password-secret-access` reports only bounded capability state; validates three- or four-segment `op://` value references; rejects plaintext environment values; requires `--allow-secret-access` before delegation; invokes only `op run`; suppresses provider and child stdout/stderr; and reports count/status metadata instead of identities, references, values, or private absolute paths. The route forbids `op read`, `op inject`, `--no-masking`, provider mutations, service-account creation, and inherited consequence authority.
+* Validation evidence: focused synthetic adapter tests passed; the full `npm test` suite passed; route audit passed with 35 routes; skill validation passed with 32 active skills and no warnings; documentation inventory validation passed; package dry-run included the helper, schema, skill, and tests while excluding env files, local lane state, caches, temporary files, and resolved credentials.
+* Live capability evidence: local status returned `BLOCKED_CAPABILITY` with `CLI_NOT_FOUND` and no secret output. An official signed APT installation was not performed because adding a third-party system trust source and installing a system package requires separate explicit system-level approval; no workaround was attempted.
+* Blockers: live non-printing authentication and injection proof requires installation of the official 1Password CLI plus user-controlled desktop-app authentication or a separately approved least-privilege service account. No real secret access was attempted.
+* Exact next action: explicitly approve the official system-level 1Password CLI installation, authenticate through an approved 1Password mechanism, then run one bounded status check and one non-printing synthetic-command injection proof.
+* Whether John is needed: Yes, for the system-level CLI installation and interactive authentication boundary.
+
 ## 2026-07-16 - Foundation Truth Reconciliation
 
 * Active repo: `<LIBRARY_REPO>`.
@@ -13,7 +45,7 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Selected skills: `coding-workflow-orchestrator-skill` and `build-verify-skill`.
 * Evidence: the queue no longer calls proven three-platform CI unverified; the roadmap no longer lists `scripts/add-skill-gap` or `scripts/autonomy-outcomes` as missing; held secret access is distinguished from a missing foundation; the workflow now uses official `actions/checkout@v7` and `actions/setup-node@v7`, whose metadata declares Node 24; `tests/foundation-truth.test.js` makes these contradictions fail `npm test`.
 * Validation evidence: focused foundation-truth validation passed; the full `npm test` suite passed; docs inventory validation passed with no missing H1s, duplicate titles, or current-document orphans; route audit passed with 34 routes; skill validation passed with 31 active skills; no checked source file exceeded the 2,200-line hard limit.
-* Foundation decision: no additional generic foundation is currently evidence-backed. One-password secret access remains decision-gated, generic capability acquisition remains rejected until repeated adapter insufficiency exists, and reusable agent roles remain unproven.
+* Foundation decision at this checkpoint: no additional generic foundation was evidence-backed. Secret access remained decision-gated and was later resolved with the narrow open-source SOPS + age adapter; generic capability acquisition remains rejected until repeated adapter insufficiency exists, and reusable agent roles remain unproven.
 * Blockers: exact GitHub Actions proof for the v7 action update requires a future `remote_publication` objective. Earlier v4 CI proof remains valid only for exact commit `f8968d2`.
 * Exact next action: create one exact local commit for the validated truth reconciliation; publish and verify it only under a separate remote-publication objective.
 * Whether John is needed: No for the local commit. Yes only for remote publication or a newly selected consequence boundary.

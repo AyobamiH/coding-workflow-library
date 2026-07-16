@@ -139,6 +139,11 @@ Use for read-only, thread-aware pull-request triage after the GitHub auth gate p
 File: `skill-files/github-auth-gate-skill.md`
 Use when GitHub handoff is blocked by missing, invalid, wrong-account, expired, revoked, or unclear `gh` authentication. It checks local `gh` auth state, environment token presence without printing values, active account, owner/repo alignment, and safe account switching before routing back to `github-handoff-skill`.
 
+### sops-age-secret-access-skill
+
+File: `skill-files/sops-age-secret-access-skill.md`
+Use when an existing workflow credential should come from a local open-source SOPS-encrypted file without plaintext storage or provider output. It delegates to `scripts/sops-age-secret-access` for tooling and identity readiness, non-decrypting `filestatus` validation, dry-run planning, and explicitly authorised `sops exec-env --pristine` injection with child output suppressed. It never grants the child command publication, deployment, production, secret-mutation, or destructive authority.
+
 ### cloudflare-deploy-skill
 
 File: `skill-files/cloudflare-deploy-skill.md`
@@ -210,6 +215,8 @@ Use for source-only migration risk review before any apply/deploy step. Run `scr
 - `schemas/migration-review.schema.json`: portable schema for `scripts/migration-review --json` output.
 - `scripts/browser-live-proof`: optional dependency-free Chromium/DevTools helper for one bounded read-only browser observation, count-only console/network evidence, responsive overflow proof, and local screenshots.
 - `schemas/browser-live-proof.schema.json`: portable schema for `scripts/browser-live-proof --json` output.
+- `scripts/sops-age-secret-access`: dependency-free narrow SOPS + age adapter for tool and identity status, encrypted-file validation, dry-run planning, and output-suppressed `sops exec-env --pristine` injection.
+- `schemas/sops-age-secret-access.schema.json`: portable report contract for the SOPS + age adapter.
 - `scripts/opstruth-classify`: dependency-free local evidence classifier and built-in mixed-category runtime-truth self-test.
 - `schemas/opstruth-runtime-truth.schema.json`: portable schema for classifier JSON output.
 - `schemas/workflow-corpus.schema.json`: portable event schema for redacted corpus events.

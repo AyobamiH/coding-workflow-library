@@ -49,6 +49,15 @@
 - Reason for priority: it completes the PR lifecycle beyond branch/PR creation and merge readiness.
 - Status: implemented and published with `scripts/github-deep-review`, a validated JSON contract, synthetic regression tests, CLI delegation, route metadata, and a bounded real GitHub evidence run.
 
+## SOPS + age secret access adapter
+
+- Evidence source: `github-auth-gate-skill.md` upgrade note, capability-adapter evaluation, the rejected subscription-backed provider path, and John's open-source provider decision.
+- Primary type: `CAPABILITY_ADAPTER`.
+- Dependency: open-source SOPS and age executables plus workstation and recovery age identities stored outside source.
+- Authority required: `local_execution` for tool/identity status and encrypted-file metadata validation; explicit `secret-access` for one injection; child consequences retain their own authority.
+- Done definition: helper classifies tooling and identity readiness without identity output, validates SOPS encryption metadata without decryption, refuses plaintext, requires explicit injection approval, suppresses provider/child output, and writes no decrypted value.
+- Status: implemented through `scripts/sops-age-secret-access`, a report schema, active skill, CLI delegation, route metadata, verified local SOPS and age binaries, synthetic provider tests, a two-recipient private policy, recovery-recipient decryption proof, and one real output-suppressed read-only GitHub identity check. The subscription-backed 1Password adapter and system package are removed.
+
 # P1 - Current Maturity Gaps
 
 No active P1 gaps are currently evidence-backed. The entries below remain in this section as completed foundation contracts so a newly recorded gap can be compared against the capability that already exists.
@@ -168,15 +177,6 @@ All listed P2 items are complete. No generic capability work is active. New foun
 - Done definition: resume only with a concrete repo, platform rules, and permission gates.
 - Reason for hold: avoid drifting from library work into product runtime work.
 
-## One-password secret access
-
-- Evidence source: `github-auth-gate-skill.md` upgrade idea.
-- Primary type: `CAPABILITY_ADAPTER`.
-- Dependency: John selects secret manager scope and non-printing runtime contract.
-- Authority required: secret-access decision; secret values must never be printed.
-- Done definition: credential presence/use workflow proves non-printing behavior and writes no secrets into repos.
-- Reason for hold: powerful, high-risk, and decision-dependent.
-
 ## Live product deploy work
 
 - Evidence source: prior Wagging/Supabase/Cloudflare lanes.
@@ -201,4 +201,5 @@ All listed P2 items are complete. No generic capability work is active. New foun
 - Pre-commit validation hook (`scripts/pre-commit-check`, `scripts/install-git-hooks`, `templates/hooks/pre-commit`).
 - Deterministic source-only migration review helper (`scripts/migration-review`).
 - Bounded read-only browser live-proof helper (`scripts/browser-live-proof`) and `browser-live-proof-skill`.
+- Narrow non-printing open-source SOPS + age adapter (`scripts/sops-age-secret-access`) and `sops-age-secret-access-skill`.
 - Capability-intelligence builder skill and local-only hard-cutover route.

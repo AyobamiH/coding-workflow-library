@@ -32,6 +32,7 @@ Use when:
 - Multiple GitHub accounts may exist locally.
 - The orchestrator needs to confirm the active GitHub account.
 - `GH_TOKEN` or `GITHUB_TOKEN` may be available in the environment.
+- A GitHub credential may be supplied through one validated SOPS-encrypted environment file for one separately authorised command.
 - A cached GitHub CLI token may be expired, revoked, or scoped incorrectly.
 - The active account may not match the target repo owner.
 
@@ -208,6 +209,5 @@ Only John should run token provisioning steps. Agents must not ask John to paste
 
 - Add script helper `scripts/github-auth-gate`.
 - Add account-to-repo mapping file.
-- Add secure token-manager integration.
-- Add `one-password-secret-access-skill` integration.
+- Route approved runtime credential injection through `sops-age-secret-access-skill`; do not print or persist the decrypted value.
 - Add preflight before GitHub handoff.

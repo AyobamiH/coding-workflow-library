@@ -87,7 +87,7 @@ Top skill mentions:
 - pre-commit validation hook: still missing
 - browser live proof skill: still missing
 - GitHub deep review skill: still missing
-- one-password secret access skill: still missing and decision-dependent
+- secret access skill: the historical 1Password-specific gap was later rejected on subscription grounds and resolved with the open-source `sops-age-secret-access-skill`
 
 ## Agent Role Recovery
 

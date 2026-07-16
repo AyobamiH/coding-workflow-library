@@ -100,6 +100,33 @@ print('yfinance', bool(pkgutil.find_loader('yfinance')))
 PY
 ```
 
+## SOPS + age Secret Access
+
+Use the library adapter instead of direct decryption:
+
+```bash
+./scripts/sops-age-secret-access status --validate
+./scripts/sops-age-secret-access validate-file \
+  --file /private/path/runtime.enc.env \
+  --validate
+./scripts/sops-age-secret-access run \
+  --file /private/path/runtime.enc.env \
+  --dry-run \
+  -- command arg
+coding-workflow sops-age status --validate
+```
+
+One real injection is separate and explicit:
+
+```bash
+./scripts/sops-age-secret-access run \
+  --file /private/path/runtime.enc.env \
+  --allow-secret-access \
+  -- command arg
+```
+
+The selected file must already be SOPS-encrypted for an age recipient. The helper never echoes decrypted values, private identities, provider output, or child output. Do not use `sops decrypt`, `exec-file`, `edit`, `set`, `unset`, `publish`, `rotate`, `updatekeys`, or `--ignore-mac` as a substitute. Injection does not grant the child command any other consequence authority.
+
 ## Git Verification
 
 ```bash

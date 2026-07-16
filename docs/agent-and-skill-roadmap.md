@@ -29,7 +29,7 @@ corrected workflow corpus
   -> exact-commit remote three-OS portability proof (observed)
   -> Opstruth runtime truth self-test (implemented)
   -> capability adapter evaluation (completed: narrow adapters only)
-  -> secret-access adapter, only if separately approved
+  -> narrow open-source SOPS + age secret-access adapter (implemented)
   -> capability acquisition/prefetch, rejected until repeated adapter insufficiency is proven
   -> agent-role system, only after repeated role contracts are proven
 ```
@@ -59,13 +59,10 @@ Implemented and active:
 - browser live proof
 - GitHub deep review
 - Opstruth runtime truth self-test
+- SOPS + age secret access
 - production handoff
 - release/package readiness
 - skills-library packaging
-
-Held capability decision, not a missing foundation:
-
-- one-password secret access
 
 ## Scripts And Helpers
 
@@ -91,6 +88,7 @@ Implemented:
 - `scripts/add-skill-gap`
 - `scripts/autonomy-outcomes`
 - `scripts/multi-project-proof`
+- `scripts/sops-age-secret-access`
 - `scripts/route-audit`
 - `scripts/validate-skills`
 - `scripts/skill-cleaner`
@@ -137,10 +135,10 @@ Implemented capability gates:
 - Cloudflare planning boundaries
 - browser live-proof gate and count-only Chromium observer
 - optional GitHub plugin repository-read provider observed beneath the existing GitHub skill contracts
+- narrow non-printing open-source SOPS + age adapter with encrypted-file validation and output-suppressed `sops exec-env --pristine`
 
 Missing, held, or rejected:
 
-- one-password secret access
 - capability acquisition broker (rejected for the current roadmap)
 - capability prefetch (rejected for the current roadmap)
 
@@ -177,8 +175,8 @@ The adapter evaluation found no need for a generic broker. Capability Intelligen
 ### P3
 
 18. Keep optional provider reads subordinate to existing workflow skills, evidence contracts, redaction, and authority gates.
-19. Explore one-password secret access only after a non-printing local contract is approved.
+19. Keep the SOPS + age adapter narrow: keep private identities outside source, preserve output suppression, and never let injection grant the child command extra authority.
 20. Revisit capability acquisition and prefetch only after at least two real runs prove the same unresolved adapter insufficiency.
 21. Revisit agent-role system only after at least two independent sessions prove a reusable role contract.
 
-The evidence-backed reusable-foundation sequence through capability adapter evaluation and remote portability proof is complete. Workflow reliability now has a bounded entrypoint, structured skill-gap recording, privacy-safe outcome reporting, observed three-repository proof, and exact-commit Ubuntu/macOS/Windows CI evidence. No additional generic foundation is currently proven missing. The prior GitHub Actions runtime warning is addressed locally by moving the workflow from the v4 Node 20 action generation to the official v7 Node 24 generation; remote exact-commit proof for that update remains pending publication. New foundation-building should start only from corrected corpus evidence, a structured skill-gap record, or repeated real workflow failures. See `docs/workflow-maturity-foundations.md` and `docs/modularity-audit.md`. Capability Intelligence remains parked as a separate product direction.
+The evidence-backed reusable-foundation sequence through capability adapter evaluation and remote portability proof is complete. Workflow reliability now has a bounded entrypoint, structured skill-gap recording, privacy-safe outcome reporting, observed three-repository proof, exact-commit Ubuntu/macOS/Windows CI evidence, and a narrow open-source SOPS + age adapter with two-recipient recovery proof plus one real output-suppressed read-only GitHub workflow. The earlier subscription-backed 1Password direction and system package are removed. No additional generic foundation is currently proven missing. The prior GitHub Actions runtime warning is addressed locally by moving the workflow from the v4 Node 20 action generation to the official v7 Node 24 generation; remote exact-commit proof for that update remains pending publication. New foundation-building should start only from corrected corpus evidence, a structured gap record, or repeated real workflow failures. See `docs/workflow-maturity-foundations.md` and `docs/modularity-audit.md`. Capability Intelligence remains parked as a separate product direction.

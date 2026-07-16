@@ -96,6 +96,7 @@ Preserve safety gates. Failed tests, failed validation, unsafe package contents,
 - durable source-only project context -> `project-kb-builder-skill` with `scripts/project-kb --repo <path>`
 - pre-commit gate for this library -> `build-verify-skill` with `scripts/pre-commit-check`
 - env/secrets -> `env-audit-skill`
+- non-printing open-source SOPS + age status, encrypted-file validation, or approved subprocess injection -> `sops-age-secret-access-skill`
 - Supabase RLS/public anon safety -> `supabase-rls-audit-skill`
 - security finding or patch plan -> `security-hardening-review-skill`
 - local lint/build/test proof -> `build-verify-skill`

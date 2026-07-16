@@ -66,6 +66,7 @@ skills/coding-workflow-library/
     migration-review.schema.json
     browser-live-proof.schema.json
     github-deep-review.schema.json
+    sops-age-secret-access.schema.json
     opstruth-runtime-truth.schema.json
     skill-gap-record.schema.json
     autonomy-outcomes.schema.json
@@ -97,6 +98,7 @@ skills/coding-workflow-library/
     migration-review
     browser-live-proof
     github-deep-review
+    sops-age-secret-access
     opstruth-classify
     add-skill-gap
     autonomy-outcomes
@@ -155,6 +157,7 @@ skills/coding-workflow-library/
     runtime-verification-skill.md
     browser-live-proof-skill.md
     github-deep-review-skill.md
+    sops-age-secret-access-skill.md
     opstruth-runtime-truth-skill.md
     supabase-function-deploy-skill.md
     supabase-scheduler-vault-skill.md
@@ -215,6 +218,27 @@ Use `capability-intelligence-builder-skill` when a separate product needs a comp
 The target product remains independent. This library provides the reusable engineering workflow and may be inventoried as a resource provider; it does not host the product implementation or replace autonomous workflow routing with capability discovery.
 
 The [capability adapter evaluation](docs/capability-adapter-evaluation.md) rejects a bulk skill/plugin cutover and a generic broker. Provider capabilities are optional implementations beneath existing workflow skills and routes: the workflow contract owns evidence, redaction, fallback, and authority. A bounded GitHub plugin repository read was observed, so structured GitHub reads may be used when available; installation, authentication, runnability, other plugin calls, and every write consequence remain separate facts.
+
+## SOPS + age Secret Access
+
+The selected local secret adapter is the open-source combination of [SOPS](https://getsops.io/docs/) and [age](https://age-encryption.org/). It requires no hosted account or subscription:
+
+```bash
+./scripts/sops-age-secret-access status --validate
+./scripts/sops-age-secret-access validate-file \
+  --file /private/path/runtime.enc.env \
+  --validate
+./scripts/sops-age-secret-access run \
+  --file /private/path/runtime.enc.env \
+  --dry-run \
+  -- command arg
+
+coding-workflow sops-age status --validate
+```
+
+A real injection requires `--allow-secret-access`. The adapter delegates only to `sops exec-env --pristine`, restricts decryption to age, suppresses provider and child output, and never writes a plaintext file. The child command retains its own publication, deployment, production, secret-mutation, and destructive gates.
+
+Keep age identities outside source with owner-only permissions, normally using one workstation identity and one separately stored recovery identity. Encrypt operational files for both public recipients and move the recovery identity to independent secure storage before relying on it. The adapter never runs `sops decrypt`, `exec-file`, `edit`, `set`, `unset`, `publish`, `rotate`, or `updatekeys`. The earlier 1Password path was rejected and removed because a subscription-backed account was not appropriate for this local workflow.
 
 ## Project-Scoped Workflow Lanes
 
