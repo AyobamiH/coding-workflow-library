@@ -48,6 +48,53 @@
 - Reason for priority: it completes the PR lifecycle beyond branch/PR creation and merge readiness.
 - Status: implemented locally with `scripts/github-deep-review`, a validated JSON contract, synthetic regression tests, CLI delegation, route metadata, and a bounded real GitHub evidence run.
 
+# P1 - Current Maturity Gaps
+
+## Modular run-next architecture and source-size guard
+
+- Evidence source: the prior 16,116-line `scripts/run-next`, interrupted-run recovery requirements, and current route/resume regression coverage.
+- Primary type: `CONTROL_PLANE`, `VALIDATION`.
+- Dependency: existing route and objective-authority contracts.
+- Authority required: `local_execution`.
+- Done definition: the entrypoint owns only composition and dispatch; domain logic, reports, checkpoints, and runtime support live in focused modules; recursive syntax checks cover nested code; a deterministic hard line budget prevents another monolith.
+- Status: implemented locally. `scripts/run-next` is 1,596 lines, 14 modules live under `scripts/lib/run-next/`, every checked file is below 2,200 lines, and focused module, resume, and authority tests pass.
+
+## Safe skill-gap recorder
+
+- Evidence source: `RUNBOOK.md` requires a skill-gap note when no skill fits, while `coding-workflow-orchestrator-skill.md` still lists `scripts/add_skill_gap.mjs` as an upgrade idea.
+- Primary type: `SCRIPT_OR_HELPER`.
+- Dependency: build queue format and public-path/secret safety checks.
+- Authority required: `local_execution`.
+- Done definition: one deterministic helper appends a bounded, portable, secret-safe gap record; supports dry-run and validation; refuses duplicate or malformed entries; never edits unrelated queue content.
+- Reason for priority: the control rule exists, but recording still depends on ad hoc manual editing.
+
+## Autonomy outcome reporting
+
+- Evidence source: lane objectives, checkpoints, blocker classes, `work-ledger.md`, and `runs/skill-runs.md`.
+- Primary type: `VALIDATION`, `CONTROL_PLANE`.
+- Dependency: stable local checkpoint and lane-state records.
+- Authority required: `local_execution`.
+- Done definition: a read-only helper reports route completion, blocker, recovery, resume, and stop-boundary counts from safe local metadata without reading secrets or treating logs as production proof.
+- Reason for priority: the workflow records evidence but does not yet summarize whether autonomy is becoming more reliable.
+
+## Real multi-project workflow evidence
+
+- Evidence source: existing product-specific Wagging, OpsTruth, release, browser, and GitHub runs.
+- Primary type: `VALIDATION`.
+- Dependency: modular `run-next`, outcome reporting, and stable route contracts.
+- Authority required: `local_execution`; target-specific consequences retain their own authority.
+- Done definition: at least three distinct repositories complete representative routes with the same public contracts, explicit failures, and no lane-state leakage.
+- Reason for priority: synthetic coverage is strong, but reusable autonomy needs repeated cross-repository evidence.
+
+## Remote cross-platform exact-commit proof
+
+- Evidence source: local `test:portable` and the three-OS GitHub Actions matrix.
+- Primary type: `VALIDATION`.
+- Dependency: publication of the modular source and exact-commit CI access.
+- Authority required: `remote_publication`.
+- Done definition: Linux, macOS, and Windows jobs pass for the exact published commit, with any platform-specific failure classified rather than inferred from local Linux evidence.
+- Reason for priority: the matrix exists locally, but remote execution evidence must remain separate until observed.
+
 # P2 - Follow-On Autonomy Improvements
 
 Capability adapter evaluation is complete. No generic capability work is active; maintenance returns to the proven P0 foundations unless a real workflow supplies repeated unresolved `BLOCKED_CAPABILITY` evidence.

@@ -22,6 +22,11 @@ corrected workflow corpus
   -> GitHub deep review (implemented)
   -> three-OS portability contract (implemented locally)
   -> routing shape review (implemented)
+  -> modular run-next architecture and source-size guard (implemented locally)
+  -> safe skill-gap recorder
+  -> autonomy outcome reporting
+  -> real multi-project workflow evidence
+  -> remote three-OS exact-commit proof
   -> Opstruth runtime truth self-test (implemented)
   -> capability adapter evaluation (completed: narrow adapters only)
   -> secret-access adapter, only if separately approved
@@ -81,6 +86,7 @@ Implemented:
 - `scripts/objective-authority`
 - `scripts/committer`
 - `scripts/check-js`
+- `scripts/check-module-size`
 - `scripts/route-audit`
 - `scripts/validate-skills`
 - `scripts/skill-cleaner`
@@ -91,7 +97,8 @@ Implemented:
 
 Missing helpers:
 
-- none in the currently approved source/docs/review foundation sequence
+- safe skill-gap recorder for the existing "no skill fits" control rule
+- read-only autonomy outcome summarizer over safe lane/checkpoint/run metadata
 
 ## Routes And Control Plane
 
@@ -146,24 +153,29 @@ The adapter evaluation found no need for a generic broker. Capability Intelligen
 
 ### P1
 
-4. Keep `scripts/repo-map` current as the deterministic source-only workspace orientation helper.
-5. Keep `scripts/project-kb` current as the deterministic source-only project memory compiler.
-6. Keep `scripts/pre-commit-check` and `scripts/install-git-hooks` current as the deterministic local commit gate.
-7. Keep `scripts/migration-review` current as the deterministic source-only migration risk helper.
+4. Keep the modular `run-next` architecture and `scripts/check-module-size` current; do not regrow the entrypoint.
+5. Implement the safe skill-gap recorder required by the existing runbook contract.
+6. Add read-only autonomy outcome reporting from safe lane, checkpoint, ledger, and run metadata.
+7. Collect representative real-run evidence across at least three repositories without leaking lane state.
+8. Verify the existing Linux/macOS/Windows portable matrix against an exact published commit.
+9. Keep `scripts/repo-map` current as the deterministic source-only workspace orientation helper.
+10. Keep `scripts/project-kb` current as the deterministic source-only project memory compiler.
+11. Keep `scripts/pre-commit-check` and `scripts/install-git-hooks` current as the deterministic local commit gate.
+12. Keep `scripts/migration-review` current as the deterministic source-only migration risk helper.
 
 ### P2
 
-8. Keep `scripts/browser-live-proof` and `browser-live-proof-skill` current as the bounded browser-observation foundation, including redirect and screenshot-content warnings.
-9. Keep `scripts/github-deep-review` and `github-deep-review-skill` current as the thread-aware, read-only PR evidence foundation; unavailable protection metadata must stay unknown.
-10. Keep the Linux/macOS/Windows portable contract and reviewed routing-shape exceptions current.
-11. Keep `scripts/opstruth-classify` current as the deterministic mixed-evidence truth-model self-test.
-12. Keep the hardened release/package preflight current: validated human/JSON reports, crisp mode-specific blockers, safe package-manifest inspection, version and release-note baseline checks, and optional aggregate-only corpus evidence are now implemented locally.
+13. Keep `scripts/browser-live-proof` and `browser-live-proof-skill` current as the bounded browser-observation foundation, including redirect and screenshot-content warnings.
+14. Keep `scripts/github-deep-review` and `github-deep-review-skill` current as the thread-aware, read-only PR evidence foundation; unavailable protection metadata must stay unknown.
+15. Keep the Linux/macOS/Windows portable contract and reviewed routing-shape exceptions current.
+16. Keep `scripts/opstruth-classify` current as the deterministic mixed-evidence truth-model self-test.
+17. Keep the hardened release/package preflight current: validated human/JSON reports, crisp mode-specific blockers, safe package-manifest inspection, version and release-note baseline checks, and optional aggregate-only corpus evidence are now implemented locally.
 
 ### P3
 
-13. Keep optional provider reads subordinate to existing workflow skills, evidence contracts, redaction, and authority gates.
-14. Explore one-password secret access only after a non-printing local contract is approved.
-15. Revisit capability acquisition and prefetch only after at least two real runs prove the same unresolved adapter insufficiency.
-16. Revisit agent-role system only after at least two independent sessions prove a reusable role contract.
+18. Keep optional provider reads subordinate to existing workflow skills, evidence contracts, redaction, and authority gates.
+19. Explore one-password secret access only after a non-printing local contract is approved.
+20. Revisit capability acquisition and prefetch only after at least two real runs prove the same unresolved adapter insufficiency.
+21. Revisit agent-role system only after at least two independent sessions prove a reusable role contract.
 
-The evidence-backed reusable-foundation sequence through capability adapter evaluation is complete locally. The evaluation selected narrow workflow-owned adapters, observed one bounded GitHub metadata read, and rejected a generic broker, prefetch, automatic installation, and skill/plugin hard cutover. Capability Intelligence remains parked as a separate product direction.
+The evidence-backed reusable-foundation sequence through capability adapter evaluation is complete locally. The current maturity sequence returns to workflow reliability: keep `run-next` modular, close the skill-gap recording contract, measure autonomy outcomes, gather multi-project evidence, and verify remote portability. The adapter evaluation selected narrow workflow-owned adapters, observed one bounded GitHub metadata read, and rejected a generic broker, prefetch, automatic installation, and skill/plugin hard cutover. Capability Intelligence remains parked as a separate product direction.

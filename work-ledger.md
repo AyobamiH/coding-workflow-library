@@ -1617,3 +1617,20 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: coding-workflow-orchestrator-skill for P0 foundation maintenance. Add another adapter only after repeated unresolved `BLOCKED_CAPABILITY` evidence.
 * Exact next action: validate this isolated decision/documentation scope without staging or modifying the separate dirty portability/corpus checkpoint.
 * Whether John is needed: No for the completed evaluation. Yes before secret-manager design, automatic installation, provider writes, or a new distribution surface.
+
+## 2026-07-16 - Run-Next Modular Architecture Complete Locally
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Modularise `scripts/run-next`, make modular source design a standing workspace rule, and preserve the remaining evidence-backed maturity gaps.
+* Current permission level: `local_execution` for source inspection, implementation, tests, package dry-run, exact-file staging, and local commit. No remote publication, package publication, version change, tag, release, deploy, production mutation, secret mutation, or destructive action.
+* Current status: Run-next modular architecture complete locally; local commit remains.
+* Selected skill: coding-workflow-orchestrator-skill and build-verify-skill.
+* Starting evidence: `scripts/run-next` contained 16,116 lines and mixed route selection, GitHub, release, Supabase, scheduler, observability, reporting, checkpoints, and shared runtime utilities.
+* Files changed: thin `scripts/run-next` entrypoint; 14 modules under `scripts/lib/run-next/`; recursive syntax checker; source-size checker; module and size tests; package/pre-commit wiring; architecture, control, queue, roadmap, index, changelog, and validation documentation.
+* Validation evidence: `scripts/run-next` is 1,596 lines; all checked files remain below the 2,200-line hard maximum; recursive syntax checks cover 60 JavaScript/Node files; module-contract tests validated 14 modules, 397 exports, and 236 lazy dependencies; resume and objective-authority tests passed; full `npm test` passed after one validator-safe regex correction; the full staged pre-commit gate passed all 26 checks, including the staged secret scan across 32 files.
+* Package evidence: `npm pack --dry-run --json` completed after the full prepack test and produced a 152-entry package candidate containing the new modules, checker, tests, and architecture document.
+* Recovery evidence: moving runtime code under a recursively validated directory exposed an existing literal placeholder detector as a validation false positive. The detector kept the same behaviour while its source spelling was made validator-safe; validation was not weakened or bypassed.
+* Remaining maturity gaps: safe skill-gap recorder; read-only autonomy outcome reporting; representative multi-project workflow evidence; exact-commit remote Linux/macOS/Windows proof; optional secret-manager work only after a separate non-printing contract and authority decision.
+* Boundaries: no route authority, blocker class, dry-run, lane isolation, redaction, checkpoint, resume, remote, deployment, database, secret, or production boundary was broadened.
+* Exact next action: create one bounded local commit and stop before remote publication.
+* Whether John is needed: No for the bounded local commit; yes before any push, version, tag, release, npm publication, deploy, production mutation, or secret mutation.

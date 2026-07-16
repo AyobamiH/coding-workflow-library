@@ -48,6 +48,8 @@ For later library releases, select an objective id shaped as `release-coding-wor
 
 Use `scripts/pre-commit-check` before local commits in this library. Default mode is fast and local; `--staged` adds staged diff safety and secret-shaped marker scanning without values; `--full` adds `npm test` and `skill-cleaner`. `scripts/install-git-hooks` can install the optional managed `.git/hooks/pre-commit` template, but it must preserve unmanaged hooks unless `--force` is explicitly chosen. The hook does not grant commit, push, publish, deploy, or release authority.
 
+Use `scripts/check-module-size` after adding or reorganising JavaScript. Entry points should contain composition and dispatch, while route execution, evidence collection, report rendering, and checkpoint handling belong in responsibility-owned modules. Review files at 1,000 lines; the 2,200-line hard gate is enforced by `npm test` and pre-commit validation. Do not bypass the gate with a hand-written-file allowlist. For `run-next`, follow `docs/run-next-modular-architecture.md` and extend the owning module instead of restoring the old monolith.
+
 Use `<LIBRARY_REPO>`, `<TARGET_REPO>`, `<LOCAL_ENV_FILE>`, and `<TEMP_ROOT>` in tracked documentation and evidence. `scripts/run-next` defaults `--repo` to the current working directory and supports `CODING_WORKFLOW_HOME`, `CODING_WORKFLOW_ENV_FILE`, `CODING_WORKFLOW_TMPDIR`, and `CODING_WORKFLOW_NPM_CACHE` for local runtime placement. `scripts/check-public-paths` is deterministic and reports path categories without echoing matched private paths.
 
 `scripts/run-next` is the default executable path when the next step is represented in lane state or `work-ledger.md`. In lane mode it reads the selected objective authority and can continue through multiple safe/local stages until a structured blocker appears. Legacy `--allow <route>` flags remain compatible; new work should prefer objective grants. Use `--explain`, `--explain-next`, or `--dry-run` when the selected job should be reported without mutating lane state, ledger, run log, target repo, or external services.
@@ -124,9 +126,10 @@ Tool selection must respect `tools.md`. If a tool's permission level is higher t
 6. Confirm the selected skill file exists under `skill-files/`.
 7. Read the selected skill file in full enough to follow its Commands, Procedure, Evidence Required, and Safety Rules.
 8. Read `tools.md` before tool-heavy work or any command outside read-only local inspection.
-9. State the selected skill and why it applies.
-10. Record starting facts separately from assumptions.
-11. Start with read-only commands unless the task explicitly requires a file creation/edit and the target is clear.
+9. Inspect module boundaries before extending an established executable; keep entrypoints thin and choose the existing responsibility owner.
+10. State the selected skill and why it applies.
+11. Record starting facts separately from assumptions.
+12. Start with read-only commands unless the task explicitly requires a file creation/edit and the target is clear.
 
 ## During A Coding Task
 

@@ -50,6 +50,17 @@ Preserve safety gates. Failed tests, failed validation, unsafe package contents,
 - Before local commits in this library, run `scripts/pre-commit-check` or rely on the installed managed hook.
 - Never commit maintainer-specific absolute user-home paths. Use semantic placeholders and run `scripts/check-public-paths` before public packaging or publication.
 
+## Modularity
+
+- Keep command entrypoints thin: argument parsing, dependency composition, dispatch, and top-level error handling only.
+- Split implementation by stable responsibility before a source file becomes difficult to review, test, or safely resume.
+- Treat 1,000 lines as a review threshold. Explain why a file should remain cohesive or extract a focused module.
+- `scripts/check-module-size` enforces a 2,200-line hard maximum for JavaScript and Node scripts under `bin/`, `scripts/`, and `tests/`.
+- Do not add an allowlist merely to let a hand-written file keep growing. Generated, dependency, cache, build, coverage, and private runtime output are excluded by source boundary instead.
+- Put shared behaviour in one named primitive rather than copying it across route modules.
+- Preserve behaviour with focused module-contract and route/resume tests when splitting an established executable.
+- Apply the same standard to future workspace code unless a target repository has a stricter documented convention.
+
 ## Package Manager Safety
 
 - Respect `packageManager` if present.

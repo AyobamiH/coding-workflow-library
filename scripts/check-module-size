@@ -1,0 +1,113 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+
+const DEFAULT_MAX_LINES = 2200;
+const SOURCE_DIRS = ["bin", "scripts", "tests"];
+
+function parseArgs(argv) {
+  const args = {
+    repo: process.cwd(),
+    maxLines: DEFAULT_MAX_LINES,
+  };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--repo") {
+      args.repo = argv[++index];
+      if (!args.repo) throw new Error("--repo requires a path");
+    } else if (arg === "--max-lines") {
+      args.maxLines = Number(argv[++index]);
+      if (!Number.isInteger(args.maxLines) || args.maxLines < 1) {
+        throw new Error("--max-lines requires a positive integer");
+      }
+    } else if (arg === "--help" || arg === "-h") {
+      console.log(`Usage: ./scripts/check-module-size [--repo <path>] [--max-lines <count>]
+
+Fail when a JavaScript or Node-shebang source file under bin/, scripts/, or tests/
+exceeds the configured line budget. Generated, dependency, cache, and private
+runtime directories are excluded.`);
+      process.exit(0);
+    } else {
+      throw new Error(`unknown argument: ${arg}`);
+    }
+  }
+  return args;
+}
+
+function isExcluded(relativePath) {
+  return relativePath.split(path.sep).some((part) =>
+    [".git", ".run-next", "node_modules", "dist", "build", ".cache", "coverage"].includes(part),
+  );
+}
+
+function isJavaScript(file) {
+  if (/\.(?:js|cjs|mjs)$/.test(file)) return true;
+  try {
+    return fs.readFileSync(file, "utf8").split(/\r?\n/, 1)[0].includes("node");
+  } catch {
+    return false;
+  }
+}
+
+function walk(root, relative = "") {
+  const directory = path.join(root, relative);
+  if (!fs.existsSync(directory)) return [];
+  const files = [];
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const child = path.join(relative, entry.name);
+    if (isExcluded(child)) continue;
+    if (entry.isDirectory()) files.push(...walk(root, child));
+    else if (entry.isFile() && isJavaScript(path.join(root, child))) files.push(child);
+  }
+  return files;
+}
+
+function countLines(file) {
+  const text = fs.readFileSync(file, "utf8");
+  if (!text) return 0;
+  return text.split(/\r?\n/).length;
+}
+
+function inspectRepository(options) {
+  const args = {
+    repo: path.resolve(options.repo),
+    maxLines: options.maxLines,
+  };
+  const root = path.resolve(args.repo);
+  const files = SOURCE_DIRS.flatMap((directory) => walk(root, directory)).sort();
+  const oversized = files
+    .map((relativePath) => ({
+      path: relativePath.split(path.sep).join("/"),
+      lines: countLines(path.join(root, relativePath)),
+    }))
+    .filter((item) => item.lines > args.maxLines);
+
+  return {
+    filesChecked: files.length,
+    maxLines: args.maxLines,
+    oversized,
+  };
+}
+
+function render(result) {
+  console.log("# Module Size Check");
+  console.log(`Files checked: ${result.filesChecked}`);
+  console.log(`Maximum lines: ${result.maxLines}`);
+  console.log(`Oversized files: ${result.oversized.length}`);
+  for (const item of result.oversized) console.log(`- ${item.path}: ${item.lines}`);
+}
+
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const result = inspectRepository(args);
+  render(result);
+  if (result.oversized.length) process.exitCode = 1;
+}
+
+if (require.main === module) main();
+
+module.exports = {
+  DEFAULT_MAX_LINES,
+  inspectRepository,
+};

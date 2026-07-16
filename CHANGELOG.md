@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Decompose the 16,116-line `scripts/run-next` monolith into a thin entrypoint and responsibility-owned runtime modules without changing route or authority behaviour.
+- Add a repository-wide source-size gate, modular runtime contract tests, recursive JavaScript syntax coverage, and documented modularity rules.
+- Keep the next maturity gaps explicit: safe skill-gap recording, autonomy outcome reporting, multi-project evidence, and remote cross-platform proof.
+
 ## 0.2.3 - 2026-07-16
 
 - Record the capability-adapter decision: keep providers beneath existing workflow contracts, allow bounded optional GitHub reads, and reject generic brokering, prefetch, automatic installation, and bulk skill/plugin cutover.

@@ -21,6 +21,18 @@ Public documentation and evidence use semantic placeholders such as `<LIBRARY_RE
 
 Run `npm run check:paths` before public commits or packaging. It scans tracked or packaged text files for Linux, macOS, and Windows user-home paths and reports only file, line, and category.
 
+## Source Modularity
+
+`scripts/run-next` is a thin composition and dispatch entrypoint. Route execution, runtime support, reports, and checkpoints live in responsibility-owned modules under `scripts/lib/run-next/`; see [docs/run-next-modular-architecture.md](docs/run-next-modular-architecture.md).
+
+Run the source-size guard after adding or reorganising JavaScript:
+
+```bash
+npm run check:modules
+```
+
+The repository uses a 1,000-line review threshold and a tested 2,200-line hard maximum for hand-written JavaScript and Node scripts under `bin/`, `scripts/`, and `tests/`. The hard gate is part of `npm test`, portable tests, and the default pre-commit check.
+
 ## Layout
 
 ```text
@@ -78,6 +90,7 @@ skills/coding-workflow-library/
     project-kb
     pre-commit-check
     check-public-paths
+    check-module-size
     migration-review
     browser-live-proof
     github-deep-review
@@ -87,6 +100,13 @@ skills/coding-workflow-library/
     route-audit
     skill-cleaner
     validate-skills
+    lib/
+      run-next/
+        runtime-context.js
+        runtime-core.js
+        checkpoints.js
+        reports.js
+        <responsibility-owned route modules>
   templates/
     hooks/
       pre-commit
@@ -237,6 +257,8 @@ coding-workflow docs-list --validate
 ```
 
 The helper inventories tracked Markdown documentation, classifies each file by repository area, extracts the first H1, reports duplicate titles, and checks whether current docs are referenced by the expected index/control documents. Historical release notes, run logs, and evidence notes are listed but are not treated as current-document orphan failures. It does not call an LLM, rewrite docs, inspect private corpus outputs, read secrets, publish, deploy, push, tag, or mutate external services.
+
+The `run-next` architecture is documented separately because adding a route should extend the correct domain module rather than regrow the executable entrypoint. Read `docs/run-next-modular-architecture.md` before broad `run-next` work.
 
 ## Repository Map
 

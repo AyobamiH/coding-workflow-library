@@ -1666,3 +1666,17 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: an initial scan command used the source module instead of the package entrypoint and produced no JSON; rerunning the documented CLI produced a valid strict inventory. No source was changed in the separate product, and no existing dirty implementation file was edited.
 * Follow-up skill needed: coding-workflow-orchestrator-skill for P0 maintenance only. Secret-manager or provider-write work requires a separate decision and authority objective.
 * Upgrade idea: record provider receipts only after repeated real workflow use proves a stable provider-neutral evidence schema; do not build the schema pre-emptively.
+
+## 2026-07-16 - Run-Next Modular Architecture
+
+* Skill used: coding-workflow-orchestrator-skill and build-verify-skill.
+* Goal: Replace the oversized `run-next` implementation with responsibility-owned modules, enforce modular source limits, and keep the workflow maturity queue grounded in existing evidence.
+* Starting state: Library `main` matched `origin/main` and was clean at `aae4c9b`; `scripts/run-next` contained 16,116 lines; route/resume and authority tests existed but implementation ownership was concentrated in one file.
+* Commands/tools used: repository and roadmap inspection; one bounded extraction codemod followed by manual review; `apply_patch`; syntax and module-contract tests; route/resume/authority tests; documentation validation; full `npm test`; package dry-run; diff and line-count inspection.
+* Files inspected: control rules, runbook, architecture, queue, roadmap, existing route/resume/authority tests, package/pre-commit wiring, `scripts/run-next`, and the generated responsibility modules.
+* Files changed: `scripts/run-next`; `scripts/lib/run-next/*.js`; `scripts/check-module-size`; recursive syntax validation; focused tests; package/pre-commit scripts; modularity policy and architecture documentation; queue, roadmap, changelog, index, checklist, ledger, and run log.
+* Evidence collected: the entrypoint fell to 1,596 lines; 14 runtime modules are independently bounded below 2,200 lines; 60 JavaScript/Node files pass recursive syntax and size checks; module-contract tests resolve 397 exports and 236 lazy dependencies; route resume and objective-authority regressions pass; full `npm test` passes; package dry-run includes 152 public entries and every new module/test/doc.
+* Result: COMPLETE LOCALLY pending one bounded local commit. The full staged pre-commit gate passed all 26 checks, including the staged secret scan across 32 files. Existing route names, authority classes, blockers, redaction, dry-run, lane, checkpoint, and resume contracts are preserved.
+* Failure/recovery notes: recursive validation correctly exposed an old literal placeholder-detector regex after extraction. The regex semantics were preserved with validator-safe spelling, and the full suite passed on rerun. A temporary codemod was deleted and is not part of the package.
+* Follow-up skill needed: coding-workflow-orchestrator-skill for the safe skill-gap recorder, followed by autonomy outcome reporting and multi-project evidence.
+* Upgrade idea: replace the remaining long dispatch chain with a declarative executor registry only when that can be proven without hiding authority or route ownership.

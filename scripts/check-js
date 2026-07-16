@@ -24,6 +24,7 @@ const explicit = [
   "tests/opstruth-classify.test.js",
   "tests/release-preflight.test.js",
   "tests/public-paths.test.js",
+  "tests/module-size.test.js",
 ];
 
 function isNodeScript(relativePath) {
@@ -34,11 +35,23 @@ function isNodeScript(relativePath) {
   return firstLine.includes("node");
 }
 
+function walk(relativeDirectory) {
+  const absoluteDirectory = path.join(root, relativeDirectory);
+  if (!fs.existsSync(absoluteDirectory)) return [];
+  const files = [];
+  for (const entry of fs.readdirSync(absoluteDirectory, { withFileTypes: true })) {
+    const relativePath = path.join(relativeDirectory, entry.name);
+    if (entry.isDirectory()) files.push(...walk(relativePath));
+    else if (entry.isFile()) files.push(relativePath);
+  }
+  return files;
+}
+
 function discover() {
   const candidates = new Set(explicit);
-  for (const name of fs.readdirSync(scriptDir)) {
-    candidates.add(path.join("scripts", name));
-  }
+  for (const relativePath of walk("scripts")) candidates.add(relativePath);
+  for (const relativePath of walk("bin")) candidates.add(relativePath);
+  for (const relativePath of walk("tests")) candidates.add(relativePath);
   return [...candidates].filter(isNodeScript).sort();
 }
 

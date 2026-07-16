@@ -51,12 +51,15 @@ Use this checklist after creating, updating, or reorganizing the coding workflow
 - [ ] Browser proof validates PNG structure/nonblank sampling and warns on cross-origin redirects
 - [ ] GitHub deep review leaves ambiguous branch-protection 404s as metadata unavailable
 - [ ] `skill-cleaner` reports duplicate triggers and reviewed shape exceptions separately
+- [ ] Command entrypoints remain thin and responsibility-owned implementation lives in focused modules
+- [ ] Hand-written JavaScript and Node scripts remain below the enforced source-size maximum
 
 ## Validation Commands
 
 ```bash
 ./scripts/validate-skills
 ./scripts/check-public-paths
+./scripts/check-module-size
 ./scripts/docs-list --validate
 ./scripts/repo-map --repo . --validate
 ./scripts/project-kb --repo . --validate

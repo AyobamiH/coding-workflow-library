@@ -129,6 +129,8 @@ function checkResult(id, status, extra = {}) {
 function buildDefaultChecks(options = {}) {
   const checks = [
     { id: "git-diff-check", command: "git", args: ["diff", "--check"] },
+    { id: "syntax-all-js", command: process.execPath, args: ["scripts/check-js"] },
+    { id: "module-size", command: process.execPath, args: ["scripts/check-module-size"] },
     { id: "syntax-cli", command: process.execPath, args: ["--check", "bin/coding-workflow.js"] },
     { id: "syntax-run-next", command: process.execPath, args: ["--check", "scripts/run-next"] },
     { id: "syntax-docs-list", command: process.execPath, args: ["--check", "scripts/docs-list"] },
