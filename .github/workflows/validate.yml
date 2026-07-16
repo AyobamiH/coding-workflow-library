@@ -65,3 +65,29 @@ jobs:
           }
           console.log(`Package contents checked: ${names.length} files`);
           NODE
+
+  portability:
+    name: Portability (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install package metadata only
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run portable contract suite
+        run: npm run test:portable

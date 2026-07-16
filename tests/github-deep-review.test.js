@@ -144,6 +144,8 @@ function testMetadataUnavailable() {
   }));
   assert.strictEqual(value.status, "ATTENTION");
   assert.strictEqual(value.signals.find((signal) => signal.id === "branch_protection").state, "METADATA_UNAVAILABLE");
+  const ambiguousNotFound = helper.branchProtectionFromResult({ ok: false, category: "not_found" });
+  assert.strictEqual(ambiguousNotFound.state, "metadata_unavailable", "GitHub 404 must not prove branch protection is absent");
 }
 
 function testRedactionAndValidation() {
@@ -154,6 +156,10 @@ function testRedactionAndValidation() {
   assert(!redacted.includes("abcdefghijklmnopqrstuvwxyz"));
   assert(!redacted.includes("example.com"));
   assert(!redacted.includes(syntheticPrivatePath));
+  const macPath = ["", "Users", "example", "private", "file"].join("/");
+  const windowsPath = ["C:", "Users", "example", "private", "file"].join("\\");
+  assert.equal(helper.redactExcerpt(macPath), "[private-path]");
+  assert.equal(helper.redactExcerpt(windowsPath), "[private-path]");
 
   const value = report(fixture({
     threads: {

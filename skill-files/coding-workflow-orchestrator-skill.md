@@ -92,6 +92,7 @@ legacy_allow_flags:
   - package-candidate-dry-run
   - cli-package-smoke
 safe_by_default: true
+shape_exception: authoritative state and permission catalogs must remain co-located with the control-plane safety contract
 mutates:
   - selected local lane on lane-aware real execution
   - work-ledger.md on legacy real execution

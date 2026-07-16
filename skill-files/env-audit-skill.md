@@ -8,6 +8,7 @@ routing_triggers:
   - env example
   - public config
 status: active
+shape_exception: secret redaction procedure and evidence contract must remain co-located for env audits
 ---
 # env-audit-skill
 

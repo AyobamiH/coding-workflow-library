@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/coding-workflow/workflow-corpus-snapshot.schema.json",
+  "title": "Workflow Corpus Snapshot",
+  "type": "object",
+  "required": ["schema", "algorithm", "mode", "fingerprints", "counts", "boundaries"],
+  "properties": {
+    "schema": { "const": "workflow-corpus-snapshot.v1" },
+    "algorithm": { "const": "sha256" },
+    "mode": { "enum": ["full", "manifest_only"] },
+    "fingerprints": {
+      "type": "object",
+      "required": ["source_manifest", "corpus", "coverage", "snapshot"],
+      "properties": {
+        "source_manifest": { "$ref": "#/$defs/hash" },
+        "corpus": { "anyOf": [{ "$ref": "#/$defs/hash" }, { "type": "null" }] },
+        "coverage": { "$ref": "#/$defs/hash" },
+        "snapshot": { "$ref": "#/$defs/hash" }
+      },
+      "additionalProperties": false
+    },
+    "counts": {
+      "type": "object",
+      "required": ["sources", "events", "discovered", "parsed", "unsupported", "corrupt", "empty", "duplicate", "excluded"],
+      "properties": {
+        "sources": { "$ref": "#/$defs/count" },
+        "events": { "$ref": "#/$defs/count" },
+        "discovered": { "$ref": "#/$defs/count" },
+        "parsed": { "$ref": "#/$defs/count" },
+        "unsupported": { "$ref": "#/$defs/count" },
+        "corrupt": { "$ref": "#/$defs/count" },
+        "empty": { "$ref": "#/$defs/count" },
+        "duplicate": { "$ref": "#/$defs/count" },
+        "excluded": { "$ref": "#/$defs/count" }
+      },
+      "additionalProperties": false
+    },
+    "boundaries": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+  },
+  "$defs": {
+    "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "count": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": false
+}

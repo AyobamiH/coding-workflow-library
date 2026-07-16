@@ -18,10 +18,17 @@ function writeJsonl(file, records) {
 
 async function main() {
   const {
+    compareWorkflowSnapshots,
+    createWorkflowSnapshot,
     extractCorpus,
+    parseArgs,
     validateExistingOutput,
+    validateWorkflowSnapshot,
     writeOutputs,
   } = await import(script);
+
+  assert.throws(() => parseArgs(["--require-unchanged"]), /requires --compare-to/);
+  assert.equal(parseArgs(["--compare-to", "baseline", "--require-unchanged"]).requireUnchanged, true);
 
   writeJsonl("openclaw.jsonl", [
     { type: "session", timestamp: "2026-01-01T00:00:00.000Z" },
@@ -114,6 +121,26 @@ async function main() {
 
   const validation = validateExistingOutput(output);
   assert.equal(validation.status, "PASS");
+  assert.equal(validation.snapshot_status, "PASS");
+
+  const firstSnapshot = JSON.parse(fs.readFileSync(path.join(output, "workflow-snapshot.json"), "utf8"));
+  assert.deepEqual(validateWorkflowSnapshot(firstSnapshot), []);
+  assert.equal(firstSnapshot.mode, "full");
+  assert.equal(firstSnapshot.counts.events, events.length);
+  assert.ok(/^[a-f0-9]{64}$/.test(firstSnapshot.fingerprints.snapshot));
+  assert.ok(!JSON.stringify(firstSnapshot).includes(syntheticHome));
+
+  const mtimeOnly = structuredClone(first);
+  mtimeOnly.manifest[0].safe_mtime = "2099-01-01T00:00:00.000Z";
+  assert.equal(
+    createWorkflowSnapshot(mtimeOnly).fingerprints.snapshot,
+    firstSnapshot.fingerprints.snapshot,
+    "source mtimes must not create corpus drift",
+  );
+
+  const manifestSnapshot = createWorkflowSnapshot(first, { manifestOnly: true });
+  assert.equal(manifestSnapshot.mode, "manifest_only");
+  assert.equal(manifestSnapshot.fingerprints.corpus, null);
 
   const secondOutput = path.join(temp, "out2");
   const second = extractCorpus({ sources: [source], outputDir: secondOutput, includeMetaSessions: false });
@@ -127,12 +154,36 @@ async function main() {
     fs.readFileSync(path.join(output, "workflow-corpus.jsonl"), "utf8"),
     fs.readFileSync(path.join(secondOutput, "workflow-corpus.jsonl"), "utf8")
   );
+  const secondSnapshot = JSON.parse(fs.readFileSync(path.join(secondOutput, "workflow-snapshot.json"), "utf8"));
+  assert.deepEqual(secondSnapshot, firstSnapshot);
+  assert.equal(compareWorkflowSnapshots(secondSnapshot, firstSnapshot).status, "UNCHANGED");
+
+  fs.appendFileSync(path.join(source, "openclaw.jsonl"), `${JSON.stringify({
+    type: "message",
+    timestamp: "2026-01-01T00:00:05.000Z",
+    message: { role: "user", content: [{ type: "text", text: "A new bounded workflow event." }] },
+  })}\n`);
+  const changed = extractCorpus({ sources: [source], outputDir: path.join(temp, "changed"), includeMetaSessions: false });
+  const comparison = compareWorkflowSnapshots(changed.snapshot, firstSnapshot);
+  assert.equal(comparison.status, "CHANGED");
+  assert.ok(comparison.changed_components.includes("corpus"));
+  assert.ok(Object.keys(comparison.count_deltas).length > 0);
+  assert.ok(!JSON.stringify(comparison).includes(source));
+
+  const incompatible = compareWorkflowSnapshots(manifestSnapshot, firstSnapshot);
+  assert.equal(incompatible.status, "INCOMPATIBLE");
+
+  const tamperedSnapshot = structuredClone(firstSnapshot);
+  tamperedSnapshot.fingerprints.snapshot = "0".repeat(64);
+  fs.writeFileSync(path.join(output, "workflow-snapshot.json"), `${JSON.stringify(tamperedSnapshot, null, 2)}\n`);
+  assert.equal(validateExistingOutput(output).status, "FAIL", "tampered snapshot must fail validation");
+  fs.writeFileSync(path.join(output, "workflow-snapshot.json"), `${JSON.stringify(firstSnapshot, null, 2)}\n`);
 
   const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
   assert.ok(!JSON.stringify(packageJson.files || []).includes("workflow-corpus"));
   assert.ok(!JSON.stringify(packageJson.files || []).includes("pseudonym-map"));
 
-  console.log("Workflow extraction tests passed: parsing, accounting, redaction, meta sessions, dry-run, schemas, and determinism.");
+  console.log("Workflow extraction tests passed: parsing, accounting, redaction, snapshots, comparison, privacy, and determinism.");
 }
 
 main().finally(() => {

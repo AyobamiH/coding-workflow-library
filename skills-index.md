@@ -11,6 +11,7 @@ Active skill routing is based on each skill file's frontmatter:
 - `category`: approved routing category;
 - `routing_triggers`: two to six short trigger phrases;
 - `status`: `active`, `draft`, or `deprecated`.
+- `shape_exception`: optional reviewed reason for keeping a long safety-critical contract co-located.
 
 Every active skill must be referenced here by filename or name. `./scripts/validate-skills` enforces that contract.
 
@@ -24,7 +25,7 @@ Use as the control plane for queue classification, permission gates, local repo 
 ### session-log-extraction-skill
 
 File: `skill-files/session-log-extraction-skill.md`
-Use for mining OpenClaw/Codex JSONL logs into a deterministic private workflow corpus. It delegates to `scripts/extract-session-workflows.mjs`, writes source manifests and coverage reports outside the repository, separates proposed from executed commands, marks extraction-meta sessions, and supports corpus-driven backlog recovery.
+Use for mining OpenClaw/Codex JSONL logs into a deterministic private workflow corpus. It delegates to `scripts/extract-session-workflows.mjs`, writes source manifests, content fingerprints, comparisons, and coverage reports outside the repository, separates proposed from executed commands, marks extraction-meta sessions, and supports corpus-driven backlog recovery.
 
 ### skill-cleaner-skill
 
@@ -205,6 +206,8 @@ Use for source-only migration risk review before any apply/deploy step. Run `scr
 - `schemas/opstruth-runtime-truth.schema.json`: portable schema for classifier JSON output.
 - `schemas/workflow-corpus.schema.json`: portable event schema for redacted corpus events.
 - `schemas/workflow-source-manifest.schema.json`: portable source manifest schema with terminal parse statuses.
+- `schemas/workflow-corpus-snapshot.schema.json`: private-output contract for content-derived corpus fingerprints and safe counts.
+- `schemas/workflow-snapshot-comparison.schema.json`: private-output contract for unchanged/changed/incompatible snapshot comparisons.
 - `templates/workflow-extraction-config.example.json`: neutral example config for private corpus extraction.
 - `docs/workflow-extraction-methodology.md`: source accounting, contamination, privacy, and evidence-class contract.
 - `docs/workflow-corpus-recovery-report.md`: public-safe aggregate findings from the corrected private corpus.

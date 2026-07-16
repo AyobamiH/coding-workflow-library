@@ -75,9 +75,11 @@ Remote read-only navigation is separate and explicit:
 - Browser family/version and viewport.
 - Document response classification and DOM ready state.
 - Document and viewport dimensions with horizontal-overflow result.
+- Requested-versus-observed CSS viewport classification.
 - Count-only accessibility observations.
 - Count-only console and network classifications.
-- Screenshot filename and byte count when requested, never an embedded image or private absolute path.
+- Screenshot filename, PNG validity, bounded sampled-color count, and nonblank classification when requested, never an embedded image or private absolute path.
+- Final-location classification, with different-origin redirects surfaced as warnings.
 - Explicit list of unverified behaviours and collection boundaries.
 
 ## Safety Rules
@@ -96,9 +98,11 @@ Remote read-only navigation is separate and explicit:
 - DevTools unavailable or Node lacks WebSocket: classify `BLOCKED_CAPABILITY`; do not silently downgrade to source-only proof.
 - Remote URL blocked: obtain explicit read-only remote approval and use `--allow-remote` only for the named target.
 - Navigation timeout or HTTP error: classify `FAILED`; do not convert screenshot creation into a pass.
+- Different-origin redirect: classify `WARNING` even when the remote read-only target was explicitly allowed.
+- Requested viewport mismatch: classify `WARNING`; a missing mobile viewport declaration can make a nominal mobile capture use a wider CSS viewport.
 - Horizontal overflow: classify `FAILED` for the observed viewport.
 - Console errors, failed resources, unlabelled controls, or missing image alt text: classify `WARNING` unless the product contract makes them blocking.
-- Screenshot absent: report `NOT_VERIFIED`, not passed.
+- Invalid PNG: classify `FAILED`; one-color screenshot sample: classify `WARNING`; absent screenshot: report `NOT_VERIFIED`.
 
 ## Output Format
 

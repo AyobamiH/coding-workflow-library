@@ -11,6 +11,33 @@
 
 # Completed Reusable Foundations
 
+## Corpus fingerprints and comparison
+
+- Evidence source: `scripts/extract-session-workflows.mjs`, extraction determinism tests, and the private-corpus boundary.
+- Primary type: `VALIDATION`.
+- Dependency: corrected workflow corpus.
+- Authority required: `local_execution`.
+- Done definition: every new extraction writes a content-derived snapshot; comparison distinguishes unchanged, changed, and incompatible baselines; mtime-only changes do not drift; strict unchanged mode fails intentionally; no private paths or transcript content enter reports.
+- Status: implemented locally with snapshot/comparison schemas and deterministic regression tests.
+
+## Cross-platform portability CI
+
+- Evidence source: existing Linux-only `validate.yml`, path sanitisation work, managed hook installer, and package portability tests.
+- Primary type: `VALIDATION`.
+- Dependency: dependency-free helpers and package lockfile.
+- Authority required: `local_execution` for tests; `remote_publication` for CI execution on GitHub.
+- Done definition: focused path, hook, corpus, browser-proof, and GitHub-review contracts run on Linux, macOS, and Windows without external service calls.
+- Status: implemented locally as `npm run test:portable` and a three-OS GitHub Actions matrix; remote CI remains unverified until publication is authorised.
+
+## Routing shape review
+
+- Evidence source: `scripts/skill-cleaner` warnings for long descriptions, duplicate `scheduled monitoring`, and three safety-critical long skills.
+- Primary type: `CONTROL_PLANE`, `VALIDATION`.
+- Dependency: active skill frontmatter.
+- Authority required: `local_execution`.
+- Done definition: duplicate triggers are disambiguated, routing descriptions are concise, and intentional long safety contracts carry reviewed machine-visible reasons rather than disappearing from cleanup evidence.
+- Status: implemented locally; shape exceptions remain visible in the cleaner report.
+
 ## GitHub deep review skill
 
 - Evidence source: `runs/skill-runs.md` Peter-pattern follow-up; existing GitHub handoff skill covers PR files/checks but not review-thread triage.

@@ -1,6 +1,6 @@
 ---
 name: opstruth-runtime-truth-skill
-description: Classify runtime, release, handoff, and Opstruth product-video evidence with a proof model that separates verified facts from warnings, failures, skipped checks, and unverified claims.
+description: Classify mixed runtime and release evidence without treating warnings, skipped checks, or unknowns as proof.
 category: verification
 routing_triggers:
   - Opstruth

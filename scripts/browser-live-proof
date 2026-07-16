@@ -3,6 +3,7 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const zlib = require("zlib");
 const { spawn, spawnSync } = require("child_process");
 
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
@@ -336,17 +337,110 @@ function increment(object, key) {
   object[key] = (object[key] || 0) + 1;
 }
 
+function paeth(a, b, c) {
+  const p = a + b - c;
+  const pa = Math.abs(p - a);
+  const pb = Math.abs(p - b);
+  const pc = Math.abs(p - c);
+  return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+}
+
+function analyzePng(buffer) {
+  const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  if (!Buffer.isBuffer(buffer) || buffer.length < 33 || !buffer.subarray(0, 8).equals(signature)) {
+    return { png_valid: false, nonblank: null, sampled_colors: 0 };
+  }
+  let offset = 8;
+  let width = 0;
+  let height = 0;
+  let bitDepth = 0;
+  let colorType = -1;
+  let interlace = -1;
+  const idat = [];
+  while (offset + 12 <= buffer.length) {
+    const length = buffer.readUInt32BE(offset);
+    const type = buffer.toString("ascii", offset + 4, offset + 8);
+    const start = offset + 8;
+    const end = start + length;
+    if (end + 4 > buffer.length) return { png_valid: false, nonblank: null, sampled_colors: 0 };
+    if (type === "IHDR") {
+      width = buffer.readUInt32BE(start);
+      height = buffer.readUInt32BE(start + 4);
+      bitDepth = buffer[start + 8];
+      colorType = buffer[start + 9];
+      interlace = buffer[start + 12];
+    } else if (type === "IDAT") {
+      idat.push(buffer.subarray(start, end));
+    } else if (type === "IEND") {
+      break;
+    }
+    offset = end + 4;
+  }
+  const bytesPerPixel = { 0: 1, 2: 3, 4: 2, 6: 4 }[colorType];
+  if (!width || !height || bitDepth !== 8 || interlace !== 0 || !bytesPerPixel || !idat.length) {
+    return { png_valid: false, nonblank: null, sampled_colors: 0 };
+  }
+  let inflated;
+  try {
+    inflated = zlib.inflateSync(Buffer.concat(idat));
+  } catch {
+    return { png_valid: false, nonblank: null, sampled_colors: 0 };
+  }
+  const stride = width * bytesPerPixel;
+  if (inflated.length !== (stride + 1) * height) return { png_valid: false, nonblank: null, sampled_colors: 0 };
+  let previous = Buffer.alloc(stride);
+  const colors = new Set();
+  const sampleEvery = Math.max(1, Math.floor((width * height) / 4096));
+  let pixelIndex = 0;
+  let cursor = 0;
+  for (let row = 0; row < height; row += 1) {
+    const filter = inflated[cursor++];
+    if (filter > 4) return { png_valid: false, nonblank: null, sampled_colors: 0 };
+    const current = Buffer.alloc(stride);
+    for (let column = 0; column < stride; column += 1) {
+      const raw = inflated[cursor++];
+      const left = column >= bytesPerPixel ? current[column - bytesPerPixel] : 0;
+      const up = previous[column] || 0;
+      const upperLeft = column >= bytesPerPixel ? previous[column - bytesPerPixel] : 0;
+      const predictor = filter === 1 ? left
+        : filter === 2 ? up
+          : filter === 3 ? Math.floor((left + up) / 2)
+            : filter === 4 ? paeth(left, up, upperLeft) : 0;
+      current[column] = (raw + predictor) & 255;
+    }
+    for (let column = 0; column < width; column += 1) {
+      if (pixelIndex++ % sampleEvery !== 0) continue;
+      const start = column * bytesPerPixel;
+      const channels = [...current.subarray(start, start + bytesPerPixel)];
+      colors.add(channels.join(","));
+      if (colors.size > 1) break;
+    }
+    previous = current;
+  }
+  return { png_valid: true, nonblank: colors.size > 1, sampled_colors: colors.size };
+}
+
 function buildSignals(observation) {
   const navigationVerified = (observation.navigation.http_status === null || observation.navigation.http_status < 400) &&
-    observation.network.blocked_remote_documents === 0;
+    observation.network.blocked_remote_documents === 0 &&
+    !["browser_error", "unavailable"].includes(observation.target.final_location);
+  const redirectState = observation.target.final_location === "different_origin" ? "WARNING"
+    : ["browser_error", "unavailable"].includes(observation.target.final_location) ? "FAILED" : "VERIFIED";
+  const screenshotState = !observation.screenshot.requested ? "NOT_VERIFIED"
+    : observation.screenshot.captured && observation.screenshot.png_valid ? "VERIFIED" : "FAILED";
+  const screenshotContentState = !observation.screenshot.requested ? "NOT_VERIFIED"
+    : observation.screenshot.nonblank ? "VERIFIED" : "WARNING";
   return [
     { id: "navigation", state: navigationVerified ? "VERIFIED" : "FAILED", evidence: "document response and load observation" },
+    { id: "redirect_boundary", state: redirectState, evidence: "final location compared with requested origin" },
     { id: "document_rendered", state: observation.navigation.ready_state === "complete" ? "VERIFIED" : "FAILED", evidence: "DOM ready state" },
+    { id: "viewport_application", state: observation.layout.viewport_matches_requested ? "VERIFIED" : "WARNING", evidence: "observed CSS viewport compared with requested width" },
     { id: "no_horizontal_overflow", state: observation.layout.horizontal_overflow ? "FAILED" : "VERIFIED", evidence: "document width compared with viewport width" },
     { id: "console_observation", state: observation.console.errors || observation.console.exceptions ? "WARNING" : "VERIFIED", evidence: "count-only console observation" },
     { id: "network_observation", state: observation.network.failed_requests ? "WARNING" : "VERIFIED", evidence: "count-only network observation" },
     { id: "remote_request_boundary", state: observation.network.blocked_remote_requests ? "WARNING" : "VERIFIED", evidence: "request-stage loopback boundary" },
-    { id: "screenshot", state: observation.screenshot.requested ? (observation.screenshot.captured ? "VERIFIED" : "FAILED") : "NOT_VERIFIED", evidence: observation.screenshot.requested ? "PNG capture result" : "not requested" },
+    { id: "screenshot", state: screenshotState, evidence: observation.screenshot.requested ? "PNG structure and capture result" : "not requested" },
+    { id: "screenshot_content", state: screenshotContentState, evidence: observation.screenshot.requested ? "bounded decoded color sample" : "not requested" },
     { id: "authenticated_flows", state: "NOT_VERIFIED", evidence: "login and credentials are outside this helper" },
     { id: "user_interactions", state: "NOT_VERIFIED", evidence: "no clicks or form submissions were executed" },
     { id: "production_correctness", state: "NOT_VERIFIED", evidence: "one browser observation is scope-limited" },
@@ -598,7 +692,7 @@ async function collectBrowserProof(args) {
     const dom = evaluated.result?.value;
     if (!dom || typeof dom !== "object") throw new Error("browser DOM observation was unavailable");
 
-    const screenshot = { requested: Boolean(args.screenshot), captured: false, filename: null, bytes: 0 };
+    const screenshot = { requested: Boolean(args.screenshot), captured: false, filename: null, bytes: 0, png_valid: null, nonblank: null, sampled_colors: 0 };
     if (args.screenshot) {
       const absolute = path.resolve(args.screenshot);
       fs.mkdirSync(path.dirname(absolute), { recursive: true });
@@ -612,6 +706,7 @@ async function collectBrowserProof(args) {
       screenshot.captured = bytes.length > 0;
       screenshot.filename = path.basename(absolute);
       screenshot.bytes = bytes.length;
+      Object.assign(screenshot, analyzePng(bytes));
     }
 
     return buildBrowserProofReport({
@@ -635,6 +730,7 @@ async function collectBrowserProof(args) {
         viewport_height: dom.viewportHeight,
         document_width: dom.documentWidth,
         document_height: dom.documentHeight,
+        viewport_matches_requested: dom.viewportWidth === args.viewport.width,
         horizontal_overflow: dom.documentWidth > dom.viewportWidth + 1,
       },
       accessibility: {
@@ -709,6 +805,7 @@ if (require.main === module) main();
 
 module.exports = {
   BOUNDARIES,
+  analyzePng,
   buildBrowserProofReport,
   classifyConsoleMessage,
   parseArgs,

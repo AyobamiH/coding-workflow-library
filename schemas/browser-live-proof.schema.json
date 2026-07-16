@@ -72,12 +72,13 @@
     "layout": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["viewport_width", "viewport_height", "document_width", "document_height", "horizontal_overflow"],
+      "required": ["viewport_width", "viewport_height", "document_width", "document_height", "viewport_matches_requested", "horizontal_overflow"],
       "properties": {
         "viewport_width": { "type": "integer", "minimum": 0 },
         "viewport_height": { "type": "integer", "minimum": 0 },
         "document_width": { "type": "integer", "minimum": 0 },
         "document_height": { "type": "integer", "minimum": 0 },
+        "viewport_matches_requested": { "type": "boolean" },
         "horizontal_overflow": { "type": "boolean" }
       }
     },
@@ -133,12 +134,15 @@
     "screenshot": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["requested", "captured", "filename", "bytes"],
+      "required": ["requested", "captured", "filename", "bytes", "png_valid", "nonblank", "sampled_colors"],
       "properties": {
         "requested": { "type": "boolean" },
         "captured": { "type": "boolean" },
         "filename": { "type": ["string", "null"] },
-        "bytes": { "type": "integer", "minimum": 0 }
+        "bytes": { "type": "integer", "minimum": 0 },
+        "png_valid": { "type": ["boolean", "null"] },
+        "nonblank": { "type": ["boolean", "null"] },
+        "sampled_colors": { "type": "integer", "minimum": 0 }
       }
     },
     "signals": {

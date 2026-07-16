@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add content-derived private workflow-corpus snapshots, safe baseline comparison, and an explicit unchanged gate without publishing corpus data.
+- Add a focused Linux, macOS, and Windows portability suite for paths, managed hooks, corpus snapshots, and read-only evidence contracts.
+- Harden browser proof with PNG validity/nonblank sampling and redirect warnings; keep ambiguous GitHub branch-protection 404s unverified.
+- Sharpen skill routing descriptions and duplicate triggers while recording reviewed shape exceptions for co-located safety contracts.
 - Harden npm package readiness and release preflight with validated JSON reports, crisp blocker codes, safe pack-manifest inspection, release-note/version baseline checks, and optional aggregate workflow-corpus evidence that never reads raw corpus data.
 - Add a deterministic OpsTruth runtime-truth classifier and built-in self-test covering verified, warning, failure, skipped, and not-verified evidence without collapsing CI into production truth.
 - Add a read-only GitHub deep-review helper, schema, skill, route, CLI command, and synthetic regression suite for thread state, current review decisions, stale approvals, exact patch scope, checks, bounded failed-log categories, and explicit merge/production evidence boundaries.

@@ -1666,7 +1666,8 @@
         "horizontal overflow classification",
         "count-only accessibility evidence",
         "count-only console and network evidence",
-        "optional screenshot metadata",
+        "optional screenshot PNG validity and bounded nonblank sample",
+        "redirect-origin classification",
         "explicit not-verified claims"
       ],
       "safety_gates": [
@@ -1674,6 +1675,7 @@
         "explicit --allow-remote for one remote read-only navigation",
         "no browser interactions",
         "no raw browser data",
+        "cross-origin redirect cannot silently pass",
         "no authentication material",
         "no production correctness inference"
       ],
@@ -1733,6 +1735,7 @@
       ],
       "safety_gates": [
         "read-only GitHub commands only",
+        "ambiguous 404 remains metadata unavailable rather than proving protection absent",
         "bounded redacted review excerpts",
         "no raw check logs",
         "no PR body or authentication material",
@@ -1857,6 +1860,8 @@
         "source manifest coverage",
         "coverage reconciliation",
         "validation report",
+        "content-derived workflow snapshot",
+        "snapshot comparison classification when a baseline is supplied",
         "old extraction comparison",
         "rebuilt build queue",
         "agent and skill roadmap",
@@ -1867,12 +1872,14 @@
         "raw transcript exclusion",
         "pseudonym map exclusion",
         "dry-run writes no files",
+        "snapshot comparison emits no paths, transcript content, or pseudonym mappings",
         "extraction-meta sessions excluded from rankings by default"
       ],
       "idempotency_evidence": [
         "validate existing corpus before regeneration",
         "regenerate only when source hashes or validation status change",
-        "deterministic source ids and event ids"
+        "deterministic source ids and event ids",
+        "snapshot fingerprints ignore source mtime-only changes"
       ],
       "provenance": "first evidence-backed missing foundation recovered from workflow-extraction.md and backlog audit"
     }

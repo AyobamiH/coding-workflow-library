@@ -1,6 +1,6 @@
 ---
 name: production-handoff-skill
-description: Prepare production handoff after deployment and scheduler setup with read-only scheduled monitoring, cron metadata, run history, safe app metadata, observed versus pending status, failure routing, and no function invocation by default.
+description: Prepare a read-only production handoff from scheduler metadata, run history, and safe downstream evidence.
 category: verification
 routing_triggers:
   - production handoff

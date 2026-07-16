@@ -1,6 +1,6 @@
 ---
 name: supabase-function-deploy-skill
-description: Deploy Supabase Edge Functions safely with source preflight, remote secret gates, single-function deploy boundaries, negative runtime checks, no-write dry-run proof, and controlled success handoff. Use for Supabase Edge Function deployment, remote secret setup, deployed function rejection checks, or separating deploy from runtime and success invocation.
+description: Deploy one Supabase Edge Function behind explicit secret, no-write, negative-runtime, and success-path gates.
 category: deployment
 routing_triggers:
   - Supabase function deploy

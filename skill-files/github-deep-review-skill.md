@@ -1,6 +1,6 @@
 ---
 name: github-deep-review-skill
-description: Performs a read-only, thread-aware GitHub pull-request review with exact patch scope, current review decisions, stale approvals, checks, and bounded failure categories.
+description: Inspect GitHub PR threads, current review decisions, stale approvals, patch scope, and checks without remote writes.
 category: github
 routing_triggers:
   - deep review github pull request
@@ -86,7 +86,7 @@ The optional failed-check mode reads failed Actions logs in memory but emits onl
 - Never print `GH_TOKEN`, `GITHUB_TOKEN`, authorization headers, credentials, PR bodies, or raw check logs.
 - Redact secret-shaped values, links in review text, and private absolute paths.
 - Bound review excerpts to 240 characters.
-- Treat inaccessible branch protection or thread metadata as unavailable, not passed.
+- Treat inaccessible branch protection or thread metadata as unavailable, not passed. A GitHub 404 can be permission-shaped and must not prove that branch protection is absent.
 - Do not infer merge authority from green checks or `READY_FOR_HANDOFF`.
 - Do not treat CI evidence as deployment or production evidence.
 

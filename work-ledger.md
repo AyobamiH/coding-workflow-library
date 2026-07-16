@@ -4,6 +4,19 @@ This is the persistent control-plane ledger for `coding-workflow-orchestrator-sk
 
 Each entry records the active repo, objective, permission boundary, selected skill, evidence, blockers, and exact next action. The ledger is operational state, not a polished report.
 
+## 2026-07-16 - Evidence And Portability Maturity Workpack
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Implement five evidence-backed maturity directions: bounded browser proof, content-derived private-corpus comparison, cross-platform portability CI, routing-shape hardening, and read-only GitHub deep review.
+* Current permission level: `local_execution`; no remote publication, production mutation, secret mutation, destructive action, npm publication, tag, release, or deploy authority for this objective.
+* Current status: Five maturity directions implemented and validated locally; remote three-OS CI execution remains unverified until a separate publication objective grants `remote_publication`.
+* Selected skills: `browser-live-proof-skill`, `session-log-extraction-skill`, `skill-cleaner-skill`, `github-deep-review-skill`, and `build-verify-skill`.
+* Evidence: deterministic snapshot/comparison tests pass; full `npm test` passes; route audit reports 34 routes with no errors or warnings; skill cleaner reports 31 active skills, no duplicate triggers, no routing warnings, and three reviewed shape exceptions; a real loopback Chromium observation passed with matched viewport, valid nonblank PNG, no horizontal overflow, and count-only clean console/network evidence; package dry-run included 133 controlled files and no raw sessions, corpus outputs, pseudonym maps, env files, local state, caches, or credentials.
+* Files changed: workflow extractor/tests/schemas/docs; browser proof/tests/schema/skill; GitHub deep review/tests/skill; three-OS CI and portable package script; skill cleaner and routing frontmatter; route metadata, queue, roadmap, changelog, and validation checklist.
+* Blockers: GitHub matrix CI is configured but cannot be claimed as run for these changes before remote publication.
+* Exact next action: Create one exact local commit. Start a separate `remote_publication` objective to push the seven local commits and verify the Linux/macOS/Windows matrix on the exact remote SHA.
+* Whether John is needed: No for the local commit. Yes to grant the next remote-publication objective.
+
 ## 2026-06-28 - Autonomous Decision Boundary Engine
 
 * Active repo: `<LIBRARY_REPO>`.

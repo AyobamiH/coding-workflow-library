@@ -47,6 +47,10 @@ Use this checklist after creating, updating, or reorganizing the coding workflow
 - [ ] `RUNBOOK.md` includes the Skill Selection Flow
 - [ ] `RUNBOOK.md` requires run logging
 - [ ] `RUNBOOK.md` requires evidence before completion
+- [ ] Workflow snapshot comparison reports only fingerprints, changed components, and safe count deltas
+- [ ] Browser proof validates PNG structure/nonblank sampling and warns on cross-origin redirects
+- [ ] GitHub deep review leaves ambiguous branch-protection 404s as metadata unavailable
+- [ ] `skill-cleaner` reports duplicate triggers and reviewed shape exceptions separately
 
 ## Validation Commands
 
@@ -60,6 +64,7 @@ Use this checklist after creating, updating, or reorganizing the coding workflow
 ./scripts/browser-live-proof --help
 ./scripts/github-deep-review --help
 ./scripts/opstruth-classify --self-test --validate
+npm run test:portable
 ./scripts/npm-package-readiness --repo . --validate
 ./scripts/release-preflight --repo . --mode local --json --validate
 ./scripts/pre-commit-check

@@ -1,6 +1,6 @@
 ---
 name: supabase-scheduler-vault-skill
-description: Apply Supabase scheduler changes safely with pg_cron, pg_net, Vault-backed secrets, direct-host versus pooler DB URL gates, read-only capability discovery, one Vault secret boundary, one cron job mutation boundary, and no app-table writes. Use for Supabase scheduler, Vault, pg_cron, pg_net, scheduler secret storage, or cron header hardening.
+description: Apply one Supabase pg_cron change through Vault-backed secrets and explicit database mutation gates.
 category: migration
 routing_triggers:
   - Supabase scheduler

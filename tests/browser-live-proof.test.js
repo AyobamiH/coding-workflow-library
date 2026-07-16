@@ -2,6 +2,7 @@
 
 const assert = require("assert");
 const path = require("path");
+const zlib = require("zlib");
 
 const ROOT = path.resolve(__dirname, "..");
 const helper = require(path.join(ROOT, "scripts", "browser-live-proof"));
@@ -23,6 +24,7 @@ function observation(overrides = {}) {
       viewport_height: 844,
       document_width: 390,
       document_height: 1200,
+      viewport_matches_requested: true,
       horizontal_overflow: false,
     },
     accessibility: {
@@ -36,7 +38,7 @@ function observation(overrides = {}) {
     },
     console: { messages: 0, warnings: 0, errors: 0, exceptions: 0, categories: {} },
     network: { requests: 3, responses: 3, failed_requests: 0, blocked_remote_requests: 0, blocked_remote_documents: 0, status_classes: { "2xx": 3 }, resource_types: { Document: 1 } },
-    screenshot: { requested: true, captured: true, filename: "proof.png", bytes: 1024 },
+    screenshot: { requested: true, captured: true, filename: "proof.png", bytes: 1024, png_valid: true, nonblank: true, sampled_colors: 2 },
   };
   return {
     ...base,
@@ -77,6 +79,27 @@ function testRedactionAndClassification() {
   );
 }
 
+function pngChunk(type, data) {
+  const chunk = Buffer.alloc(12 + data.length);
+  chunk.writeUInt32BE(data.length, 0);
+  chunk.write(type, 4, 4, "ascii");
+  data.copy(chunk, 8);
+  return chunk;
+}
+
+function testPngAnalysis() {
+  const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(2, 0);
+  ihdr.writeUInt32BE(1, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 2;
+  const row = Buffer.from([0, 255, 255, 255, 0, 0, 0]);
+  const png = Buffer.concat([signature, pngChunk("IHDR", ihdr), pngChunk("IDAT", zlib.deflateSync(row)), pngChunk("IEND", Buffer.alloc(0))]);
+  assert.deepStrictEqual(helper.analyzePng(png), { png_valid: true, nonblank: true, sampled_colors: 2 });
+  assert.equal(helper.analyzePng(Buffer.from("not png")).png_valid, false);
+}
+
 function testTruthClassification() {
   const passing = helper.buildBrowserProofReport(observation());
   assert.strictEqual(passing.status, "PASS");
@@ -101,6 +124,18 @@ function testTruthClassification() {
   }));
   assert.strictEqual(redirected.status, "FAIL");
   assert.strictEqual(redirected.signals.find((signal) => signal.id === "navigation").state, "FAILED");
+
+  const crossOrigin = helper.buildBrowserProofReport(observation({ target: { final_location: "different_origin" } }));
+  assert.strictEqual(crossOrigin.status, "WARN");
+  assert.strictEqual(crossOrigin.signals.find((signal) => signal.id === "redirect_boundary").state, "WARNING");
+
+  const blankScreenshot = helper.buildBrowserProofReport(observation({ screenshot: { nonblank: false, sampled_colors: 1 } }));
+  assert.strictEqual(blankScreenshot.status, "WARN");
+  assert.strictEqual(blankScreenshot.signals.find((signal) => signal.id === "screenshot_content").state, "WARNING");
+
+  const viewportMismatch = helper.buildBrowserProofReport(observation({ layout: { viewport_width: 980, viewport_matches_requested: false } }));
+  assert.strictEqual(viewportMismatch.status, "WARN");
+  assert.strictEqual(viewportMismatch.signals.find((signal) => signal.id === "viewport_application").state, "WARNING");
 }
 
 function testNoRawEvidenceOrPrivatePaths() {
@@ -129,6 +164,7 @@ function testHumanOutput() {
 
 testArgumentAndTargetBoundaries();
 testRedactionAndClassification();
+testPngAnalysis();
 testTruthClassification();
 testNoRawEvidenceOrPrivatePaths();
 testHumanOutput();

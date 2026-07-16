@@ -60,6 +60,9 @@ Required boundaries:
 - Commands in prose or Markdown fences are proposed, not executed.
 - Executed commands require tool invocation evidence.
 - Extraction-meta sessions remain in coverage but are excluded from rankings by default.
+- `workflow-snapshot.json` fingerprints content-derived manifest, corpus, and coverage components without source mtimes or paths.
+- `--compare-to` emits only fingerprints, changed component names, and safe count deltas; `--require-unchanged` is the explicit drift-failure gate.
+- Snapshot and comparison files remain private generated output and must not be committed or packaged.
 
 ## Documentation Inventory
 

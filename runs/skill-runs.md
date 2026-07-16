@@ -16,6 +16,20 @@ This file records every real use of the coding workflow skills library.
 * Follow-up skill needed:
 * Upgrade idea:
 
+## 2026-07-16 - Evidence And Portability Maturity Workpack
+
+* Skill used: browser-live-proof-skill, session-log-extraction-skill, skill-cleaner-skill, github-deep-review-skill, and build-verify-skill.
+* Goal: Complete five high-value maturity directions without reviving unproven agent roles, capability brokers, or secret adapters.
+* Starting state: Browser live proof and GitHub deep review existed in clean local commits; corpus snapshot comparison, three-OS portability CI, and reviewed routing-shape handling were missing.
+* Commands/tools used: focused Node syntax and regression tests; `npm test`; `npm run test:portable`; route audit; skill cleaner JSON review; local loopback HTTP fixture; one read-only Chromium proof with a temporary screenshot; package dry-run; git diff/status checks.
+* Files inspected: extractor, source-manifest/corpus schemas, browser and GitHub review helpers/tests/schemas/skills, CI workflow, package metadata, skill cleaner, route metadata, build queue, roadmap, and public control docs.
+* Files changed: extractor snapshot/comparison implementation and schemas; browser PNG/redirect/viewport truth signals; GitHub 404/path-redaction semantics; portable package test and Linux/macOS/Windows CI matrix; routing descriptions/triggers/shape exceptions; tests and directly related docs/evidence records.
+* Evidence collected: full suite PASS; portable suite PASS on the local Linux host; real browser proof PASS at requested 390x844 viewport with observed width 390, valid nonblank PNG, zero console errors, zero failed requests, and no horizontal overflow; route audit PASS; skill validation PASS; no cleaner warnings or duplicate triggers; safe 133-file package dry-run manifest.
+* Result: COMPLETE LOCALLY. Directions 1 and 5 were audited and hardened; directions 2, 3, and 4 were implemented with deterministic tests and documentation. Remote matrix CI remains `NOT_VERIFIED` until these local commits are published under a separate authority envelope.
+* Failure/recovery notes: Initial sandboxed loopback/browser launch was blocked; the same local-only verification succeeded with the required process permission. The first fixture intentionally exposed a mobile viewport mismatch, which became a new warning signal before the corrected fixture passed. Temporary server and screenshot were removed. No remote write, production call, deploy, secret read, publish, version, tag, or release occurred.
+* Follow-up skill needed: github-handoff-skill only after a new objective grants `remote_publication`.
+* Upgrade idea: after exact-commit three-OS CI passes, evaluate actual macOS/Windows failures before expanding the portable suite; do not add platform-specific complexity speculatively.
+
 ## 2026-06-28 - Autonomous Decision Boundary Engine
 
 * Skill used: coding-workflow-orchestrator-skill with github-handoff-skill.

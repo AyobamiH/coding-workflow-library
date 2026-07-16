@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/coding-workflow/workflow-snapshot-comparison.schema.json",
+  "title": "Workflow Snapshot Comparison",
+  "type": "object",
+  "required": ["schema", "status", "changed_components", "count_deltas", "current_fingerprint", "baseline_fingerprint", "reason"],
+  "properties": {
+    "schema": { "const": "workflow-snapshot-comparison.v1" },
+    "status": { "enum": ["UNCHANGED", "CHANGED", "INCOMPATIBLE"] },
+    "changed_components": {
+      "type": "array",
+      "items": { "enum": ["source_manifest", "corpus", "coverage"] },
+      "uniqueItems": true
+    },
+    "count_deltas": {
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    },
+    "current_fingerprint": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+    "baseline_fingerprint": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+    "reason": { "type": "string" }
+  },
+  "additionalProperties": false
+}

@@ -89,7 +89,13 @@ Useful modes:
 ```bash
 node scripts/extract-session-workflows.mjs --source /path --output-dir /private/out --dry-run
 node scripts/extract-session-workflows.mjs --output-dir /private/out --validate-only
+node scripts/extract-session-workflows.mjs --source /path --output-dir /private/next --compare-to /private/out
+node scripts/extract-session-workflows.mjs --source /path --output-dir /private/next --compare-to /private/out --require-unchanged
 coding-workflow extract-workflows --source /path --output-dir /private/out
 ```
+
+Every new extraction writes `workflow-snapshot.json`. It contains SHA-256 fingerprints for the content-derived source manifest, corpus events, coverage, and the combined snapshot, plus safe counts. Source mtimes are intentionally excluded so a file touch does not create false drift. Local paths, transcript bodies, source text, and pseudonym mappings are never included.
+
+Comparison states are `UNCHANGED`, `CHANGED`, and `INCOMPATIBLE`. Normal comparison mode reports drift without failing; `--require-unchanged` makes `CHANGED` fail. A comparison emits component names and count deltas only, not a source-level diff or private location.
 
 The script does not publish, push, deploy, tag, read secret stores, or mutate remote services.

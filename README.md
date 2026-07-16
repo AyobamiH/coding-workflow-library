@@ -208,12 +208,18 @@ node scripts/extract-session-workflows.mjs \
   --output-dir /private/workflow-corpus \
   --validate-only
 
+node scripts/extract-session-workflows.mjs \
+  --source /path/to/local/sessions \
+  --output-dir /private/workflow-corpus-next \
+  --compare-to /private/workflow-corpus \
+  --require-unchanged
+
 coding-workflow extract-workflows \
   --source /path/to/local/sessions \
   --output-dir /private/workflow-corpus
 ```
 
-Generated corpus files, source manifests with local detail, and `pseudonym-map.json` must stay outside the package repository. Public docs may use only aggregate counts and safe classifications. See `docs/workflow-extraction-methodology.md`, `docs/workflow-corpus-recovery-report.md`, and `docs/agent-and-skill-roadmap.md`.
+Generated corpus files, snapshots, comparisons, and `pseudonym-map.json` must stay outside the package repository. `workflow-snapshot.json` fingerprints content-derived manifest, corpus, and coverage components while omitting source mtimes, local paths, transcript bodies, and pseudonym mappings. `--compare-to` reports only changed component names, safe count deltas, and fingerprints; drift is informational unless `--require-unchanged` is supplied. Public docs may use only aggregate counts and safe classifications. See `docs/workflow-extraction-methodology.md`, `docs/workflow-corpus-recovery-report.md`, and `docs/agent-and-skill-roadmap.md`.
 
 ## Documentation Inventory
 
@@ -292,7 +298,7 @@ coding-workflow browser-live-proof \
   --validate
 ```
 
-The helper defaults to loopback targets. `--allow-remote` permits one explicitly selected read-only remote navigation. It records safe URL metadata, viewport/document dimensions, horizontal overflow, basic accessibility counts, count-only console/network classifications, and optional screenshot metadata. It never clicks, submits forms, logs in, prints raw console messages, emits headers/bodies/cookies/storage/page text, or treats one browser observation as proof of deployment history, database state, authentication paths, production correctness, or ongoing reliability.
+The helper defaults to loopback targets. `--allow-remote` permits one explicitly selected read-only remote navigation. It records safe URL metadata, redirect boundaries, requested-versus-observed viewport dimensions, horizontal overflow, basic accessibility counts, count-only console/network classifications, and optional PNG validity/nonblank sampling. Cross-origin redirects, viewport mismatches, and one-color screenshot samples are warnings, not silent passes. It never clicks, submits forms, logs in, prints raw console messages, emits headers/bodies/cookies/storage/page text, or treats one browser observation as proof of deployment history, database state, authentication paths, production correctness, or ongoing reliability.
 
 ## GitHub Deep Review
 
@@ -306,7 +312,7 @@ Use `scripts/github-deep-review` after the GitHub auth gate when a pull request 
 coding-workflow github-deep-review --repo OWNER/REPO --pr 123 --validate
 ```
 
-The helper reads exact changed files, review-thread resolution/outdated state, each reviewer's latest decision, approvals against an older head, checks, and branch-protection metadata when available. Optional failed-log inspection emits categories only; raw logs are never returned. Review excerpts are bounded and redacted. The command never replies, resolves threads, submits reviews, commits, pushes, merges, or treats `READY_FOR_HANDOFF` as merge permission. GitHub CI evidence remains separate from deployment and production evidence.
+The helper reads exact changed files, review-thread resolution/outdated state, each reviewer's latest decision, approvals against an older head, checks, and branch-protection metadata when available. Ambiguous GitHub 404 responses remain `METADATA_UNAVAILABLE`; they are not proof that protection is absent. Optional failed-log inspection emits categories only; raw logs are never returned. Review excerpts and Linux, macOS, and Windows private paths are bounded/redacted. The command never replies, resolves threads, submits reviews, commits, pushes, merges, or treats `READY_FOR_HANDOFF` as merge permission. GitHub CI evidence remains separate from deployment and production evidence.
 
 ## OpsTruth Runtime-Truth Classifier
 
@@ -416,6 +422,8 @@ The orchestrator and skills should consult `tools.md` before tool-heavy work, es
 `skill-cleaner-skill` keeps the library small and routable.
 
 `./scripts/validate-skills` is pass/fail validation. `./scripts/skill-cleaner` is advisory cleanup intelligence for duplicates, bloat, stale skills, weak routing, and overlap.
+
+Long safety-critical skills may declare a reviewed `shape_exception` with a concrete co-location reason. The cleaner reports those separately; it does not hide unreviewed oversize files, duplicate triggers, or long routing descriptions.
 
 ```bash
 cd <LIBRARY_REPO>
@@ -587,6 +595,7 @@ The package is public, but future npm publication, package versioning, git tags,
 
 ```bash
 npm test
+npm run test:portable
 npm run check:paths
 npm run package:readiness
 npm run release:preflight
@@ -594,6 +603,8 @@ npm pack --dry-run --json
 node scripts/route-audit
 node scripts/validate-skills
 ```
+
+GitHub Actions runs the full gate on Linux and a focused portability contract on Linux, macOS, and Windows. The portable suite covers syntax discovery, path redaction, workflow snapshots, managed hook behavior, browser-proof classification, and GitHub-review evidence without calling browsers or remote services.
 
 `scripts/run-next --allow github-open-source-handoff` records and verifies the public GitHub handoff only after explicit approval. It must not publish to npm, create versions or tags, create GitHub releases, deploy, run Supabase/Cloudflare commands, print secrets, force-push, or stage broad/excluded paths.
 

@@ -8,6 +8,7 @@ routing_triggers:
   - Edge Function service role
   - policy audit
 status: active
+shape_exception: security procedure and evidence contract must remain co-located for source-only RLS review
 ---
 # supabase-rls-audit-skill
 

@@ -191,6 +191,7 @@ Use this mapping before acting:
 - Need to prepare GitHub handoff or repo sync: `github-handoff-skill`
 - Need to extract more skills from a chat/session log: `session-log-extraction-skill`
 - Need to rebuild backlog or agent-roadmap evidence from local history: `session-log-extraction-skill` with `scripts/extract-session-workflows.mjs`
+- Need to detect private workflow-corpus drift: rebuild with `--compare-to <prior-output>`; add `--require-unchanged` only when drift must fail the gate.
 - Need to inventory docs, H1s, duplicate titles, or orphan references before broad documentation work: `scripts/docs-list`
 - Need deterministic source-only workspace orientation, package/config markers, docs summary, and env-file presence without values: `scripts/repo-map`
 - Need deterministic project identity, commands, docs, route/skill, verified-fact, and unknowns synthesis from source-only evidence: `scripts/project-kb`
@@ -203,6 +204,8 @@ Use this mapping before acting:
 - Need to coordinate local tools, reads, writes, process logs, or gateway calls: `tool-patterns-skill`
 - Need a public market scan from proxy data: `public-market-scan-skill`
 - Need to audit skill bloat, overlap, routing, or cleanup candidates: `skill-cleaner-skill`
+
+Use `npm run test:portable` for the dependency-free path/hook/evidence subset that also runs in the Linux, macOS, and Windows CI matrix. Use full `npm test` for the authoritative local validation gate.
 
 When frontmatter and this prose mapping disagree, treat `./scripts/validate-skills` output and the active skill file as the source of truth, then update stale docs.
 

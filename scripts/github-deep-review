@@ -169,7 +169,8 @@ function runGhJson(args) {
 
 function redactExcerpt(value, maximum = 240) {
   let output = String(value || "");
-  output = output.replace(/\/home\/[^/\s]+\/[^\s'"<>]+/g, "[private-path]");
+  output = output.replace(/(?:\/home\/[^/\s]+|\/Users\/[^/\s]+)\/[^\s'"<>]+/g, "[private-path]");
+  output = output.replace(/[A-Za-z]:\\Users\\[^\\\s]+\\[^\s'"<>]+/g, "[private-path]");
   output = output.replace(/https?:\/\/[^\s'"<>]+/gi, "[link]");
   for (const item of SECRET_PATTERNS) {
     item.pattern.lastIndex = 0;
@@ -342,9 +343,13 @@ function inspectFailedLogs(repo, checks) {
 function branchProtection(repo, branch) {
   const encoded = encodeURIComponent(String(branch || ""));
   const result = runGhJson(["api", `repos/${repo}/branches/${encoded}/protection`]);
+  return branchProtectionFromResult(result);
+}
+
+function branchProtectionFromResult(result) {
   if (!result.ok) {
     return {
-      state: result.category === "not_found" ? "not_configured" : "metadata_unavailable",
+      state: "metadata_unavailable",
       required_checks: null,
       required_approving_reviews: null,
       dismisses_stale_reviews: null,
@@ -536,7 +541,7 @@ function validateGithubDeepReview(report) {
   if (report?.failed_check_logs?.raw_logs_emitted !== false) errors.push("raw failed logs must not be emitted");
 
   const serialized = JSON.stringify(report);
-  if (/\/home\/[^/\s]+\//.test(serialized)) errors.push("report contains a private absolute path");
+  if (/(?:\/home\/[^/\s]+|\/Users\/[^/\s]+)\/|[A-Za-z]:\\Users\\[^\\\s]+\\/.test(serialized)) errors.push("report contains a private absolute path");
   if (secretCategories(serialized).length) errors.push("report contains secret-shaped values");
   for (const forbidden of ["authorization_header", "request_headers", "raw_log", "raw_logs", "pr_body", "token_value"]) {
     if (serialized.includes(`\"${forbidden}\"`)) errors.push(`report contains forbidden field ${forbidden}`);
@@ -655,6 +660,7 @@ module.exports = {
   latestReviews,
   normalizeCheck,
   classifyFailedLog,
+  branchProtectionFromResult,
   buildGithubDeepReview,
   validateGithubDeepReview,
   renderHuman,

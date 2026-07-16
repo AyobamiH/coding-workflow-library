@@ -158,6 +158,7 @@ function readSkills() {
         description: parsed.data.description || "",
         category: parsed.data.category || "unknown",
         status: parsed.data.status || "unknown",
+        shapeException: parsed.data.shape_exception || "",
         triggers: Array.isArray(parsed.data.routing_triggers) ? parsed.data.routing_triggers : [],
         lineCount: lines.length,
         wordCount: words(text),
@@ -260,7 +261,7 @@ function main() {
     if (skill.triggers.length < 2 || skill.triggers.length > maxTriggers) warnings.push(`${skill.file}: routing trigger count is ${skill.triggers.length}`);
     if (skill.description.length < 30) warnings.push(`${skill.file}: description may be too short for routing`);
     if (skill.description.length > 150) warnings.push(`${skill.file}: description may be too long for routing`);
-    if (skill.lineCount > maxLines) warnings.push(`${skill.file}: line count ${skill.lineCount} exceeds ${maxLines}`);
+    if (skill.lineCount > maxLines && !skill.shapeException) warnings.push(`${skill.file}: line count ${skill.lineCount} exceeds ${maxLines}`);
   }
   if (duplicateNames.length) warnings.push(`duplicate skill names: ${duplicateNames.map((entry) => entry.name).join(", ")}`);
   if (missingIndexReferences.length) warnings.push(`active skills missing index references: ${missingIndexReferences.join(", ")}`);
@@ -286,10 +287,19 @@ function main() {
   pairs.sort((a, b) => b.score - a.score);
 
   const splitCandidates = skills
+    .filter((skill) => !skill.shapeException)
     .filter((skill) => skill.lineCount > maxLines || skill.customHeadings.length >= 8 || skill.commandLineCount >= 18)
     .map((skill) => ({
       skill: skill.file,
       reason: `lines ${skill.lineCount}, command lines ${skill.commandLineCount}, custom headings ${skill.customHeadings.length}`,
+    }));
+
+  const reviewedShapeExceptions = skills
+    .filter((skill) => skill.shapeException)
+    .map((skill) => ({
+      skill: skill.file,
+      lines: skill.lineCount,
+      reason: skill.shapeException,
     }));
 
   const sharpen = skills
@@ -320,7 +330,7 @@ function main() {
     }));
 
   const deprecateCandidates = skills
-    .filter((skill) => skill.status === "deprecated" || /\b(superseded by|unused skill|retire this skill|remove this skill)\b/i.test(skill.body))
+    .filter((skill) => skill.status === "deprecated" || /(?:^|\n)\s*(?:[-*]\s+)?(?:this skill is unused|superseded by `?[^\n]+|retire this skill|remove this skill)\s*[.!]?\s*$/im.test(skill.body))
     .map((skill) => ({
       skill: skill.file,
       reason: skill.status === "deprecated" ? "status is deprecated" : "contains deprecation-like language; review before any status change",
@@ -378,6 +388,7 @@ function main() {
       statusDistribution,
       categoryDistribution,
       thresholds: { maxLines, maxTriggers },
+      reviewedShapeExceptions,
     },
     keep,
     sharpen,
@@ -406,6 +417,7 @@ function main() {
   console.log(`* duplicate trigger groups: ${duplicateTriggerGroups.length ? duplicateTriggerGroups.map((item) => item.trigger).join(", ") : "none"}`);
   console.log(`* missing index references: ${missingIndexReferences.length ? missingIndexReferences.join(", ") : "none"}`);
   console.log(`* cleanup candidates: ${cleanupCandidates.size}`);
+  console.log(`* reviewed shape exceptions: ${reviewedShapeExceptions.length}`);
   console.log("\n## Keep\n");
   console.log(markdownList(keep, (item) => `${item.skill}: ${item.reason}`));
   console.log("\n## Sharpen\n");
@@ -414,6 +426,8 @@ function main() {
   console.log(markdownList(mergeCandidates, (item) => `${item.skills.join(" + ")}: ${item.reason}`));
   console.log("\n## Split Candidates\n");
   console.log(markdownList(splitCandidates, (item) => `${item.skill}: ${item.reason}`));
+  console.log("\n## Reviewed Shape Exceptions\n");
+  console.log(markdownList(reviewedShapeExceptions, (item) => `${item.skill} (${item.lines} lines): ${item.reason}`));
   console.log("\n## Deprecate Candidates\n");
   console.log(markdownList(deprecateCandidates, (item) => `${item.skill}: ${item.reason}`));
   console.log("\n## Script Candidates\n");

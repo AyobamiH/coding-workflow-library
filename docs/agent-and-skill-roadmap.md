@@ -11,6 +11,7 @@ It separates reusable skills and helpers from product-specific roles and newer u
 
 ```text
 corrected workflow corpus
+  -> content-derived snapshot and comparison (implemented)
   -> docs/source inventory helper (implemented)
   -> backlog confidence
   -> repo-map helper automation (implemented)
@@ -19,6 +20,8 @@ corrected workflow corpus
   -> migration-review helper (implemented)
   -> browser/live proof (implemented)
   -> GitHub deep review (implemented)
+  -> three-OS portability contract (implemented locally)
+  -> routing shape review (implemented)
   -> Opstruth runtime truth self-test (implemented)
   -> secret-access adapter, if approved
   -> capability acquisition/prefetch, if still needed
@@ -136,26 +139,28 @@ Capability acquisition remains `NEWLY_PROPOSED` until browser proof and secret-a
 ### P0
 
 1. Keep corrected workflow corpus current.
-2. Keep `scripts/docs-list` current as the deterministic documentation inventory and docs coverage helper.
+2. Compare content-derived snapshots when roadmap evidence is refreshed; use strict unchanged mode only for an explicit immutability gate.
+3. Keep `scripts/docs-list` current as the deterministic documentation inventory and docs coverage helper.
 
 ### P1
 
-3. Keep `scripts/repo-map` current as the deterministic source-only workspace orientation helper.
-4. Keep `scripts/project-kb` current as the deterministic source-only project memory compiler.
-5. Keep `scripts/pre-commit-check` and `scripts/install-git-hooks` current as the deterministic local commit gate.
-6. Keep `scripts/migration-review` current as the deterministic source-only migration risk helper.
+4. Keep `scripts/repo-map` current as the deterministic source-only workspace orientation helper.
+5. Keep `scripts/project-kb` current as the deterministic source-only project memory compiler.
+6. Keep `scripts/pre-commit-check` and `scripts/install-git-hooks` current as the deterministic local commit gate.
+7. Keep `scripts/migration-review` current as the deterministic source-only migration risk helper.
 
 ### P2
 
-7. Keep `scripts/browser-live-proof` and `browser-live-proof-skill` current as the bounded browser-observation foundation.
-8. Keep `scripts/github-deep-review` and `github-deep-review-skill` current as the thread-aware, read-only PR evidence foundation.
-9. Keep `scripts/opstruth-classify` current as the deterministic mixed-evidence truth-model self-test.
-10. Keep the hardened release/package preflight current: validated human/JSON reports, crisp mode-specific blockers, safe package-manifest inspection, version and release-note baseline checks, and optional aggregate-only corpus evidence are now implemented locally.
+8. Keep `scripts/browser-live-proof` and `browser-live-proof-skill` current as the bounded browser-observation foundation, including redirect and screenshot-content warnings.
+9. Keep `scripts/github-deep-review` and `github-deep-review-skill` current as the thread-aware, read-only PR evidence foundation; unavailable protection metadata must stay unknown.
+10. Keep the Linux/macOS/Windows portable contract and reviewed routing-shape exceptions current.
+11. Keep `scripts/opstruth-classify` current as the deterministic mixed-evidence truth-model self-test.
+12. Keep the hardened release/package preflight current: validated human/JSON reports, crisp mode-specific blockers, safe package-manifest inspection, version and release-note baseline checks, and optional aggregate-only corpus evidence are now implemented locally.
 
 ### P3
 
-11. Explore one-password secret access only after a non-printing local contract is approved.
-12. Revisit capability acquisition and prefetch only after adapter prerequisites exist.
-13. Revisit agent-role system only after at least two independent sessions prove a reusable role contract.
+13. Explore one-password secret access only after a non-printing local contract is approved.
+14. Revisit capability acquisition and prefetch only after adapter prerequisites exist.
+15. Revisit agent-role system only after at least two independent sessions prove a reusable role contract.
 
 The evidence-backed reusable-foundation sequence through release/package preflight is complete locally. Capability adapter evaluation is the next documented follow-on, but it remains decision-gated and does not authorise a skill/plugin hard cutover or revive Capability Intelligence as the library's product direction.

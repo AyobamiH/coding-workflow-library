@@ -38,6 +38,12 @@ node scripts/extract-session-workflows.mjs \
   --output-dir /private/workflow-corpus \
   --validate-only
 
+node scripts/extract-session-workflows.mjs \
+  --source /path/to/sessions \
+  --output-dir /private/workflow-corpus-next \
+  --compare-to /private/workflow-corpus \
+  --require-unchanged
+
 coding-workflow extract-workflows \
   --source /path/to/sessions \
   --output-dir /private/workflow-corpus
@@ -49,12 +55,13 @@ coding-workflow extract-workflows \
 2. Discover all approved session roots; do not assume one path covers all history.
 3. Run the extractor with `--dry-run` first when checking scope.
 4. Run the extractor into a private output directory outside the package repository.
-5. Confirm outputs exist: `source-manifest.json`, `workflow-corpus.jsonl`, `coverage-report.json`, `coverage-report.md`, `validation-report.json`, and private `pseudonym-map.json`.
+5. Confirm outputs exist: `source-manifest.json`, `workflow-corpus.jsonl`, `coverage-report.json`, `coverage-report.md`, `validation-report.json`, `workflow-snapshot.json`, and private `pseudonym-map.json`.
 6. Run `--validate-only` against the private output.
 7. Confirm coverage reconciles: discovered equals parsed plus unsupported plus corrupt plus empty plus duplicate plus excluded.
 8. Exclude `EXTRACTION_META_SESSION` events from workflow-frequency rankings unless auditing the extractor itself.
-9. Compare corrected aggregate signals with older extraction docs before updating roadmap or build queue.
-10. Keep raw transcripts, raw prompts, raw assistant responses, pseudonym maps, and generated corpus files out of commits and package contents.
+9. Use `--compare-to` for content-derived drift evidence; use `--require-unchanged` only when any corpus change must fail.
+10. Compare corrected aggregate signals with older extraction docs before updating roadmap or build queue.
+11. Keep raw transcripts, raw prompts, raw assistant responses, pseudonym maps, snapshots, comparisons, and generated corpus files out of commits and package contents.
 
 ## Evidence Required
 
@@ -63,6 +70,7 @@ coding-workflow extract-workflows \
 - Validation report showing manifest, corpus, and coverage pass.
 - Aggregate class, command, skill, helper, and agent-role mention counts.
 - Explicit meta-session count and whether meta sessions were included in rankings.
+- Snapshot fingerprint and optional `UNCHANGED`, `CHANGED`, or `INCOMPATIBLE` comparison classification.
 - Statement of historical claims confirmed, unsupported, contradicted, or not verifiable.
 
 ## Safety Rules

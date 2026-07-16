@@ -7,7 +7,7 @@ routing_triggers:
   - negative runtime checks
   - controlled success invocation
   - dry-run runtime proof
-  - scheduled monitoring
+  - scheduled runtime verification
 status: active
 ---
 # runtime-verification-skill

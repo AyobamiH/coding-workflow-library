@@ -84,6 +84,8 @@ Options:
   --include-meta-sessions         Include extraction-meta sessions in rankings.
   --manifest-only                 Write manifest, coverage, validation, and pseudonym map only.
   --validate-only                 Validate an existing output directory.
+  --compare-to <path>             Compare with a prior workflow-snapshot.json or output directory.
+  --require-unchanged             Exit non-zero unless the compared snapshot is unchanged.
   --json                          Print JSON summary.
   --dry-run                       Inspect only; create or modify no files.
 
@@ -100,6 +102,8 @@ export function parseArgs(argv) {
     includeMetaSessions: false,
     manifestOnly: false,
     validateOnly: false,
+    compareTo: null,
+    requireUnchanged: false,
     json: false,
     dryRun: false,
     help: false,
@@ -115,6 +119,8 @@ export function parseArgs(argv) {
     else if (arg === "--include-meta-sessions") args.includeMetaSessions = true;
     else if (arg === "--manifest-only") args.manifestOnly = true;
     else if (arg === "--validate-only") args.validateOnly = true;
+    else if (arg === "--compare-to") args.compareTo = requireValue(argv, ++i, "--compare-to");
+    else if (arg === "--require-unchanged") args.requireUnchanged = true;
     else if (arg === "--json") args.json = true;
     else if (arg === "--dry-run") args.dryRun = true;
     else if (arg === "--help" || arg === "-h") args.help = true;
@@ -123,6 +129,7 @@ export function parseArgs(argv) {
 
   if (args.from && Number.isNaN(args.from.valueOf())) throw new Error("--from must be an ISO date");
   if (args.to && Number.isNaN(args.to.valueOf())) throw new Error("--to must be an ISO date");
+  if (args.requireUnchanged && !args.compareTo) throw new Error("--require-unchanged requires --compare-to");
   return args;
 }
 
@@ -463,13 +470,15 @@ export function extractCorpus(options) {
     includeMetaSessions: options.includeMetaSessions,
   });
   const validation = validateCorpus({ manifest, events, coverage });
-  return {
+  const result = {
     manifest,
     events,
     coverage,
     validation,
     pseudonymMap: redactor.toJSON(),
   };
+  result.snapshot = createWorkflowSnapshot(result, { manifestOnly: Boolean(options.manifestOnly) });
+  return result;
 }
 
 function loadConfig(configPath) {
@@ -490,6 +499,8 @@ function isGeneratedOutputName(name) {
     "coverage-report.md",
     "validation-report.json",
     "pseudonym-map.json",
+    "workflow-snapshot.json",
+    "snapshot-comparison.json",
   ].includes(name);
 }
 
@@ -930,6 +941,141 @@ function containsPrivateLeak(text) {
   return /\/home\/[A-Za-z0-9._-]+|postgres(?:ql)?:\/\/|Bearer\s+[A-Za-z0-9._-]+|gh[pousr]_[A-Za-z0-9_]{12,}|sk-[A-Za-z0-9_-]{12,}/i.test(text);
 }
 
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map((item) => canonicalJson(item)).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function fingerprint(value) {
+  return sha256(canonicalJson(value));
+}
+
+function snapshotManifest(manifest) {
+  return manifest.map((source) => {
+    const { safe_mtime: ignoredSafeMtime, ...contentDerived } = source;
+    return contentDerived;
+  });
+}
+
+export function createWorkflowSnapshot(result, options = {}) {
+  const manifestOnly = Boolean(options.manifestOnly);
+  const sourceManifestFingerprint = fingerprint({
+    schema: "workflow-source-manifest.v1",
+    sources: snapshotManifest(result.manifest),
+  });
+  const corpusFingerprint = manifestOnly ? null : fingerprint(result.events);
+  const coverageFingerprint = fingerprint(result.coverage);
+  const counts = {
+    sources: result.manifest.length,
+    events: result.events.length,
+    ...result.coverage.totals,
+  };
+  const snapshotFingerprint = fingerprint({
+    schema: "workflow-corpus-snapshot.v1",
+    algorithm: "sha256",
+    mode: manifestOnly ? "manifest_only" : "full",
+    source_manifest: sourceManifestFingerprint,
+    corpus: corpusFingerprint,
+    coverage: coverageFingerprint,
+    counts,
+  });
+  return {
+    schema: "workflow-corpus-snapshot.v1",
+    algorithm: "sha256",
+    mode: manifestOnly ? "manifest_only" : "full",
+    fingerprints: {
+      source_manifest: sourceManifestFingerprint,
+      corpus: corpusFingerprint,
+      coverage: coverageFingerprint,
+      snapshot: snapshotFingerprint,
+    },
+    counts,
+    boundaries: [
+      "fingerprints are content-derived and omit source mtimes and local paths",
+      "the snapshot contains no transcript bodies, source paths, pseudonym map, or credentials",
+      "a changed fingerprint identifies drift but does not explain intent or correctness",
+    ],
+  };
+}
+
+export function validateWorkflowSnapshot(snapshot) {
+  const errors = [];
+  if (!snapshot || typeof snapshot !== "object") return ["snapshot must be an object"];
+  if (snapshot.schema !== "workflow-corpus-snapshot.v1") errors.push("unsupported snapshot schema");
+  if (snapshot.algorithm !== "sha256") errors.push("snapshot algorithm must be sha256");
+  if (!["full", "manifest_only"].includes(snapshot.mode)) errors.push("snapshot mode is invalid");
+  const hashes = snapshot.fingerprints || {};
+  for (const key of ["source_manifest", "coverage", "snapshot"]) {
+    if (!/^[a-f0-9]{64}$/.test(hashes[key] || "")) errors.push(`${key} fingerprint is invalid`);
+  }
+  if (snapshot.mode === "full" && !/^[a-f0-9]{64}$/.test(hashes.corpus || "")) {
+    errors.push("corpus fingerprint is required in full mode");
+  }
+  if (snapshot.mode === "manifest_only" && hashes.corpus !== null) {
+    errors.push("corpus fingerprint must be null in manifest_only mode");
+  }
+  for (const key of ["sources", "events", "discovered", "parsed", "unsupported", "corrupt", "empty", "duplicate", "excluded"]) {
+    if (!Number.isInteger(snapshot.counts?.[key]) || snapshot.counts[key] < 0) errors.push(`${key} count is invalid`);
+  }
+  if (!errors.length) {
+    const expected = fingerprint({
+      schema: snapshot.schema,
+      algorithm: snapshot.algorithm,
+      mode: snapshot.mode,
+      source_manifest: hashes.source_manifest,
+      corpus: hashes.corpus,
+      coverage: hashes.coverage,
+      counts: snapshot.counts,
+    });
+    if (expected !== hashes.snapshot) errors.push("snapshot fingerprint does not match its components");
+  }
+  if (containsPrivateLeak(JSON.stringify(snapshot))) errors.push("snapshot contains private-looking material");
+  return errors;
+}
+
+export function compareWorkflowSnapshots(current, baseline) {
+  const currentErrors = validateWorkflowSnapshot(current);
+  const baselineErrors = validateWorkflowSnapshot(baseline);
+  if (currentErrors.length || baselineErrors.length || current.schema !== baseline.schema || current.algorithm !== baseline.algorithm || current.mode !== baseline.mode) {
+    return {
+      schema: "workflow-snapshot-comparison.v1",
+      status: "INCOMPATIBLE",
+      changed_components: [],
+      count_deltas: {},
+      current_fingerprint: current?.fingerprints?.snapshot || null,
+      baseline_fingerprint: baseline?.fingerprints?.snapshot || null,
+      reason: currentErrors.length || baselineErrors.length ? "snapshot validation failed" : "snapshot modes or formats differ",
+    };
+  }
+  const changedComponents = ["source_manifest", "corpus", "coverage"]
+    .filter((key) => current.fingerprints[key] !== baseline.fingerprints[key]);
+  const countDeltas = {};
+  for (const key of Object.keys(current.counts).sort()) {
+    const delta = current.counts[key] - baseline.counts[key];
+    if (delta !== 0) countDeltas[key] = delta;
+  }
+  return {
+    schema: "workflow-snapshot-comparison.v1",
+    status: changedComponents.length ? "CHANGED" : "UNCHANGED",
+    changed_components: changedComponents,
+    count_deltas: countDeltas,
+    current_fingerprint: current.fingerprints.snapshot,
+    baseline_fingerprint: baseline.fingerprints.snapshot,
+    reason: changedComponents.length ? "content-derived corpus components changed" : "content-derived corpus components match",
+  };
+}
+
+export function loadWorkflowSnapshot(inputPath) {
+  const absolute = path.resolve(inputPath);
+  const file = fs.existsSync(absolute) && fs.statSync(absolute).isDirectory()
+    ? path.join(absolute, "workflow-snapshot.json")
+    : absolute;
+  return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+
 export function writeOutputs(outputDir, result, options) {
   fs.mkdirSync(outputDir, { recursive: true, mode: 0o700 });
   writeJson(path.join(outputDir, "source-manifest.json"), {
@@ -938,8 +1084,14 @@ export function writeOutputs(outputDir, result, options) {
   });
   writeJson(path.join(outputDir, "coverage-report.json"), result.coverage);
   fs.writeFileSync(path.join(outputDir, "coverage-report.md"), coverageMarkdown(result.coverage), { mode: 0o600 });
-  writeJson(path.join(outputDir, "validation-report.json"), result.validation);
+  writeJson(path.join(outputDir, "validation-report.json"), {
+    ...result.validation,
+    snapshot_status: validateWorkflowSnapshot(result.snapshot).length ? "FAIL" : "PASS",
+    snapshot_fingerprint: result.snapshot.fingerprints.snapshot,
+  });
   writeJson(path.join(outputDir, "pseudonym-map.json"), result.pseudonymMap, 0o600);
+  writeJson(path.join(outputDir, "workflow-snapshot.json"), result.snapshot, 0o600);
+  if (result.comparison) writeJson(path.join(outputDir, "snapshot-comparison.json"), result.comparison, 0o600);
   if (!options.manifestOnly) {
     fs.writeFileSync(
       path.join(outputDir, "workflow-corpus.jsonl"),
@@ -992,7 +1144,27 @@ export function validateExistingOutput(outputDir) {
     ? fs.readFileSync(corpusPath, "utf8").split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line))
     : [];
   const coverage = JSON.parse(fs.readFileSync(coveragePath, "utf8"));
-  return validateCorpus({ manifest, events, coverage });
+  const validation = validateCorpus({ manifest, events, coverage });
+  const snapshotPath = path.join(outputDir, "workflow-snapshot.json");
+  if (!fs.existsSync(snapshotPath)) {
+    return { ...validation, snapshot_status: "NOT_VERIFIED", snapshot_fingerprint: null };
+  }
+  const storedSnapshot = JSON.parse(fs.readFileSync(snapshotPath, "utf8"));
+  const snapshotErrors = validateWorkflowSnapshot(storedSnapshot);
+  const expectedSnapshot = createWorkflowSnapshot(
+    { manifest, events, coverage },
+    { manifestOnly: !fs.existsSync(corpusPath) },
+  );
+  if (!snapshotErrors.length && storedSnapshot.fingerprints.snapshot !== expectedSnapshot.fingerprints.snapshot) {
+    snapshotErrors.push("stored snapshot does not match corpus outputs");
+  }
+  return {
+    ...validation,
+    status: validation.status === "PASS" && !snapshotErrors.length ? "PASS" : "FAIL",
+    errors: [...validation.errors, ...snapshotErrors],
+    snapshot_status: snapshotErrors.length ? "FAIL" : "PASS",
+    snapshot_fingerprint: storedSnapshot?.fingerprints?.snapshot || null,
+  };
 }
 
 function sha256(value) {
@@ -1009,6 +1181,8 @@ function printSummary(result, args) {
     validation: result.validation.status,
     coverage: result.coverage.totals,
     extraction_meta_sessions: result.coverage.extraction_meta_sessions,
+    snapshot_fingerprint: result.snapshot.fingerprints.snapshot,
+    comparison: result.comparison?.status || null,
   };
   if (args.json) console.log(JSON.stringify(summary, null, 2));
   else {
@@ -1020,7 +1194,17 @@ Events: ${summary.events}
 Validation: ${summary.validation}
 Coverage: ${JSON.stringify(summary.coverage)}
 Extraction meta sessions: ${summary.extraction_meta_sessions}`);
+    if (result.comparison) {
+      console.log(`Snapshot comparison: ${result.comparison.status}${result.comparison.changed_components.length ? ` (${result.comparison.changed_components.join(", ")})` : ""}`);
+    }
   }
+}
+
+function comparisonExitCode(comparison, requireUnchanged) {
+  if (!comparison) return 0;
+  if (comparison.status === "INCOMPATIBLE") return 1;
+  if (requireUnchanged && comparison.status !== "UNCHANGED") return 1;
+  return 0;
 }
 
 async function main() {
@@ -1040,9 +1224,16 @@ async function main() {
 
   if (args.validateOnly) {
     const validation = validateExistingOutput(path.resolve(args.outputDir));
-    if (args.json) console.log(JSON.stringify(validation, null, 2));
-    else console.log(`Validation: ${validation.status}${validation.errors.length ? `\n${validation.errors.join("\n")}` : ""}`);
-    process.exit(validation.status === "PASS" ? 0 : 1);
+    const comparison = args.compareTo
+      ? compareWorkflowSnapshots(loadWorkflowSnapshot(path.resolve(args.outputDir)), loadWorkflowSnapshot(args.compareTo))
+      : null;
+    const report = comparison ? { ...validation, comparison } : validation;
+    if (args.json) console.log(JSON.stringify(report, null, 2));
+    else {
+      console.log(`Validation: ${validation.status}${validation.errors.length ? `\n${validation.errors.join("\n")}` : ""}`);
+      if (comparison) console.log(`Snapshot comparison: ${comparison.status}`);
+    }
+    process.exit(validation.status === "PASS" && comparisonExitCode(comparison, args.requireUnchanged) === 0 ? 0 : 1);
   }
 
   if (!args.sources.length) {
@@ -1051,9 +1242,10 @@ async function main() {
   }
 
   const result = extractCorpus(args);
+  if (args.compareTo) result.comparison = compareWorkflowSnapshots(result.snapshot, loadWorkflowSnapshot(args.compareTo));
   if (!args.dryRun) writeOutputs(path.resolve(args.outputDir), result, args);
   printSummary(result, args);
-  process.exit(result.validation.status === "PASS" ? 0 : 1);
+  process.exit(result.validation.status === "PASS" && comparisonExitCode(result.comparison, args.requireUnchanged) === 0 ? 0 : 1);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
