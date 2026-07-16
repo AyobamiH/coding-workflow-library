@@ -138,6 +138,11 @@ Use for Cloudflare Pages or Workers deployment planning, deploy proof boundaries
 File: `skill-files/project-kb-builder-skill.md`
 Use after `repo-map` and `docs-list` to compile a deterministic, source-only project knowledge base with project identity, repo shape, commands, docs, skills/routes, validation gates, verified facts, unknowns, and safety boundaries. It delegates to `scripts/project-kb` and is not runtime proof or an LLM memory agent.
 
+### capability-intelligence-builder-skill
+
+File: `skill-files/capability-intelligence-builder-skill.md`
+Use to build or review a standalone, privacy-safe capability inventory across agent skills, plugins, tools, connectors, hooks, and workflow resources. It keeps lifecycle readiness, evidence level, and risk separate; reconciles every source record; retains unlabelled manifests; and does not execute discovered capabilities or absorb the target product into this library.
+
 ### public-market-scan-skill
 
 File: `skill-files/public-market-scan-skill.md`

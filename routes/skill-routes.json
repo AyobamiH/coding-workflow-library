@@ -1560,6 +1560,76 @@
       "provenance": "P1 helper identified by migration-review-skill and Supabase scheduler work that required source-only migration/secret-hardcoding review before any apply gate"
     },
     {
+      "id": "capability-intelligence-hard-cutover",
+      "skill_file": "skill-files/capability-intelligence-builder-skill.md",
+      "ledger_states_handled": [
+        "capability intelligence requested",
+        "capability inventory incomplete",
+        "capability hard cutover requested"
+      ],
+      "permission_flag": "capability-intelligence-hard-cutover",
+      "helper_scripts": [
+        "scripts/repo-map",
+        "scripts/docs-list",
+        "scripts/project-kb",
+        "scripts/pre-commit-check",
+        "scripts/route-audit",
+        "scripts/validate-skills"
+      ],
+      "permission_level": "local_execution",
+      "explicit_permission_required": true,
+      "requires_authority": [
+        "local_execution"
+      ],
+      "forbidden_actions": [
+        "credential file reads",
+        "environment value reads",
+        "session or transcript reads",
+        "raw connector identity output",
+        "authorization material output",
+        "discovered capability execution",
+        "product implementation copied into the workflow library",
+        "remote publication",
+        "npm publish",
+        "version change",
+        "git tag",
+        "GitHub release creation",
+        "force push",
+        "deploy",
+        "production mutation"
+      ],
+      "success_ledger_state": "capability intelligence hard cutover complete locally",
+      "blocked_ledger_state": "capability intelligence hard cutover blocked",
+      "next_permission": "review standalone product and grant separate remote publication if desired",
+      "evidence_required": [
+        "source allowlist and exclusions",
+        "source record reconciliation",
+        "unlabelled records retained",
+        "lifecycle and evidence truth rules",
+        "risk classification",
+        "synthetic adapter tests",
+        "deterministic repeated-run test",
+        "real strict local scan",
+        "redacted export test",
+        "local interface or API smoke"
+      ],
+      "safety_gates": [
+        "local read-only scan by default",
+        "no network calls during inventory",
+        "no secret or private-path output",
+        "no capability execution during discovery",
+        "no product code stored in this library",
+        "no automatic staging or committing",
+        "no remote publication"
+      ],
+      "idempotency_evidence": [
+        "repeated scan produces equivalent output for a fixed clock",
+        "source counts reconcile on every run",
+        "rerun validates existing adapters and fixtures"
+      ],
+      "provenance": "standalone capability-intelligence product hard cutover using local Codex plugin, skill, app-tool, connector, and workflow-library metadata"
+    },
+    {
       "id": "workflow-corpus-recovery",
       "skill_file": "skill-files/session-log-extraction-skill.md",
       "ledger_states_handled": [

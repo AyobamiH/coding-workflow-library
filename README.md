@@ -123,6 +123,7 @@ skills/coding-workflow-library/
     github-auth-gate-skill.md
     github-handoff-skill.md
     project-kb-builder-skill.md
+    capability-intelligence-builder-skill.md
     public-market-scan-skill.md
     cloudflare-deploy-skill.md
     supabase-rls-audit-skill.md
@@ -163,6 +164,12 @@ The frontmatter is the routing contract. `name` must match the filename without 
 10. Use `command-library.md` only as a command source; do not treat every command as safe for every task.
 11. Use `evidence-checklist.md` before final response.
 12. Record orchestration state in `work-ledger.md` and the completed skill run in `runs/skill-runs.md`.
+
+## Capability Intelligence Work
+
+Use `capability-intelligence-builder-skill` when a separate product needs a complete local inventory of agent skills, plugins, tools, connectors, hooks, commands, and workflow resources. The skill defines source reconciliation, lifecycle truth, evidence levels, privacy exclusions, strict coverage, duplicate handling, outcome matching, and validation expectations.
+
+The target product remains independent. This library provides the reusable engineering workflow and may be inventoried as a resource provider; it does not host the product implementation or replace autonomous workflow routing with capability discovery.
 
 ## Project-Scoped Workflow Lanes
 

@@ -120,3 +120,4 @@
 - Deterministic source-only project KB compiler (`scripts/project-kb`).
 - Pre-commit validation hook (`scripts/pre-commit-check`, `scripts/install-git-hooks`, `templates/hooks/pre-commit`).
 - Deterministic source-only migration review helper (`scripts/migration-review`).
+- Capability-intelligence builder skill and local-only hard-cutover route.

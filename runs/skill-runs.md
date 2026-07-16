@@ -1542,3 +1542,17 @@ This file records every real use of the coding workflow skills library.
 * Result: COMPLETE: current source, package, npm latest, and GitHub release are sanitized at v0.2.2.
 * Failure/recovery notes: existing Git history and the immutable `0.2.1` package were not rewritten or unpublished. Authentication used npm's official browser flow; no token, credential, auth URL, private path, or secret value was committed.
 * Follow-up skill needed: coding-workflow-orchestrator-skill to select the next verified roadmap objective.
+
+## 2026-07-16 - Capability Intelligence Hard Cutover
+
+* Skill used: coding-workflow-orchestrator-skill, repo-map-skill, skill-creator guidance, and capability-intelligence-builder-skill created from the proven implementation workflow.
+* Goal: Build a standalone local-first capability-intelligence product and add only its reusable engineering workflow to this library.
+* Starting state: Library `main` matched `origin/main` with a clean tree; the separate product had a source census but no implementation.
+* Commands/tools used: repository map; allowlisted source-shape inspection; dependency-free Node implementation; synthetic tests; strict real-environment scan; route audit; skill validation; docs inventory validation.
+* Files inspected: local plugin manifests; skill roots; cached app-tool metadata; cached connector metadata; library skills, scripts, routes, schemas, templates, and control docs. Credentials, sessions, transcripts, attachments, memories, logs, environment values, and raw tool payloads were excluded.
+* Files changed: standalone product source under `<CAPABILITY_INTELLIGENCE_REPO>`; `skill-files/capability-intelligence-builder-skill.md`; `skills-index.md`; `README.md`; `build-queue.md`; `routes/skill-routes.json`; `runs/skill-runs.md`; `work-ledger.md`.
+* Evidence collected: 16 focused product tests passed; strict local scan reconciled 6,117 artifacts, 180 plugins, 687 skills, 250 app tools, 4,768 connectors, 32 workflow routes, and all 111 unlabelled plugin manifests; library route audit passed with 32 routes; skill validation passed with 29 skills; documentation validation reported no missing H1s, duplicate titles, or current-document orphans.
+* Result: Standalone capability-intelligence hard cutover is implemented locally; library integration is bounded to one specialist skill and one local-only route.
+* Failure/recovery notes: Initial strict scan caught nested manifest over-counting and an over-broad token-language detector; source enumeration and secret-shape matching were corrected before acceptance. No capability was executed, no credential source was read, and no remote publication, package publish, tag, release, deploy, or production mutation occurred.
+* Follow-up skill needed: build-verify-skill for final local validation; github-handoff-skill only if separate remote publication is later granted.
+* Upgrade idea: Add signed publisher evidence and observed execution receipts only through separate evidence boundaries.

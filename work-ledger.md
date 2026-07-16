@@ -1471,3 +1471,19 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: coding-workflow-orchestrator-skill to select the next verified roadmap item.
 * Exact next action: run scheduled maintenance or select the next evidence-backed roadmap objective.
 * Whether John is needed: No for release verification; yes when the next objective crosses a new permission boundary.
+
+## 2026-07-16 - Capability Intelligence Hard Cutover Complete Locally
+
+* Active repo: `<CAPABILITY_INTELLIGENCE_REPO>` with reusable workflow resources in `<LIBRARY_REPO>`.
+* Current objective: Complete a standalone capability-intelligence hard cutover without changing the direction of OpsTruth or the autonomous coding workflow.
+* Current permission level: `local_execution`. No remote publication, package publication, version change, tag, release, deploy, production mutation, secret mutation, or destructive action.
+* Current status: Capability intelligence hard cutover complete locally; final validation in progress.
+* Selected skill: capability-intelligence-builder-skill under coding-workflow-orchestrator-skill.
+* Last commands run: product test suite; strict real-environment scan; outcome query; duplicate scan; library route audit; skill validation; documentation validation.
+* Files changed: standalone product implementation and documentation; one library specialist skill; one local-only route; discovery docs and historical run records.
+* Validation evidence: product tests passed; strict source reconciliation passed with 6,117 artifacts and 111 unlabelled manifests retained; library route audit passed with 32 routes and zero findings; skill validation passed with 29 skills and zero findings; documentation validation passed with no current-document orphans.
+* Privacy evidence: allowlisted metadata only; no authentication files, environment values, sessions, transcripts, attachments, memories, logs, shell snapshots, raw tool payloads, connector identities, install URLs, server origins, or credentials entered output.
+* Blockers: none for local implementation. Remote publication is outside the current authority.
+* Next recommended skill: build-verify-skill for final local gates; github-handoff-skill only after separate remote-publication authority.
+* Exact next action: complete local package, browser, source-coverage, and library validation; create local exact-file commits if clean.
+* Whether John is needed: No for local validation; yes before any push, package publication, tag, release, or deploy.
