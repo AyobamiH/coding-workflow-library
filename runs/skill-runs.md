@@ -1626,3 +1626,15 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: successful nested npm pack execution exposed no piped output in this environment. A private temporary capture file now preserves the final JSON manifest for inspection without shell interpolation or report leakage, and is deleted immediately. Human review also replaced failure-shaped codes on passing checks with neutral successful check IDs.
 * Follow-up skill needed: coding-workflow-orchestrator-skill for a decision brief before capability adapter evaluation. github-handoff-skill and release-preflight-skill apply only after a separate version and remote-publication objective.
 * Upgrade idea: add a read-only registry version check only behind explicit network authority, and integrate exact-commit GitHub handoff evidence only when a real release objective needs it.
+
+## 2026-07-16 - Capability Adapter Evaluation
+
+* Skill used: coding-workflow-orchestrator-skill and capability-intelligence-builder-skill, with existing GitHub workflow skills defining the adapter boundary.
+* Goal: Decide whether discovered local skills/plugins should enter the coding workflow library and stop the work if it would turn the library into a catalogue or generic broker.
+* Starting state: Release/package preflight hardening was committed locally; capability adapter evaluation was the documented next follow-on; Capability Intelligence was parked; a separate dirty portability/corpus checkpoint was present and preserved.
+* Commands/tools used: repository status and checkpoint recovery; docs inventory and repo map; strict Capability Intelligence scan; safe aggregate candidate filtering; direct reads of skill/plugin creator, installer, and GitHub plugin guidance; one bounded GitHub plugin repository-metadata read; decision/documentation edits.
+* Evidence collected: 6,369 artifacts across 10 source surfaces; 736 skills; 180 plugin manifests; 7 installed plugin versions; 111 unlabelled plugin manifests; installed lifecycle states did not establish authentication, runnability, or verification. The GitHub plugin's repository read succeeded for the selected public repository, proving only that bounded read surface.
+* Result: COMPLETE LOCALLY: adopt narrow optional providers beneath existing workflow contracts; reject generic broker, prefetch, automatic installation, and bulk skill/plugin cutover. Capability Intelligence remains a separate inventory product.
+* Failure/recovery notes: an initial scan command used the source module instead of the package entrypoint and produced no JSON; rerunning the documented CLI produced a valid strict inventory. No source was changed in the separate product, and no existing dirty implementation file was edited.
+* Follow-up skill needed: coding-workflow-orchestrator-skill for P0 maintenance only. Secret-manager or provider-write work requires a separate decision and authority objective.
+* Upgrade idea: record provider receipts only after repeated real workflow use proves a stable provider-neutral evidence schema; do not build the schema pre-emptively.

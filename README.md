@@ -182,6 +182,8 @@ Use `capability-intelligence-builder-skill` when a separate product needs a comp
 
 The target product remains independent. This library provides the reusable engineering workflow and may be inventoried as a resource provider; it does not host the product implementation or replace autonomous workflow routing with capability discovery.
 
+The [capability adapter evaluation](docs/capability-adapter-evaluation.md) rejects a bulk skill/plugin cutover and a generic broker. Provider capabilities are optional implementations beneath existing workflow skills and routes: the workflow contract owns evidence, redaction, fallback, and authority. A bounded GitHub plugin repository read was observed, so structured GitHub reads may be used when available; installation, authentication, runnability, other plugin calls, and every write consequence remain separate facts.
+
 ## Project-Scoped Workflow Lanes
 
 `work-ledger.md` is retained as historical library evidence. Active multi-project execution state should live in a local lane file outside the repository, defaulting to `$HOME/.coding-workflow/lanes.json` or supplied with `--state-file`.

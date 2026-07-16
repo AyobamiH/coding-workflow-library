@@ -50,7 +50,7 @@
 
 # P2 - Follow-On Autonomy Improvements
 
-Next documented follow-on: `Capability adapter evaluation` (decision-gated; no skill/plugin hard cutover is authorised).
+Capability adapter evaluation is complete. No generic capability work is active; maintenance returns to the proven P0 foundations unless a real workflow supplies repeated unresolved `BLOCKED_CAPABILITY` evidence.
 
 ## Opstruth runtime truth self-test
 
@@ -80,7 +80,7 @@ Next documented follow-on: `Capability adapter evaluation` (decision-gated; no s
 - Authority required: depends on adapter; secret managers require explicit decision and non-printing contract.
 - Done definition: evaluate whether a capability broker is still needed after concrete browser and secret-access adapters exist.
 - Reason for priority: capability acquisition is not first; it follows adapter prerequisites.
-- Status: decision-gated. Capability Intelligence remains parked, and no skill/plugin hard cutover is part of the release-hardening objective.
+- Status: completed locally as a decision. The GitHub plugin is an optional structured-read provider beneath existing GitHub workflow contracts. Skill/plugin creators remain authoring references; task-specific stacks remain task-specific; automatic installation, secret access, generic brokering, prefetch, and bulk skill/plugin cutover were rejected or held. See `docs/capability-adapter-evaluation.md`.
 
 # P3 - Optional Experiments
 
@@ -97,10 +97,11 @@ Next documented follow-on: `Capability adapter evaluation` (decision-gated; no s
 
 - Evidence source: newer discussions only; corrected corpus does not prove this as an older foundation.
 - Primary type: `CONTROL_PLANE`.
-- Dependency: capability adapter evaluation.
+- Dependency: capability adapter evaluation plus repeated unresolved adapter insufficiency evidence.
 - Authority required: likely multiple classes; must be defined before implementation.
 - Done definition: design only after real adapters define what can be acquired safely.
 - Reason for priority: optional autonomy experiment, not current P0/P1 work.
+- Status: rejected for the current roadmap. Reopen only when at least two real workflow runs cannot resolve the same `BLOCKED_CAPABILITY` through an existing helper, optional provider, or documented fallback.
 
 # Hold - Product-Specific Or Decision-Dependent
 

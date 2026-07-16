@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "capability-adapter-evaluation-2026-07-16",
+  "runId": "local-capability-adapter-evaluation",
+  "recordedAt": "2026-07-16T05:41:17Z",
+  "objectiveId": "evaluate-capability-adapters-without-workflow-drift",
+  "repository": "<LIBRARY_REPO>",
+  "branch": "chore/capability-adapter-evaluation",
+  "question": "Should the coding workflow library import discovered skills and plugins or add a generic capability broker?",
+  "availableOptions": [
+    "hard-cut over discovered skills and plugins",
+    "build a generic capability broker and prefetch layer",
+    "adopt only narrow workflow-owned adapters",
+    "make no capability decision"
+  ],
+  "selectedOption": "adopt only narrow workflow-owned adapters",
+  "constraints": [
+    "Capability Intelligence remains a separate product",
+    "provider availability does not grant consequence authority",
+    "installed does not imply authenticated, runnable, or verified",
+    "no automatic installation or secret retrieval",
+    "existing workflow skills, routes, evidence rules, and fallbacks remain canonical"
+  ],
+  "rejectedOptions": [
+    "hard-cut over discovered skills and plugins",
+    "build a generic capability broker and prefetch layer",
+    "treat 111 unlabelled plugin manifests as ready skills"
+  ],
+  "confidence": "high for the current roadmap; revisit only with repeated adapter insufficiency evidence",
+  "reversible": true,
+  "approvalRequired": false,
+  "approvalReference": "current user request authorised bounded local evaluation",
+  "stateBefore": "release and package preflight hardening complete locally; capability adapter evaluation decision-gated",
+  "stateAfter": "capability adapter evaluation complete; optional GitHub reads allowed through existing workflow contracts; broker and hard cutover rejected",
+  "boundaryType": "no external boundary",
+  "action": "record the adapter selection contract and leave all installation, secret, and provider-write consequences gated",
+  "evidence": [
+    "strict Capability Intelligence scan passed with 6369 represented artifacts and 10 available source surfaces",
+    "111 records were unlabelled plugin manifests rather than ready-to-run skills",
+    "installed plugin records did not prove enabled, authenticated, runnable, or verified state",
+    "one bounded GitHub plugin repository-metadata read succeeded for the workflow library",
+    "existing browser, GitHub, evidence, authority, package, and release contracts already cover the core workflow"
+  ],
+  "safetyGates": [
+    "no capability was installed or copied",
+    "no provider write was performed",
+    "no credential or secret value was read or printed",
+    "no Capability Intelligence source file was changed",
+    "current unrelated dirty work was preserved"
+  ],
+  "nextAutomaticStep": "return to maintenance of proven foundations and add another adapter only after repeated unresolved BLOCKED_CAPABILITY evidence",
+  "exactInputRequiredFromJohn": "None for this evaluation. A future secret-manager, automatic-installation, or provider-write objective requires its own explicit product and authority decision.",
+  "result": "COMPLETE: narrow adapter policy selected; no generic broker or hard cutover"
+}

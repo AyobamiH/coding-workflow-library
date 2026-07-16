@@ -1575,3 +1575,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Blockers: none for local implementation. `VERSION_NOT_ADVANCED` is an intentional release-readiness blocker, not an implementation blocker. Remote publication and version selection remain separate consequences/decisions.
 * Exact next action: complete staged/full validation and create one exact-file local commit, then hold before any version or remote publication action.
 * Whether John is needed: No for the local commit; yes to choose a future release version or grant remote publication for push, tag, npm publication, or GitHub Release creation.
+
+## 2026-07-16 - Capability Adapter Evaluation Complete Locally
+
+* Active repo: `<LIBRARY_REPO>`; Capability Intelligence inspected read-only as a separate product.
+* Current objective: Evaluate which discovered skills or plugins align with the autonomous coding workflow without changing the library into a capability catalogue or broker.
+* Current permission level: `local_execution` plus one bounded read-only GitHub provider observation. No capability installation, provider write, remote publication, package publication, version change, tag, release, deploy, secret access, production mutation, or destructive action.
+* Current status: Capability adapter evaluation complete; narrow workflow-owned adapters selected and generic acquisition rejected for the current roadmap.
+* Selected skill: coding-workflow-orchestrator-skill with capability-intelligence-builder-skill as read-only inventory evidence and existing GitHub skills as the provider contract owners.
+* Evidence: strict inventory passed with 6,369 represented artifacts and 10 available source surfaces; 111 records were unlabelled plugin manifests rather than ready skills; installed records did not prove authenticated/runnable/verified state; one GitHub plugin repository-metadata read succeeded for the public workflow library.
+* Decision: recognise the GitHub plugin as an optional structured-read provider beneath existing GitHub skills; use skill creator as advisory authoring guidance; keep Figma/HyperFrames task-specific; hold plugin creation and secret access; reject automatic installation, generic brokering, prefetch, and bulk cutover.
+* Files changed: capability adapter evaluation, public-safe decision record, README/RUNBOOK guidance, queue/roadmap, changelog, ledger, and run log only. Pre-existing dirty implementation files were not edited.
+* Boundaries: provider availability grants no authority; every provider surface is verified separately; local helpers and documented fallbacks remain portable; Capability Intelligence source was not changed.
+* Next recommended skill: coding-workflow-orchestrator-skill for P0 foundation maintenance. Add another adapter only after repeated unresolved `BLOCKED_CAPABILITY` evidence.
+* Exact next action: validate this isolated decision/documentation scope without staging or modifying the separate dirty portability/corpus checkpoint.
+* Whether John is needed: No for the completed evaluation. Yes before secret-manager design, automatic installation, provider writes, or a new distribution surface.

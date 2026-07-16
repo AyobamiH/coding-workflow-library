@@ -23,8 +23,9 @@ corrected workflow corpus
   -> three-OS portability contract (implemented locally)
   -> routing shape review (implemented)
   -> Opstruth runtime truth self-test (implemented)
-  -> secret-access adapter, if approved
-  -> capability acquisition/prefetch, if still needed
+  -> capability adapter evaluation (completed: narrow adapters only)
+  -> secret-access adapter, only if separately approved
+  -> capability acquisition/prefetch, rejected until repeated adapter insufficiency is proven
   -> agent-role system, only after repeated role contracts are proven
 ```
 
@@ -125,14 +126,15 @@ Implemented capability gates:
 - Supabase tooling/deploy/scheduler boundaries
 - Cloudflare planning boundaries
 - browser live-proof gate and count-only Chromium observer
+- optional GitHub plugin repository-read provider observed beneath the existing GitHub skill contracts
 
-Missing or held:
+Missing, held, or rejected:
 
 - one-password secret access
-- capability acquisition broker
-- capability prefetch
+- capability acquisition broker (rejected for the current roadmap)
+- capability prefetch (rejected for the current roadmap)
 
-Capability acquisition remains `NEWLY_PROPOSED` until browser proof and secret-access prerequisites are either implemented or explicitly rejected.
+The adapter evaluation found no need for a generic broker. Capability Intelligence remains a separate inventory product; provider reads may satisfy existing workflow contracts, but provider availability does not grant authority or replace deterministic fallbacks. See `docs/capability-adapter-evaluation.md`.
 
 ## Recommended Build Order
 
@@ -159,8 +161,9 @@ Capability acquisition remains `NEWLY_PROPOSED` until browser proof and secret-a
 
 ### P3
 
-13. Explore one-password secret access only after a non-printing local contract is approved.
-14. Revisit capability acquisition and prefetch only after adapter prerequisites exist.
-15. Revisit agent-role system only after at least two independent sessions prove a reusable role contract.
+13. Keep optional provider reads subordinate to existing workflow skills, evidence contracts, redaction, and authority gates.
+14. Explore one-password secret access only after a non-printing local contract is approved.
+15. Revisit capability acquisition and prefetch only after at least two real runs prove the same unresolved adapter insufficiency.
+16. Revisit agent-role system only after at least two independent sessions prove a reusable role contract.
 
-The evidence-backed reusable-foundation sequence through release/package preflight is complete locally. Capability adapter evaluation is the next documented follow-on, but it remains decision-gated and does not authorise a skill/plugin hard cutover or revive Capability Intelligence as the library's product direction.
+The evidence-backed reusable-foundation sequence through capability adapter evaluation is complete locally. The evaluation selected narrow workflow-owned adapters, observed one bounded GitHub metadata read, and rejected a generic broker, prefetch, automatic installation, and skill/plugin hard cutover. Capability Intelligence remains parked as a separate product direction.

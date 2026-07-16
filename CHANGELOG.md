@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Record the capability-adapter decision: keep providers beneath existing workflow contracts, allow bounded optional GitHub reads, and reject generic brokering, prefetch, automatic installation, and bulk skill/plugin cutover.
 - Add content-derived private workflow-corpus snapshots, safe baseline comparison, and an explicit unchanged gate without publishing corpus data.
 - Add a focused Linux, macOS, and Windows portability suite for paths, managed hooks, corpus snapshots, and read-only evidence contracts.
 - Harden browser proof with PNG validity/nonblank sampling and redirect warnings; keep ambiguous GitHub branch-protection 404s unverified.
