@@ -16,6 +16,20 @@ This file records every real use of the coding workflow skills library.
 * Follow-up skill needed:
 * Upgrade idea:
 
+## 2026-07-16 - Foundation Truth Reconciliation
+
+* Skill used: coding-workflow-orchestrator-skill and build-verify-skill.
+* Goal: Stay in the coding-workflow-library foundation lane, identify genuinely undeveloped foundations, and correct immediate truth drift without creating maintainer agents or another control plane.
+* Starting state: `main` matched `origin/main`; the private library lane recorded published v0.2.3; current queue and roadmap prose still called remote portability unverified, described implemented helpers as missing, and retained a resolved GitHub Actions Node 20 runtime warning.
+* Commands/tools used: lane-state inspection and objective reset; repo-map, docs-list, queue/roadmap searches, official read-only GitHub Action release inspection, focused truth tests, full `npm test`, route audit, skill validation, module-size audit, diff checks, and package/portable validation.
+* Files inspected: AGENTS, package and CI metadata, build queue, agent/skill roadmap, workflow maturity evidence, modularity audit, public ledger/run log, private secret-free lane metadata, and official action release metadata.
+* Files changed: `.github/workflows/validate.yml`; `package.json`; `CHANGELOG.md`; `build-queue.md`; `docs/agent-and-skill-roadmap.md`; `docs/workflow-maturity-foundations.md`; `tests/foundation-truth.test.js`; `work-ledger.md`; this run record.
+* Evidence collected: remote portability was already proven for exact commit `f8968d2` in run `29484530598`; `scripts/add-skill-gap`, `scripts/autonomy-outcomes`, and `scripts/multi-project-proof` exist and are validated; official checkout/setup-node v7 releases are available and declare Node 24; the new truth test rejects stale missing-helper, unverified-portability, and deprecated action-major claims.
+* Result: Foundation truth reconciled and enforced locally. No additional generic foundation is currently proven missing.
+* Failure/recovery notes: renaming the P1/P2 queue headings initially broke the stable skill-gap insertion boundary. The headings were preserved, their completed/no-active-gap status was made explicit in prose, and `scripts/add-skill-gap --validate` passed. A sandboxed nested subprocess test returned empty output; the authoritative suite passed outside that restricted subprocess sandbox.
+* Follow-up skill needed: github-handoff-skill only when a separate objective grants remote publication for exact-commit v7 CI proof.
+* Upgrade idea: keep roadmap promotion evidence-driven. Reopen secret access, capability acquisition, or agent roles only when their documented decision thresholds are met.
+
 ## 2026-07-16 - v0.2.3 Workflow-Owned Publication
 
 * Skill used: release-preflight-skill, skills-library-packaging-skill, github-auth-gate-skill, and github-handoff-skill through lane-scoped `run-next`.

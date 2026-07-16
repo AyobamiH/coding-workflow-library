@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Reconcile the foundation roadmap and build queue with published implementation evidence, add a regression test for stale missing-helper and portability claims, and move GitHub Actions from the deprecated v4 Node 20 generation to the official v7 Node 24 generation.
 - Decompose the 16,116-line `scripts/run-next` monolith into a 964-line entrypoint and 17 responsibility-owned runtime modules without changing route or authority behaviour.
 - Add a repository-wide 1,000-line review threshold, 2,200-line hard source-size gate, JSON audit output, modular runtime contract tests, recursive JavaScript syntax coverage, and documented responsibility decisions.
 - Add a structured, atomic, secret-safe skill-gap recorder with dry-run, JSON, validation, and duplicate/refusal coverage.

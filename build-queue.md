@@ -8,6 +8,7 @@
 - Authority required: `local_execution`.
 - Done definition: extractor tests pass, private corpus validates, source coverage reconciles, extraction-meta sessions are excluded from rankings by default, and public docs use aggregate evidence only.
 - Reason for priority: without reproducible source coverage, newer agent and capability ideas are memory-led rather than evidence-led.
+- Status: the extractor, coverage reconciliation, content-derived snapshots, comparison modes, and privacy boundary are implemented and published. This remains a foundation evidence input, not an undeveloped helper.
 
 # Completed Reusable Foundations
 
@@ -18,7 +19,7 @@
 - Dependency: corrected workflow corpus.
 - Authority required: `local_execution`.
 - Done definition: every new extraction writes a content-derived snapshot; comparison distinguishes unchanged, changed, and incompatible baselines; mtime-only changes do not drift; strict unchanged mode fails intentionally; no private paths or transcript content enter reports.
-- Status: implemented locally with snapshot/comparison schemas and deterministic regression tests.
+- Status: implemented, published, and covered by deterministic snapshot/comparison regression tests.
 
 ## Cross-platform portability CI
 
@@ -27,7 +28,7 @@
 - Dependency: dependency-free helpers and package lockfile.
 - Authority required: `local_execution` for tests; `remote_publication` for CI execution on GitHub.
 - Done definition: focused path, hook, corpus, browser-proof, and GitHub-review contracts run on Linux, macOS, and Windows without external service calls.
-- Status: implemented locally as `npm run test:portable` and a three-OS GitHub Actions matrix; remote CI remains unverified until publication is authorised.
+- Status: implemented and remotely proven. Exact commit `f8968d2` passed the main validation job plus Ubuntu, macOS, and Windows portability jobs in GitHub Actions run `29484530598`. The action-runtime warning from that run is addressed locally by upgrading `actions/checkout` and `actions/setup-node` from v4 to v7; exact remote proof for that dependency update remains separate until publication is authorised.
 
 ## Routing shape review
 
@@ -36,7 +37,7 @@
 - Dependency: active skill frontmatter.
 - Authority required: `local_execution`.
 - Done definition: duplicate triggers are disambiguated, routing descriptions are concise, and intentional long safety contracts carry reviewed machine-visible reasons rather than disappearing from cleanup evidence.
-- Status: implemented locally; shape exceptions remain visible in the cleaner report.
+- Status: implemented and published; intentional shape exceptions remain visible in the cleaner report.
 
 ## GitHub deep review skill
 
@@ -46,9 +47,11 @@
 - Authority required: read-only GitHub inspection by default; replies, resolutions, commits, merges, and pushes require `remote_publication`.
 - Done definition: skill inspects review threads, requested changes, check logs, stale approvals, and exact patch scope without mutating remote state by default.
 - Reason for priority: it completes the PR lifecycle beyond branch/PR creation and merge readiness.
-- Status: implemented locally with `scripts/github-deep-review`, a validated JSON contract, synthetic regression tests, CLI delegation, route metadata, and a bounded real GitHub evidence run.
+- Status: implemented and published with `scripts/github-deep-review`, a validated JSON contract, synthetic regression tests, CLI delegation, route metadata, and a bounded real GitHub evidence run.
 
 # P1 - Current Maturity Gaps
+
+No active P1 gaps are currently evidence-backed. The entries below remain in this section as completed foundation contracts so a newly recorded gap can be compared against the capability that already exists.
 
 ## Modular run-next architecture and source-size guard
 
@@ -57,7 +60,7 @@
 - Dependency: existing route and objective-authority contracts.
 - Authority required: `local_execution`.
 - Done definition: the entrypoint owns only composition and dispatch; domain logic, reports, checkpoints, and runtime support live in focused modules; recursive syntax checks cover nested code; a deterministic hard line budget prevents another monolith.
-- Status: implemented locally. `scripts/run-next` is 964 lines, 17 modules live under `scripts/lib/run-next/`, every checked file is below 2,200 lines, and focused module, resume, authority, and lane-isolation tests pass. `scripts/check-module-size --json` exposes files above the 1,000-line review threshold; their current responsibility decisions are recorded in `docs/modularity-audit.md`.
+- Status: implemented and published. `scripts/run-next` is 964 lines, 17 modules live under `scripts/lib/run-next/`, every checked file is below 2,200 lines, and focused module, resume, authority, and lane-isolation tests pass. `scripts/check-module-size --json` exposes files above the 1,000-line review threshold; their current responsibility decisions are recorded in `docs/modularity-audit.md`.
 
 ## Safe skill-gap recorder
 
@@ -67,7 +70,7 @@
 - Authority required: `local_execution`.
 - Done definition: one deterministic helper appends a bounded, portable, secret-safe gap record; supports dry-run and validation; refuses duplicate or malformed entries; never edits unrelated queue content.
 - Reason for priority: the control rule exists, but recording still depends on ad hoc manual editing.
-- Status: implemented locally through `scripts/add-skill-gap`, `schemas/skill-gap-record.schema.json`, CLI delegation, dry-run/JSON/validation modes, atomic queue replacement, and focused refusal tests for duplicates, malformed fields, private paths, and secret-shaped values.
+- Status: implemented and published through `scripts/add-skill-gap`, `schemas/skill-gap-record.schema.json`, CLI delegation, dry-run/JSON/validation modes, atomic queue replacement, and focused refusal tests for duplicates, malformed fields, private paths, and secret-shaped values.
 
 ## Autonomy outcome reporting
 
@@ -77,7 +80,7 @@
 - Authority required: `local_execution`.
 - Done definition: a read-only helper reports route completion, blocker, recovery, resume, and stop-boundary counts from safe local metadata without reading secrets or treating logs as production proof.
 - Reason for priority: the workflow records evidence but does not yet summarize whether autonomy is becoming more reliable.
-- Status: implemented locally through `scripts/autonomy-outcomes`, `schemas/autonomy-outcomes.schema.json`, CLI delegation, and focused privacy/determinism tests. The final local observation validated 398 checkpoint records with no invalid records and remained `WARN` only because optional default lane state was absent.
+- Status: implemented and published through `scripts/autonomy-outcomes`, `schemas/autonomy-outcomes.schema.json`, CLI delegation, and focused privacy/determinism tests. The final local observation validated 398 checkpoint records with no invalid records and remained `WARN` only because optional default lane state was absent.
 
 ## Real multi-project workflow evidence
 
@@ -101,7 +104,7 @@
 
 # P2 - Follow-On Autonomy Improvements
 
-Capability adapter evaluation is complete. No generic capability work is active; maintenance returns to the proven P0 foundations unless a real workflow supplies repeated unresolved `BLOCKED_CAPABILITY` evidence.
+All listed P2 items are complete. No generic capability work is active. New foundation-building should begin only when the corpus, the structured gap recorder, or repeated real workflow evidence proves a bounded missing contract.
 
 ## Opstruth runtime truth self-test
 
@@ -111,7 +114,7 @@ Capability adapter evaluation is complete. No generic capability work is active;
 - Authority required: `local_execution`.
 - Done definition: self-test classifies mixed evidence into verified, warning, failure, skipped, and not-verified without overclaiming.
 - Reason for priority: it protects final reports from treating skipped checks as proof.
-- Status: implemented locally through `scripts/opstruth-classify`, its built-in mixed fixture, JSON schema, tests, CLI delegation, and the existing runtime-truth skill/route.
+- Status: implemented and published through `scripts/opstruth-classify`, its built-in mixed fixture, JSON schema, tests, CLI delegation, and the existing runtime-truth skill/route.
 
 ## Release and package preflight hardening
 
@@ -121,7 +124,7 @@ Capability adapter evaluation is complete. No generic capability work is active;
 - Authority required: `local_execution`; publish, push, tag, and GitHub Release creation require `remote_publication`.
 - Done definition: preflight consumes corpus-backed evidence where useful and reports local/npm/CLI modes with crisp blockers.
 - Reason for priority: release paths are working, but should benefit from the same reproducible evidence foundation.
-- Status: implemented locally through validated package/preflight JSON reports, explicit blockers/warnings/not-verified states, safe pack-manifest inspection, version and release-note baseline checks, aggregate-only corpus evidence, tests, CLI delegation, and pre-commit contract checks.
+- Status: implemented and published through validated package/preflight JSON reports, explicit blockers/warnings/not-verified states, safe pack-manifest inspection, version and release-note baseline checks, aggregate-only corpus evidence, tests, CLI delegation, and pre-commit contract checks.
 
 ## Capability adapter evaluation
 
@@ -131,7 +134,7 @@ Capability adapter evaluation is complete. No generic capability work is active;
 - Authority required: depends on adapter; secret managers require explicit decision and non-printing contract.
 - Done definition: evaluate whether a capability broker is still needed after concrete browser and secret-access adapters exist.
 - Reason for priority: capability acquisition is not first; it follows adapter prerequisites.
-- Status: completed locally as a decision. The GitHub plugin is an optional structured-read provider beneath existing GitHub workflow contracts. Skill/plugin creators remain authoring references; task-specific stacks remain task-specific; automatic installation, secret access, generic brokering, prefetch, and bulk skill/plugin cutover were rejected or held. See `docs/capability-adapter-evaluation.md`.
+- Status: completed and published as a decision. The GitHub plugin is an optional structured-read provider beneath existing GitHub workflow contracts. Skill/plugin creators remain authoring references; task-specific stacks remain task-specific; automatic installation, secret access, generic brokering, prefetch, and bulk skill/plugin cutover were rejected or held. See `docs/capability-adapter-evaluation.md`.
 
 # P3 - Optional Experiments
 

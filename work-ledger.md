@@ -4,6 +4,20 @@ This is the persistent control-plane ledger for `coding-workflow-orchestrator-sk
 
 Each entry records the active repo, objective, permission boundary, selected skill, evidence, blockers, and exact next action. The ledger is operational state, not a polished report.
 
+## 2026-07-16 - Foundation Truth Reconciliation
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Reconcile foundation-building status with implemented and published evidence without introducing maintainer agents, a new maintenance lane, or product-specific work.
+* Current permission level: `local_execution` only. No remote publication, npm publication, version change, tag, release, deploy, production mutation, secret mutation, or destructive action.
+* Current status: Foundation truth reconciled locally; CI action runtime update validated locally and awaiting separate exact-commit remote proof.
+* Selected skills: `coding-workflow-orchestrator-skill` and `build-verify-skill`.
+* Evidence: the queue no longer calls proven three-platform CI unverified; the roadmap no longer lists `scripts/add-skill-gap` or `scripts/autonomy-outcomes` as missing; held secret access is distinguished from a missing foundation; the workflow now uses official `actions/checkout@v7` and `actions/setup-node@v7`, whose metadata declares Node 24; `tests/foundation-truth.test.js` makes these contradictions fail `npm test`.
+* Validation evidence: focused foundation-truth validation passed; the full `npm test` suite passed; docs inventory validation passed with no missing H1s, duplicate titles, or current-document orphans; route audit passed with 34 routes; skill validation passed with 31 active skills; no checked source file exceeded the 2,200-line hard limit.
+* Foundation decision: no additional generic foundation is currently evidence-backed. One-password secret access remains decision-gated, generic capability acquisition remains rejected until repeated adapter insufficiency exists, and reusable agent roles remain unproven.
+* Blockers: exact GitHub Actions proof for the v7 action update requires a future `remote_publication` objective. Earlier v4 CI proof remains valid only for exact commit `f8968d2`.
+* Exact next action: create one exact local commit for the validated truth reconciliation; publish and verify it only under a separate remote-publication objective.
+* Whether John is needed: No for the local commit. Yes only for remote publication or a newly selected consequence boundary.
+
 ## 2026-07-16 - v0.2.3 Published With Three-Platform CI
 
 * Active repo: `<LIBRARY_REPO>`.

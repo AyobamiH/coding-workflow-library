@@ -116,6 +116,18 @@ GitHub Actions run `29484530598` matched exact commit `f8968d2` and completed su
 
 This closes the recorded remote cross-platform dependency for that exact commit. It does not prove future commits or arbitrary environments.
 
-The run emitted a non-failing warning that the Node 20 runtime used by `actions/checkout@v4` and `actions/setup-node@v4` is deprecated and forced onto Node 24 by the runner. Review supported action versions in a separate maintenance objective; do not misclassify the warning as a failed matrix.
+The run emitted a non-failing warning that the Node 20 runtime used by `actions/checkout@v4` and `actions/setup-node@v4` was deprecated and forced onto Node 24 by the runner. The workflow now uses the official v7 releases of both actions, whose action metadata declares the Node 24 runtime. Local configuration and portable tests pass; exact remote proof for this dependency update remains pending publication and must not be inferred from the earlier v4 run.
 
-No further generic P1 maturity implementation is active. Return to P0 corpus and foundation maintenance unless repeated real workflow evidence supplies a new bounded gap.
+## Foundation Truth Contract
+
+`tests/foundation-truth.test.js` protects a small set of current-state claims that previously drifted:
+
+- implemented helpers must exist and appear in the implemented roadmap inventory;
+- implemented helpers must not remain in the missing-helper section;
+- the build queue must not call the proven three-platform CI result unverified;
+- the queue must state explicitly when no active P1 foundation gap is evidence-backed;
+- the CI workflow must use the Node 24 action generation rather than the deprecated v4 Node 20 generation.
+
+The test does not decide the roadmap or promote a proposed capability. It only checks that current control documents agree with already-recorded implementation and CI evidence.
+
+No further generic P1 foundation is currently evidence-backed. The current implementation includes the skill-gap recorder and autonomy outcome reporter that older roadmap text incorrectly called missing. Future foundation-building should begin only when corrected corpus evidence, a structured gap record, or repeated real workflow evidence supplies a new bounded contract.

@@ -20,14 +20,13 @@ corrected workflow corpus
   -> migration-review helper (implemented)
   -> browser/live proof (implemented)
   -> GitHub deep review (implemented)
-  -> three-OS portability contract (implemented locally)
+  -> three-OS portability contract (implemented and remotely proven)
   -> routing shape review (implemented)
-  -> modular run-next architecture and source-size guard (implemented locally)
-  -> safe skill-gap recorder (implemented locally)
-  -> autonomy outcome reporting (implemented locally)
+  -> modular run-next architecture and source-size guard (implemented)
+  -> safe skill-gap recorder (implemented)
+  -> autonomy outcome reporting (implemented)
   -> real multi-project workflow evidence (observed locally)
-  -> exact-commit remote portability proof
-  -> remote three-OS exact-commit proof
+  -> exact-commit remote three-OS portability proof (observed)
   -> Opstruth runtime truth self-test (implemented)
   -> capability adapter evaluation (completed: narrow adapters only)
   -> secret-access adapter, only if separately approved
@@ -64,7 +63,7 @@ Implemented and active:
 - release/package readiness
 - skills-library packaging
 
-Documented missing skills:
+Held capability decision, not a missing foundation:
 
 - one-password secret access
 
@@ -88,6 +87,10 @@ Implemented:
 - `scripts/committer`
 - `scripts/check-js`
 - `scripts/check-module-size`
+- `scripts/check-public-paths`
+- `scripts/add-skill-gap`
+- `scripts/autonomy-outcomes`
+- `scripts/multi-project-proof`
 - `scripts/route-audit`
 - `scripts/validate-skills`
 - `scripts/skill-cleaner`
@@ -98,8 +101,7 @@ Implemented:
 
 Missing helpers:
 
-- safe skill-gap recorder for the existing "no skill fits" control rule
-- read-only autonomy outcome summarizer over safe lane/checkpoint/run metadata
+- None currently evidence-backed. Add a helper only after the structured gap recorder or repeated workflow evidence proves a bounded contract that current helpers cannot satisfy.
 
 ## Routes And Control Plane
 
@@ -113,7 +115,7 @@ Implemented:
 - production-lane routes
 - zero-output diagnostics routes
 
-New route added:
+Foundation routes implemented:
 
 - `workflow-corpus-recovery`
 - `docs-list-foundation`
@@ -170,7 +172,7 @@ The adapter evaluation found no need for a generic broker. Capability Intelligen
 14. Keep `scripts/github-deep-review` and `github-deep-review-skill` current as the thread-aware, read-only PR evidence foundation; unavailable protection metadata must stay unknown.
 15. Keep the Linux/macOS/Windows portable contract and reviewed routing-shape exceptions current.
 16. Keep `scripts/opstruth-classify` current as the deterministic mixed-evidence truth-model self-test.
-17. Keep the hardened release/package preflight current: validated human/JSON reports, crisp mode-specific blockers, safe package-manifest inspection, version and release-note baseline checks, and optional aggregate-only corpus evidence are now implemented locally.
+17. Keep the hardened release/package preflight current: validated human/JSON reports, crisp mode-specific blockers, safe package-manifest inspection, version and release-note baseline checks, and optional aggregate-only corpus evidence are implemented and published.
 
 ### P3
 
@@ -179,4 +181,4 @@ The adapter evaluation found no need for a generic broker. Capability Intelligen
 20. Revisit capability acquisition and prefetch only after at least two real runs prove the same unresolved adapter insufficiency.
 21. Revisit agent-role system only after at least two independent sessions prove a reusable role contract.
 
-The evidence-backed reusable-foundation sequence through capability adapter evaluation and remote portability proof is complete. Workflow reliability now has a bounded entrypoint, structured skill-gap recording, privacy-safe outcome reporting, observed three-repository proof, and exact-commit Ubuntu/macOS/Windows CI evidence. No further generic P1 implementation is active; return to P0 corpus and foundation maintenance unless repeated real workflow evidence creates a new bounded gap. The completed CI run also reported a non-failing GitHub Actions runtime deprecation warning, which should be reviewed as maintenance before it becomes a failure. See `docs/workflow-maturity-foundations.md` and `docs/modularity-audit.md`. Capability Intelligence remains parked as a separate product direction.
+The evidence-backed reusable-foundation sequence through capability adapter evaluation and remote portability proof is complete. Workflow reliability now has a bounded entrypoint, structured skill-gap recording, privacy-safe outcome reporting, observed three-repository proof, and exact-commit Ubuntu/macOS/Windows CI evidence. No additional generic foundation is currently proven missing. The prior GitHub Actions runtime warning is addressed locally by moving the workflow from the v4 Node 20 action generation to the official v7 Node 24 generation; remote exact-commit proof for that update remains pending publication. New foundation-building should start only from corrected corpus evidence, a structured skill-gap record, or repeated real workflow failures. See `docs/workflow-maturity-foundations.md` and `docs/modularity-audit.md`. Capability Intelligence remains parked as a separate product direction.
