@@ -13885,7 +13885,7 @@ function updateSelectedLane(result, route) {
   const changes = {
     current_state: finalStatus,
     next_permission: result.nextPermission || route.nextPermission || route.nextAction || "manual review",
-    status: blocked ? "blocked" : "active",
+    status: result.objectiveStatus === "complete" ? "complete" : blocked ? "blocked" : "active",
     route_ids: routeIds,
     evidence_refs: evidenceRefs,
   };
