@@ -137,6 +137,7 @@ function buildDefaultChecks(options = {}) {
     { id: "syntax-migration-review", command: process.execPath, args: ["--check", "scripts/migration-review"] },
     { id: "syntax-browser-live-proof", command: process.execPath, args: ["--check", "scripts/browser-live-proof"] },
     { id: "syntax-github-deep-review", command: process.execPath, args: ["--check", "scripts/github-deep-review"] },
+    { id: "syntax-opstruth-classify", command: process.execPath, args: ["--check", "scripts/opstruth-classify"] },
     { id: "public-paths", command: process.execPath, args: ["scripts/check-public-paths"] },
     { id: "docs-list-validate", command: process.execPath, args: ["scripts/docs-list", "--validate"] },
     { id: "repo-map-validate", command: process.execPath, args: ["scripts/repo-map", "--repo", ".", "--validate"] },

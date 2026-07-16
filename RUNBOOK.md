@@ -176,6 +176,7 @@ Use this mapping before acting:
 - Need runtime endpoint verification, negative checks, dry-run proof, controlled success invocation, or scheduled monitoring: `runtime-verification-skill`
 - Need direct responsive rendering, screenshot, horizontal-overflow, or count-only console/network evidence: `browser-live-proof-skill` with `scripts/browser-live-proof`
 - Need thread-aware PR review, stale approval, requested-change, check, or exact patch-scope evidence without GitHub mutation: `github-deep-review-skill` with `scripts/github-deep-review`
+- Need a deterministic mixed-evidence truth table or classifier self-test without running live checks: `opstruth-runtime-truth-skill` with `scripts/opstruth-classify`
 - Need Supabase Edge Function remote secret setup, one function deploy, or deploy-to-runtime boundary handling: `supabase-function-deploy-skill`
 - Need Supabase scheduler, Vault, pg_cron, pg_net, scheduler secret storage, or scheduler mutation boundary handling: `supabase-scheduler-vault-skill`
 - Need production handoff, scheduled-run monitoring, run history review, or final observed-versus-pending status: `production-handoff-skill`
@@ -196,6 +197,7 @@ Use this mapping before acting:
 - Need source-only migration risk classification without SQL execution: `scripts/migration-review`
 - Need one bounded browser observation without interaction or raw browser data: `scripts/browser-live-proof`
 - Need a read-only GitHub PR deep review without replies, resolutions, pushes, or merges: `scripts/github-deep-review`
+- Need to prove skipped/not-verified/CI/production classifications stay distinct: `scripts/opstruth-classify --self-test --validate`
 - Need to trace OpenClaw subagent routing: `route-trace-skill`
 - Need to compare OpenClaw config backups: `openclaw-config-diff-skill`
 - Need to coordinate local tools, reads, writes, process logs, or gateway calls: `tool-patterns-skill`

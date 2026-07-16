@@ -1,0 +1,518 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+
+const CLASSIFICATIONS = ["VERIFIED", "WARNING", "FAILURE", "SKIPPED", "NOT_VERIFIED"];
+const FINAL_STATUSES = ["VERIFIED", "VERIFIED WITH WARNINGS", "FAILED", "NOT VERIFIED", "BLOCKED"];
+const SCOPES = [
+  "source",
+  "documentation",
+  "local_validation",
+  "ci",
+  "browser",
+  "deployment",
+  "runtime",
+  "database",
+  "registry",
+  "production",
+  "external_evidence",
+];
+const OUTCOMES = ["passed", "warning", "failed", "skipped", "not_run", "unavailable"];
+const FRESHNESS = ["current", "stale", "unknown"];
+const BOUNDARIES = [
+  "local analytical classification only; no commands from evidence are executed",
+  "source, local validation, CI, browser, deployment, runtime, database, registry, and production scopes remain distinct",
+  "skipped is not passed, not verified is not failed, and absence of failure is not verification",
+  "CI evidence is not deployment or production evidence",
+  "the helper reads one explicitly selected redacted JSON file or its built-in fixture and performs no network or service calls",
+  "classification does not deploy, publish, mutate repositories, write evidence files, or grant permission for a next action",
+];
+
+const SECRET_PATTERNS = [
+  { category: "github_token", pattern: /\bgh[pousr]_[A-Za-z0-9_]{12,}\b/gi },
+  { category: "api_key", pattern: /\bsk-[A-Za-z0-9_-]{12,}\b/gi },
+  { category: "jwt", pattern: /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g },
+  { category: "bearer_token", pattern: /\bBearer\s+[A-Za-z0-9._~+/=-]{12,}\b/gi },
+  { category: "database_url", pattern: /\bpostgres(?:ql)?:\/\/[^\s'"<>]+/gi },
+  { category: "private_key", pattern: /-----BEGIN [A-Z ]*PRIVATE KEY-----/g },
+  { category: "credential_url", pattern: /https?:\/\/[^:\s'"<>]+:[^@\s'"<>]+@[^\s'"<>]+/gi },
+  { category: "secret_assignment", pattern: /\b(?:TOKEN|SECRET|PASSWORD|API[_-]?KEY|PRIVATE[_-]?KEY|AUTHORIZATION)\s*[:=]\s*[^\s'"<>]{12,}/gi },
+];
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/opstruth-classify --self-test [--json] [--validate]
+  ./scripts/opstruth-classify --input /path/to/redacted-evidence.json [--json] [--validate]
+  ./scripts/opstruth-classify --input /path/to/redacted-evidence.json --strict
+
+Classify existing evidence as VERIFIED, WARNING, FAILURE, SKIPPED, or
+NOT_VERIFIED without executing evidence commands or calling services.
+
+Options:
+  --self-test     Run the built-in mixed-evidence truth-model fixture.
+  --input PATH    Read one local, redacted JSON evidence manifest.
+  --json          Print deterministic JSON.
+  --validate      Validate the report contract before success.
+  --strict        Exit non-zero for FAILED, NOT VERIFIED, or BLOCKED reports.
+  --help          Show this help.`);
+}
+
+function parseArgs(argv) {
+  const args = { input: null, selfTest: false, json: false, validate: false, strict: false, help: false };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--input") {
+      args.input = argv[++index];
+      if (!args.input) throw new Error("--input requires a path");
+    } else if (arg === "--self-test") args.selfTest = true;
+    else if (arg === "--json") args.json = true;
+    else if (arg === "--validate") args.validate = true;
+    else if (arg === "--strict") args.strict = true;
+    else if (arg === "--help" || arg === "-h") args.help = true;
+    else throw new Error(`unknown argument: ${arg}`);
+  }
+  if (!args.help && Number(Boolean(args.input)) + Number(args.selfTest) !== 1) {
+    throw new Error("choose exactly one of --input or --self-test");
+  }
+  return args;
+}
+
+function secretCategories(value) {
+  const text = String(value || "");
+  const categories = new Set();
+  for (const item of SECRET_PATTERNS) {
+    item.pattern.lastIndex = 0;
+    if (item.pattern.test(text)) categories.add(item.category);
+  }
+  return [...categories].sort();
+}
+
+function isPrivateAbsolutePath(value) {
+  const text = String(value || "");
+  return /(?:^|[\s"'])\/(?:home|Users)\/[^/\s]+\//.test(text) || /[A-Za-z]:\\Users\\[^\\\s]+\\/.test(text);
+}
+
+function safeReference(value) {
+  const text = String(value || "").trim();
+  if (!text || text.length > 240 || /[\u0000-\u001f]/.test(text)) return false;
+  if (isPrivateAbsolutePath(text) || text.startsWith("/") || /^[A-Za-z]:\\/.test(text)) return false;
+  if (text.split(/[\\/]/).includes("..")) return false;
+  return true;
+}
+
+function forbiddenKeys(value, path = "$", findings = []) {
+  if (!value || typeof value !== "object") return findings;
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => forbiddenKeys(item, `${path}[${index}]`, findings));
+    return findings;
+  }
+  const forbidden = new Set([
+    "raw_log",
+    "raw_logs",
+    "authorization_header",
+    "request_headers",
+    "response_body",
+    "secret_value",
+    "token_value",
+    "environment_values",
+  ]);
+  for (const [key, item] of Object.entries(value)) {
+    if (forbidden.has(key)) findings.push(`${path}.${key}`);
+    forbiddenKeys(item, `${path}.${key}`, findings);
+  }
+  return findings;
+}
+
+function validateInput(input) {
+  const errors = [];
+  if (!input || typeof input !== "object" || Array.isArray(input)) return ["input must be an object"];
+  if (input.schema_version !== 1) errors.push("schema_version must be 1");
+  if (typeof input.subject !== "string" || !input.subject.trim() || input.subject.length > 240) errors.push("subject must be 1 to 240 characters");
+  if (!Array.isArray(input.claims) || !input.claims.length) errors.push("claims must be a non-empty array");
+  if (!Array.isArray(input.evidence)) errors.push("evidence must be an array");
+  if (!Array.isArray(input.commands_not_run)) errors.push("commands_not_run must be an array");
+  if (!Array.isArray(input.authority_gaps)) errors.push("authority_gaps must be an array");
+
+  const claimIds = new Set();
+  for (const claim of input.claims || []) {
+    if (!claim || typeof claim !== "object") {
+      errors.push("each claim must be an object");
+      continue;
+    }
+    if (!/^[a-z][a-z0-9_-]{1,63}$/.test(claim.id || "")) errors.push("claim id is invalid");
+    else if (claimIds.has(claim.id)) errors.push(`duplicate claim id: ${claim.id}`);
+    else claimIds.add(claim.id);
+    if (typeof claim.statement !== "string" || !claim.statement.trim() || claim.statement.length > 300) errors.push(`claim ${claim.id || "unknown"} has an invalid statement`);
+    if (typeof claim.material !== "boolean") errors.push(`claim ${claim.id || "unknown"} material must be boolean`);
+    if (!Array.isArray(claim.required_scopes) || !claim.required_scopes.length) errors.push(`claim ${claim.id || "unknown"} requires at least one scope`);
+    for (const scope of claim.required_scopes || []) if (!SCOPES.includes(scope)) errors.push(`claim ${claim.id || "unknown"} has invalid scope ${scope}`);
+  }
+
+  const evidenceIds = new Set();
+  for (const item of input.evidence || []) {
+    if (!item || typeof item !== "object") {
+      errors.push("each evidence item must be an object");
+      continue;
+    }
+    if (!/^[a-z][a-z0-9_-]{1,63}$/.test(item.id || "")) errors.push("evidence id is invalid");
+    else if (evidenceIds.has(item.id)) errors.push(`duplicate evidence id: ${item.id}`);
+    else evidenceIds.add(item.id);
+    if (!claimIds.has(item.claim_id)) errors.push(`evidence ${item.id || "unknown"} references an unknown claim`);
+    if (!SCOPES.includes(item.scope)) errors.push(`evidence ${item.id || "unknown"} has invalid scope`);
+    if (!OUTCOMES.includes(item.outcome)) errors.push(`evidence ${item.id || "unknown"} has invalid outcome`);
+    if (typeof item.direct !== "boolean") errors.push(`evidence ${item.id || "unknown"} direct must be boolean`);
+    if (!FRESHNESS.includes(item.freshness)) errors.push(`evidence ${item.id || "unknown"} has invalid freshness`);
+    if (!safeReference(item.reference)) errors.push(`evidence ${item.id || "unknown"} has an unsafe reference`);
+    if (typeof item.summary !== "string" || !item.summary.trim() || item.summary.length > 300) errors.push(`evidence ${item.id || "unknown"} has an invalid summary`);
+    if (item.outcome === "skipped" && (typeof item.reason !== "string" || !item.reason.trim())) errors.push(`evidence ${item.id || "unknown"} skipped outcome requires a reason`);
+  }
+
+  for (const gap of input.authority_gaps || []) {
+    if (!gap || typeof gap !== "object" || !claimIds.has(gap.claim_id) || typeof gap.reason !== "string" || !gap.reason.trim()) {
+      errors.push("authority gaps require a known claim_id and reason");
+    }
+  }
+  for (const command of input.commands_not_run || []) {
+    if (typeof command !== "string" || !command.trim() || command.length > 240) errors.push("commands_not_run entries must be 1 to 240 characters");
+  }
+
+  const serialized = JSON.stringify(input);
+  const secretFindings = secretCategories(serialized);
+  if (secretFindings.length) errors.push(`input contains secret-shaped categories: ${secretFindings.join(", ")}`);
+  if (isPrivateAbsolutePath(serialized)) errors.push("input contains a private absolute path");
+  const keyFindings = forbiddenKeys(input);
+  if (keyFindings.length) errors.push(`input contains forbidden raw fields: ${keyFindings.join(", ")}`);
+  return [...new Set(errors)];
+}
+
+function classifyEvidence(item, claim) {
+  const scopeMatch = claim.required_scopes.includes(item.scope);
+  let classification = "NOT_VERIFIED";
+  let rationale = "no direct evidence for a required scope";
+
+  if (item.outcome === "skipped") {
+    classification = "SKIPPED";
+    rationale = item.reason || "check intentionally skipped";
+  } else if (item.outcome === "not_run" || item.outcome === "unavailable") {
+    classification = "NOT_VERIFIED";
+    rationale = item.outcome === "not_run" ? "check was not run" : "evidence was unavailable";
+  } else if (item.outcome === "failed") {
+    if (item.direct && scopeMatch) {
+      classification = "FAILURE";
+      rationale = "direct evidence contradicts the claim in a required scope";
+    } else {
+      classification = "WARNING";
+      rationale = "failure is indirect or outside the claim's required scope";
+    }
+  } else if (item.outcome === "warning") {
+    classification = "WARNING";
+    rationale = scopeMatch ? "direct evidence contains a warning" : "warning is outside the claim's required scope";
+  } else if (item.outcome === "passed") {
+    if (item.direct && scopeMatch && item.freshness === "current") {
+      classification = "VERIFIED";
+      rationale = "direct current evidence proves one required scope";
+    } else {
+      classification = "WARNING";
+      rationale = !scopeMatch
+        ? `${item.scope} evidence does not prove ${claim.required_scopes.join(" or ")} scope`
+        : (item.freshness !== "current" ? "evidence is stale or freshness is unknown" : "evidence is indirect");
+    }
+  }
+
+  return {
+    id: item.id,
+    scope: item.scope,
+    outcome: item.outcome,
+    classification,
+    direct: item.direct,
+    freshness: item.freshness,
+    scope_match: scopeMatch,
+    reference: item.reference,
+    summary: item.summary,
+    rationale,
+  };
+}
+
+function classifyClaim(claim, evidence, authorityGaps) {
+  const classifiedEvidence = evidence.map((item) => classifyEvidence(item, claim));
+  const verifiedScopes = [...new Set(classifiedEvidence
+    .filter((item) => item.classification === "VERIFIED" && item.scope_match)
+    .map((item) => item.scope))].sort();
+  const missingScopes = claim.required_scopes.filter((scope) => !verifiedScopes.includes(scope));
+  const matchingWarnings = classifiedEvidence.filter((item) => item.classification === "WARNING" && item.scope_match && item.direct);
+  const directFailures = classifiedEvidence.filter((item) => item.classification === "FAILURE");
+  const gaps = authorityGaps.filter((gap) => gap.claim_id === claim.id).map((gap) => gap.reason);
+
+  let classification;
+  let rationale;
+  if (directFailures.length) {
+    classification = "FAILURE";
+    rationale = "direct evidence contradicts the claim";
+  } else if (!missingScopes.length) {
+    classification = matchingWarnings.length ? "WARNING" : "VERIFIED";
+    rationale = matchingWarnings.length ? "required scopes are covered with direct caveats" : "all required scopes have direct current passing evidence";
+  } else if (matchingWarnings.length && verifiedScopes.length + matchingWarnings.length >= claim.required_scopes.length) {
+    classification = "WARNING";
+    rationale = "required scope evidence exists but is stale, noisy, or warning-level";
+  } else if (classifiedEvidence.length && classifiedEvidence.every((item) => item.classification === "SKIPPED")) {
+    classification = "SKIPPED";
+    rationale = "all evidence collection for the claim was intentionally skipped with recorded reasons";
+  } else {
+    classification = "NOT_VERIFIED";
+    rationale = `missing direct current evidence for: ${missingScopes.join(", ")}`;
+  }
+
+  return {
+    id: claim.id,
+    statement: claim.statement,
+    material: claim.material,
+    required_scopes: [...claim.required_scopes],
+    classification,
+    rationale,
+    verified_scopes: verifiedScopes,
+    missing_scopes: missingScopes,
+    authority_gaps: gaps,
+    evidence: classifiedEvidence,
+  };
+}
+
+function deriveFinalStatus(claims) {
+  const material = claims.filter((claim) => claim.material);
+  if (!material.length) return "NOT VERIFIED";
+  if (material.some((claim) => claim.classification === "FAILURE")) return "FAILED";
+  if (material.some((claim) => claim.authority_gaps.length && ["NOT_VERIFIED", "SKIPPED"].includes(claim.classification))) return "BLOCKED";
+  if (material.some((claim) => ["NOT_VERIFIED", "SKIPPED"].includes(claim.classification))) return "NOT VERIFIED";
+  if (material.some((claim) => claim.classification === "WARNING")) return "VERIFIED WITH WARNINGS";
+  if (claims.some((claim) => claim.classification !== "VERIFIED")) return "VERIFIED WITH WARNINGS";
+  return "VERIFIED";
+}
+
+function nextSafeStep(status) {
+  if (status === "FAILED") return "Address the directly failed material claim, collect new scoped evidence, and rerun classification.";
+  if (status === "BLOCKED") return "Resolve the recorded authority or capability gap before collecting the missing direct evidence.";
+  if (status === "NOT VERIFIED") return "Collect direct evidence for every missing material scope; do not report the claim as passed.";
+  if (status === "VERIFIED WITH WARNINGS") return "Review warning-level or non-material evidence before handoff and preserve the caveats.";
+  return "Preserve the evidence references and continue only within the next separately authorised consequence boundary.";
+}
+
+function buildRuntimeTruthReport(input) {
+  const errors = validateInput(input);
+  if (errors.length) {
+    const error = new Error(`evidence input validation failed (${errors.length} errors)`);
+    error.validationErrors = errors;
+    throw error;
+  }
+  const claims = input.claims.map((claim) => classifyClaim(
+    claim,
+    input.evidence.filter((item) => item.claim_id === claim.id),
+    input.authority_gaps,
+  ));
+  const counts = Object.fromEntries(CLASSIFICATIONS.map((classification) => [classification, claims.filter((claim) => claim.classification === classification).length]));
+  const finalStatus = deriveFinalStatus(claims);
+  return {
+    schema_version: 1,
+    mode: "local_evidence_classification",
+    subject: input.subject,
+    final_status: finalStatus,
+    summary: {
+      claims: claims.length,
+      material_claims: claims.filter((claim) => claim.material).length,
+      classifications: counts,
+    },
+    claims,
+    commands_not_run: [...input.commands_not_run],
+    authority_gaps: input.authority_gaps.map((gap) => ({ claim_id: gap.claim_id, reason: gap.reason })),
+    next_safe_step: nextSafeStep(finalStatus),
+    self_test: null,
+    boundaries: [...BOUNDARIES],
+  };
+}
+
+function selfTestFixture() {
+  return {
+    schema_version: 1,
+    subject: "Mixed runtime-truth classifier self-test",
+    claims: [
+      { id: "exact_commit_ci", statement: "The exact commit passed local validation and CI.", material: true, required_scopes: ["local_validation", "ci"] },
+      { id: "browser_render", statement: "The observed browser render is current and warning-free.", material: false, required_scopes: ["browser"] },
+      { id: "production_route", statement: "The production route returned the expected success response.", material: true, required_scopes: ["production"] },
+      { id: "database_permissions", statement: "Production database permissions were checked.", material: false, required_scopes: ["database"] },
+      { id: "deployed_commit", statement: "Production currently serves the exact CI commit.", material: true, required_scopes: ["deployment", "production"] },
+    ],
+    evidence: [
+      { id: "local_ci", claim_id: "exact_commit_ci", scope: "local_validation", outcome: "passed", direct: true, freshness: "current", reference: "command:npm-test", summary: "Local validation completed successfully." },
+      { id: "remote_ci", claim_id: "exact_commit_ci", scope: "ci", outcome: "passed", direct: true, freshness: "current", reference: "github-actions:exact-commit", summary: "Exact-commit CI completed successfully." },
+      { id: "browser_warning", claim_id: "browser_render", scope: "browser", outcome: "warning", direct: true, freshness: "current", reference: "browser-proof:mobile", summary: "The observed render completed with a non-blocking warning." },
+      { id: "production_failure", claim_id: "production_route", scope: "production", outcome: "failed", direct: true, freshness: "current", reference: "production-probe:bounded", summary: "The bounded production probe contradicted the expected success claim." },
+      { id: "database_skip", claim_id: "database_permissions", scope: "database", outcome: "skipped", direct: false, freshness: "unknown", reference: "gate:database-read", summary: "Database inspection was intentionally not run.", reason: "database-read authority was not granted" },
+      { id: "ci_not_deploy", claim_id: "deployed_commit", scope: "ci", outcome: "passed", direct: true, freshness: "current", reference: "github-actions:exact-commit", summary: "CI passed, but no deployment or production observation was collected." },
+    ],
+    commands_not_run: ["production deployment metadata check", "production commit header check", "database permission query"],
+    authority_gaps: [],
+  };
+}
+
+function attachSelfTest(report) {
+  const expected = {
+    exact_commit_ci: "VERIFIED",
+    browser_render: "WARNING",
+    production_route: "FAILURE",
+    database_permissions: "SKIPPED",
+    deployed_commit: "NOT_VERIFIED",
+  };
+  const observed = Object.fromEntries(report.claims.map((claim) => [claim.id, claim.classification]));
+  const mismatches = Object.keys(expected).filter((id) => observed[id] !== expected[id]);
+  report.self_test = {
+    status: mismatches.length ? "FAIL" : "PASS",
+    expected,
+    observed,
+    mismatches,
+    category_coverage: Object.fromEntries(CLASSIFICATIONS.map((classification) => [classification, report.summary.classifications[classification] > 0])),
+    truth_rules: {
+      skipped_is_not_passed: observed.database_permissions === "SKIPPED",
+      not_verified_is_not_failed: observed.deployed_commit === "NOT_VERIFIED",
+      ci_is_not_production: observed.deployed_commit === "NOT_VERIFIED",
+      direct_failure_is_failure: observed.production_route === "FAILURE",
+    },
+  };
+  return report;
+}
+
+function validateReport(report) {
+  const errors = [];
+  if (!report || typeof report !== "object") return ["report must be an object"];
+  if (report.schema_version !== 1) errors.push("schema_version must be 1");
+  if (report.mode !== "local_evidence_classification") errors.push("mode is invalid");
+  if (!FINAL_STATUSES.includes(report.final_status)) errors.push("final_status is invalid");
+  if (!Array.isArray(report.claims) || !report.claims.length) errors.push("claims must be a non-empty array");
+  for (const claim of report.claims || []) {
+    if (!CLASSIFICATIONS.includes(claim.classification)) errors.push(`claim ${claim.id || "unknown"} classification is invalid`);
+    if (!Array.isArray(claim.required_scopes) || !Array.isArray(claim.verified_scopes) || !Array.isArray(claim.missing_scopes)) errors.push(`claim ${claim.id || "unknown"} scope arrays are invalid`);
+    if (!Array.isArray(claim.evidence)) errors.push(`claim ${claim.id || "unknown"} evidence is invalid`);
+  }
+  const expectedTotal = Object.values(report?.summary?.classifications || {}).reduce((total, value) => total + Number(value || 0), 0);
+  if (expectedTotal !== report.claims.length) errors.push("classification counts do not reconcile");
+  if (!Array.isArray(report.boundaries) || !report.boundaries.length) errors.push("boundaries must be a non-empty array");
+  const serialized = JSON.stringify(report);
+  if (secretCategories(serialized).length) errors.push("report contains secret-shaped values");
+  if (isPrivateAbsolutePath(serialized)) errors.push("report contains a private absolute path");
+  if (forbiddenKeys(report).length) errors.push("report contains forbidden raw fields");
+  return [...new Set(errors)];
+}
+
+function renderHuman(report) {
+  const rows = report.claims.map((claim) => `| ${claim.id} | ${claim.classification} | ${claim.required_scopes.join(", ")} | ${claim.evidence.map((item) => item.reference).join(", ") || "none"} | ${claim.rationale} |`).join("\n");
+  const selfTest = report.self_test
+    ? `\n## Self-Test\n\n- Status: ${report.self_test.status}\n- Category coverage: ${Object.entries(report.self_test.category_coverage).map(([key, value]) => `${key}=${value ? "yes" : "no"}`).join(", ")}\n`
+    : "";
+  return `# Runtime Truth Report
+
+## Subject
+
+${report.subject}
+
+## Final Status
+
+${report.final_status}
+
+## Truth Table
+
+| Claim | Classification | Required Scope | Evidence | Rationale |
+| --- | --- | --- | --- | --- |
+${rows}
+
+## Classification Counts
+
+${CLASSIFICATIONS.map((classification) => `- ${classification}: ${report.summary.classifications[classification]}`).join("\n")}
+
+## Commands Not Run
+
+${report.commands_not_run.length ? report.commands_not_run.map((item) => `- ${item}`).join("\n") : "- None recorded"}
+
+## Authority Gaps
+
+${report.authority_gaps.length ? report.authority_gaps.map((gap) => `- ${gap.claim_id}: ${gap.reason}`).join("\n") : "- None recorded"}
+${selfTest}
+## Next Safe Step
+
+${report.next_safe_step}
+
+## Safety Boundaries
+
+${report.boundaries.map((item) => `- ${item}`).join("\n")}`;
+}
+
+function loadInput(file) {
+  let text;
+  try {
+    text = fs.readFileSync(file, "utf8");
+  } catch {
+    throw new Error("evidence input file could not be read");
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("evidence input is not valid JSON");
+  }
+}
+
+function main() {
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    usage();
+    process.exit(2);
+  }
+  if (args.help) {
+    usage();
+    return;
+  }
+
+  let report;
+  try {
+    const input = args.selfTest ? selfTestFixture() : loadInput(args.input);
+    report = buildRuntimeTruthReport(input);
+    if (args.selfTest) attachSelfTest(report);
+  } catch (error) {
+    console.error(error.message);
+    for (const item of error.validationErrors || []) console.error(`- ${item}`);
+    process.exit(1);
+  }
+
+  const validationErrors = validateReport(report);
+  if (args.validate && validationErrors.length) {
+    console.error(`runtime-truth report validation failed (${validationErrors.length} errors)`);
+    for (const item of validationErrors) console.error(`- ${item}`);
+    process.exit(1);
+  }
+  console.log(args.json ? JSON.stringify(report, null, 2) : renderHuman(report));
+
+  if (args.selfTest) {
+    if (report.self_test.status !== "PASS") process.exit(1);
+    return;
+  }
+  if (args.strict && ["FAILED", "NOT VERIFIED", "BLOCKED"].includes(report.final_status)) process.exit(1);
+}
+
+if (require.main === module) main();
+
+module.exports = {
+  CLASSIFICATIONS,
+  FINAL_STATUSES,
+  SCOPES,
+  parseArgs,
+  secretCategories,
+  safeReference,
+  validateInput,
+  classifyEvidence,
+  classifyClaim,
+  deriveFinalStatus,
+  buildRuntimeTruthReport,
+  selfTestFixture,
+  attachSelfTest,
+  validateReport,
+  renderHuman,
+  loadInput,
+};

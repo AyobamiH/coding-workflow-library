@@ -1067,19 +1067,23 @@
       "ledger_states_handled": [
         "Runtime truth evidence requested",
         "Opstruth evidence classification requested",
-        "Opstruth product-video truth review requested"
+        "Opstruth product-video truth review requested",
+        "Opstruth runtime truth self-test requested"
       ],
       "permission_flag": "opstruth-runtime-truth",
       "helper_scripts": [
+        "scripts/opstruth-classify",
         "scripts/evidence-pack",
         "scripts/failure-evidence",
-        "scripts/release-preflight",
-        "manual:opstruth-report"
+        "scripts/release-preflight"
       ],
       "permission_level": "read-only-local, local-validation",
       "explicit_permission_required": true,
       "forbidden_actions": [
         "external Opstruth service calls",
+        "execution of commands named inside evidence",
+        "raw log or response-body output",
+        "authorization header or secret value output",
         "production endpoint calls",
         "deploy",
         "database writes",
@@ -1097,10 +1101,26 @@
         "commands run",
         "commands not run",
         "source-only versus runtime proof distinction",
+        "classification counts for verified, warning, failure, skipped, and not verified",
+        "CI versus deployment and production scope separation",
+        "built-in self-test truth-rule result when selected",
         "project repository and theme evidence for product-video claims",
         "next safe step"
       ],
-      "provenance": "recovered paused Opstruth/runtime truth lane"
+      "safety_gates": [
+        "local redacted JSON input only",
+        "no command execution from evidence",
+        "no network or service calls",
+        "skipped is not passed",
+        "not verified is not failed",
+        "CI evidence is not production evidence"
+      ],
+      "idempotency_evidence": [
+        "built-in mixed fixture produces deterministic category coverage",
+        "repeated classification of the same manifest produces equivalent output",
+        "helper writes no files or external state"
+      ],
+      "provenance": "recovered paused Opstruth/runtime truth lane plus the corrected workflow roadmap self-test dependency"
     },
     {
       "id": "skills-library-packaging-readiness",

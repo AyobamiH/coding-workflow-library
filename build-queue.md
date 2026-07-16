@@ -23,7 +23,7 @@
 
 # P2 - Follow-On Autonomy Improvements
 
-Next active dependency: `Opstruth runtime truth self-test`.
+Next active dependency: `Release and package preflight hardening`.
 
 ## Opstruth runtime truth self-test
 
@@ -33,6 +33,7 @@ Next active dependency: `Opstruth runtime truth self-test`.
 - Authority required: `local_execution`.
 - Done definition: self-test classifies mixed evidence into verified, warning, failure, skipped, and not-verified without overclaiming.
 - Reason for priority: it protects final reports from treating skipped checks as proof.
+- Status: implemented locally through `scripts/opstruth-classify`, its built-in mixed fixture, JSON schema, tests, CLI delegation, and the existing runtime-truth skill/route.
 
 ## Release and package preflight hardening
 

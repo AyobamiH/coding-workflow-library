@@ -121,6 +121,20 @@ Required boundaries:
 - Treat `READY_FOR_HANDOFF` as observed evidence, not merge permission.
 - Keep GitHub CI evidence separate from deployment, runtime, database, and production evidence.
 
+## OpsTruth Runtime-Truth Classification
+
+`scripts/opstruth-classify` is a dependency-free local evidence classifier. It reads one explicitly selected redacted JSON manifest or a built-in mixed fixture and produces a truth table using `VERIFIED`, `WARNING`, `FAILURE`, `SKIPPED`, and `NOT_VERIFIED`.
+
+Required boundaries:
+
+- Evidence must declare the scope each claim requires and the scope each observation actually covers.
+- Only direct, current, passing evidence in a matching required scope can verify that scope.
+- Local validation and CI cannot verify deployment, database, registry, runtime, or production claims.
+- Skipped checks remain `SKIPPED`; unavailable or out-of-scope evidence remains `NOT_VERIFIED` at claim level.
+- Raw logs, response bodies, authorization headers, secret values, environment values, and private absolute paths are rejected.
+- The helper does not execute commands from evidence, call services, inspect production, write files, stage, commit, push, publish, deploy, or mutate data.
+- `--strict` is a reporting gate only; it performs no recovery or next action.
+
 ## Tool Catalogue
 
 ### git

@@ -54,6 +54,7 @@ skills/coding-workflow-library/
     migration-review.schema.json
     browser-live-proof.schema.json
     github-deep-review.schema.json
+    opstruth-runtime-truth.schema.json
   runs/
     decisions/
     skill-runs.md
@@ -80,6 +81,7 @@ skills/coding-workflow-library/
     migration-review
     browser-live-proof
     github-deep-review
+    opstruth-classify
     install-git-hooks
     run-next
     route-audit
@@ -104,6 +106,7 @@ skills/coding-workflow-library/
     migration-review.test.js
     browser-live-proof.test.js
     github-deep-review.test.js
+    opstruth-classify.test.js
     public-paths.test.js
     library-validation-checklist.md
   skill-files/
@@ -304,6 +307,20 @@ coding-workflow github-deep-review --repo OWNER/REPO --pr 123 --validate
 ```
 
 The helper reads exact changed files, review-thread resolution/outdated state, each reviewer's latest decision, approvals against an older head, checks, and branch-protection metadata when available. Optional failed-log inspection emits categories only; raw logs are never returned. Review excerpts are bounded and redacted. The command never replies, resolves threads, submits reviews, commits, pushes, merges, or treats `READY_FOR_HANDOFF` as merge permission. GitHub CI evidence remains separate from deployment and production evidence.
+
+## OpsTruth Runtime-Truth Classifier
+
+Use `scripts/opstruth-classify` to turn an explicit redacted evidence manifest into a deterministic truth table, or to verify the classifier itself with the built-in mixed fixture:
+
+```bash
+./scripts/opstruth-classify --self-test --json --validate
+./scripts/opstruth-classify --input /path/to/redacted-evidence.json --json --validate
+./scripts/opstruth-classify --input /path/to/redacted-evidence.json --strict
+
+coding-workflow opstruth-classify --self-test --validate
+```
+
+Claims declare the scopes they require, such as `source`, `local_validation`, `ci`, `browser`, `deployment`, `runtime`, `database`, `registry`, or `production`. Evidence can only verify a matching required scope when it is direct, current, and passing. The built-in self-test must produce exactly one `VERIFIED`, `WARNING`, `FAILURE`, `SKIPPED`, and `NOT_VERIFIED` claim while proving that CI is not deployment or production evidence. The helper performs no network calls, executes no evidence commands, writes no files, and rejects raw-log fields, secret-shaped material, and private absolute paths.
 
 ## Objective-Level Autonomy
 

@@ -67,6 +67,10 @@ const COMMANDS = {
     script: "scripts/github-deep-review",
     description: "Inspect pull-request threads, reviews, checks, and exact patch scope without mutation.",
   },
+  "opstruth-classify": {
+    script: "scripts/opstruth-classify",
+    description: "Classify existing evidence without collapsing skipped, unverified, CI, or production scopes.",
+  },
   "install-hooks": {
     script: "scripts/install-git-hooks",
     description: "Install the optional local Git pre-commit hook when safe.",
@@ -97,6 +101,8 @@ Usage:
   coding-workflow migration-review --repo /path/to/repo [--json] [--validate] [--migrations-dir relative/path]
   coding-workflow browser-live-proof --url http://127.0.0.1:4173 [--viewport 390x844] [--screenshot /tmp/proof.png] [--json] [--validate]
   coding-workflow github-deep-review --repo OWNER/REPO --pr NUMBER [--inspect-failed-checks] [--json] [--validate]
+  coding-workflow opstruth-classify --self-test [--json] [--validate]
+  coding-workflow opstruth-classify --input /path/to/redacted-evidence.json [--json] [--validate] [--strict]
   coding-workflow install-hooks [--dry-run] [--force]
   coding-workflow objective show --lane <lane-id> --state-file /path/to/lanes.json
   coding-workflow objective approve --lane <lane-id> --grant remote_publication --state-file /path/to/lanes.json

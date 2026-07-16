@@ -19,6 +19,7 @@ corrected workflow corpus
   -> migration-review helper (implemented)
   -> browser/live proof (implemented)
   -> GitHub deep review (implemented)
+  -> Opstruth runtime truth self-test (implemented)
   -> secret-access adapter, if approved
   -> capability acquisition/prefetch, if still needed
   -> agent-role system, only after repeated role contracts are proven
@@ -48,6 +49,7 @@ Implemented and active:
 - runtime verification
 - browser live proof
 - GitHub deep review
+- Opstruth runtime truth self-test
 - production handoff
 - release/package readiness
 - skills-library packaging
@@ -69,6 +71,7 @@ Implemented:
 - `scripts/migration-review`
 - `scripts/browser-live-proof`
 - `scripts/github-deep-review`
+- `scripts/opstruth-classify`
 - `scripts/run-next`
 - `scripts/lane-state`
 - `scripts/objective-authority`
@@ -108,6 +111,7 @@ New route added:
 - `migration-review-helper`
 - `browser-live-proof`
 - `github-deep-review`
+- `opstruth-runtime-truth-integration` with built-in classifier self-test
 
 ## Capability Adapters
 
@@ -145,8 +149,8 @@ Capability acquisition remains `NEWLY_PROPOSED` until browser proof and secret-a
 
 7. Keep `scripts/browser-live-proof` and `browser-live-proof-skill` current as the bounded browser-observation foundation.
 8. Keep `scripts/github-deep-review` and `github-deep-review-skill` current as the thread-aware, read-only PR evidence foundation.
-9. Add Opstruth runtime truth self-test if still needed. This is the next active dependency.
-10. Harden release/package preflight around generated corpus evidence.
+9. Keep `scripts/opstruth-classify` current as the deterministic mixed-evidence truth-model self-test.
+10. Harden release/package preflight around generated corpus evidence. This is the next active dependency.
 
 ### P3
 

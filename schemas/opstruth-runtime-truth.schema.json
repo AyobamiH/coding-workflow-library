@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AyobamiH/coding-workflow-library/schemas/opstruth-runtime-truth.schema.json",
+  "title": "OpsTruth Runtime Truth Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mode",
+    "subject",
+    "final_status",
+    "summary",
+    "claims",
+    "commands_not_run",
+    "authority_gaps",
+    "next_safe_step",
+    "self_test",
+    "boundaries"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "mode": { "const": "local_evidence_classification" },
+    "subject": { "type": "string", "minLength": 1, "maxLength": 240 },
+    "final_status": { "enum": ["VERIFIED", "VERIFIED WITH WARNINGS", "FAILED", "NOT VERIFIED", "BLOCKED"] },
+    "summary": {
+      "type": "object",
+      "required": ["claims", "material_claims", "classifications"],
+      "properties": {
+        "claims": { "type": "integer", "minimum": 1 },
+        "material_claims": { "type": "integer", "minimum": 0 },
+        "classifications": {
+          "type": "object",
+          "required": ["VERIFIED", "WARNING", "FAILURE", "SKIPPED", "NOT_VERIFIED"],
+          "properties": {
+            "VERIFIED": { "type": "integer", "minimum": 0 },
+            "WARNING": { "type": "integer", "minimum": 0 },
+            "FAILURE": { "type": "integer", "minimum": 0 },
+            "SKIPPED": { "type": "integer", "minimum": 0 },
+            "NOT_VERIFIED": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "statement", "material", "required_scopes", "classification", "rationale", "verified_scopes", "missing_scopes", "authority_gaps", "evidence"],
+        "properties": {
+          "id": { "type": "string" },
+          "statement": { "type": "string" },
+          "material": { "type": "boolean" },
+          "required_scopes": { "type": "array", "items": { "type": "string" } },
+          "classification": { "enum": ["VERIFIED", "WARNING", "FAILURE", "SKIPPED", "NOT_VERIFIED"] },
+          "rationale": { "type": "string" },
+          "verified_scopes": { "type": "array", "items": { "type": "string" } },
+          "missing_scopes": { "type": "array", "items": { "type": "string" } },
+          "authority_gaps": { "type": "array", "items": { "type": "string" } },
+          "evidence": { "type": "array", "items": { "type": "object" } }
+        }
+      }
+    },
+    "commands_not_run": { "type": "array", "items": { "type": "string" } },
+    "authority_gaps": { "type": "array", "items": { "type": "object" } },
+    "next_safe_step": { "type": "string" },
+    "self_test": { "type": ["object", "null"] },
+    "boundaries": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+  }
+}

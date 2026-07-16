@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add a deterministic OpsTruth runtime-truth classifier and built-in self-test covering verified, warning, failure, skipped, and not-verified evidence without collapsing CI into production truth.
 - Add a read-only GitHub deep-review helper, schema, skill, route, CLI command, and synthetic regression suite for thread state, current review decisions, stale approvals, exact patch scope, checks, bounded failed-log categories, and explicit merge/production evidence boundaries.
 
 - Added a bounded, read-only browser live-proof helper with responsive overflow checks, count-only console/network evidence, optional screenshots, CLI delegation, schema validation, tests, and explicit non-proof boundaries.

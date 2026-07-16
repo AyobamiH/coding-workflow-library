@@ -1523,3 +1523,22 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Next recommended skill: opstruth-runtime-truth-skill for the documented runtime-truth self-test foundation.
 * Exact next action: complete package/staged validation and create one exact-file local commit, then hold before remote publication.
 * Whether John is needed: No for the local commit; yes before push, versioning, tag, release, npm publication, GitHub write operations, or production work.
+
+## 2026-07-16 - OpsTruth Runtime-Truth Self-Test Complete Locally
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Implement the next documented coding-workflow maturity dependency: a deterministic OpsTruth runtime-truth classifier and built-in self-test.
+* Current permission level: `local_execution` for source inspection, implementation, tests, temporary redacted fixtures, exact-file staging, and a local commit. No remote publication, package publication, version change, tag, release, deploy, production mutation, secret mutation, destructive action, or external service call.
+* Current status: OpsTruth runtime-truth self-test complete locally.
+* Selected skill: coding-workflow-orchestrator-skill, opstruth-runtime-truth-skill, and build-verify-skill.
+* Documentation evidence: `build-queue.md` and `docs/agent-and-skill-roadmap.md` named the runtime-truth self-test as the next dependency after GitHub deep review. The existing OpsTruth skill supplied the classification vocabulary and proof boundaries, so it was extended instead of creating a competing skill.
+* Files changed: deterministic classifier, JSON schema, focused tests, the existing runtime-truth skill and route, CLI delegation, validation wiring, package scripts, README/RUNBOOK/tools/index/checklist, changelog, queue, roadmap, ledger, and run log.
+* Self-test evidence: the built-in redacted fixture produced exactly one `VERIFIED`, `WARNING`, `FAILURE`, `SKIPPED`, and `NOT_VERIFIED` claim. Category coverage passed, matching-scope enforcement passed, and CI evidence did not verify deployment or production claims. The mixed fixture correctly ended as `FAILED` while the self-test itself reported `PASS`.
+* Negative-path evidence: a separate strict fixture with only CI evidence for deployment and production exited non-zero, ended as `NOT VERIFIED`, named both missing scopes, and supplied a bounded next safe step.
+* Validation evidence: focused tests passed; full `npm test` passed; route audit passed with 34 routes; skill validation passed with 31 active skills; docs validation passed with 69 tracked documents; strict self-test and delegated CLI JSON validation passed. Package dry-run contained 126 public entries and included the helper, schema, and tests without private/generated outputs.
+* Boundaries: the helper reads only an explicit local JSON evidence file or its built-in fixture. It performs no network request, subprocess execution, product command execution, file write, deployment, database action, registry query, or production mutation. Raw logs, headers, request bodies, secret-shaped values, project identifiers, and private paths are rejected.
+* Deferred idea: no skill/plugin hard cutover was designed or executed. Capability Intelligence remains parked and its files were not changed.
+* Blockers: none for local implementation. Remote publication remains outside this objective.
+* Next recommended skill: release-preflight-skill and npm-package-readiness-skill for the documented release and package preflight hardening dependency.
+* Exact next action: create one exact-file local commit for the validated runtime-truth self-test, then hold before remote publication.
+* Whether John is needed: No for the local commit; yes before push, versioning, tag, release, npm publication, or production work.

@@ -21,6 +21,7 @@ const explicit = [
   "tests/migration-review.test.js",
   "tests/browser-live-proof.test.js",
   "tests/github-deep-review.test.js",
+  "tests/opstruth-classify.test.js",
   "tests/public-paths.test.js",
 ];
 

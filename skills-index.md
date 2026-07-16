@@ -94,7 +94,7 @@ Use after source, build, and local runtime checks to collect one bounded Chromiu
 ### opstruth-runtime-truth-skill
 
 File: `skill-files/opstruth-runtime-truth-skill.md`
-Use to classify what runtime, deploy, CI, release, handoff, and product-video evidence actually proves. It separates `Verified`, `Warning`, `Failure`, `Skipped`, and `Not Verified`, and prevents source-only, skipped, or theme-disconnected media work from being reported as runtime truth.
+Use to classify what runtime, deploy, CI, release, handoff, and product-video evidence actually proves. It delegates deterministic evidence manifests and its mixed-category self-test to `scripts/opstruth-classify`, separates `Verified`, `Warning`, `Failure`, `Skipped`, and `Not Verified`, and prevents source-only, skipped, or theme-disconnected media work from being reported as runtime truth.
 
 ### supabase-function-deploy-skill
 
@@ -201,6 +201,8 @@ Use for source-only migration risk review before any apply/deploy step. Run `scr
 - `schemas/migration-review.schema.json`: portable schema for `scripts/migration-review --json` output.
 - `scripts/browser-live-proof`: optional dependency-free Chromium/DevTools helper for one bounded read-only browser observation, count-only console/network evidence, responsive overflow proof, and local screenshots.
 - `schemas/browser-live-proof.schema.json`: portable schema for `scripts/browser-live-proof --json` output.
+- `scripts/opstruth-classify`: dependency-free local evidence classifier and built-in mixed-category runtime-truth self-test.
+- `schemas/opstruth-runtime-truth.schema.json`: portable schema for classifier JSON output.
 - `schemas/workflow-corpus.schema.json`: portable event schema for redacted corpus events.
 - `schemas/workflow-source-manifest.schema.json`: portable source manifest schema with terminal parse statuses.
 - `templates/workflow-extraction-config.example.json`: neutral example config for private corpus extraction.
