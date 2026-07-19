@@ -66,7 +66,7 @@ Use the library controls around the target work when appropriate:
 6. Preserve records that lack standard capability labels. Mark them unlabelled and inferred or structural; never silently drop them.
 7. Generate stable internal identities without exposing connector IDs, project references, install URLs, server origins, or credential material.
 8. Reconcile each source so every discovered record is represented, deliberately de-duplicated, or reported as a parse failure.
-9. Build deterministic outcome search, duplicate detection, host comparison, lifecycle readiness, and risk views on top of the same normalized inventory.
+9. Build deterministic outcome search, duplicate detection, host comparison, lifecycle readiness, and risk views on top of the same normalized inventory. Require a positive lexical or concept match before readiness can affect outcome ranking; readiness orders relevant results but must never manufacture relevance.
 10. Ensure human, JSON, export, API, and interface views derive from the same source model.
 11. Add synthetic fixtures for every adapter and negative tests for malformed data, silent loss, unsafe fields, duplicate identities, and lifecycle overclaiming.
 12. Run a real strict scan only after synthetic tests pass. Record aggregate counts, not private source payloads.
@@ -103,7 +103,8 @@ Use the library controls around the target work when appropriate:
 - Cache snapshots repeat connector records: de-duplicate by an internal identity and report the count without emitting that identity.
 - Public descriptions mention security terms: detect secret-shaped values rather than rejecting harmless documentation language.
 - One adapter fails: preserve other source results, mark the adapter failed, and fail strict coverage.
-- Outcome ranking favours low-level primitives: weight direct name and query matches above broad inferred synonyms.
+- Outcome ranking favours low-level primitives: require a positive match, then weight direct name and query matches above broad inferred synonyms.
+- Empty or unmatched outcomes return installed tools: gate readiness scoring behind relevance and add CLI/API no-match regressions.
 - Host roots contain duplicate skills: retain each host-specific artifact and add duplicate relationships.
 - A source format changes: fail closed and add a versioned fixture before supporting the new shape.
 

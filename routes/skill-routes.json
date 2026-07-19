@@ -1971,6 +1971,61 @@
       "provenance": "standalone capability-intelligence product hard cutover using local Codex plugin, skill, app-tool, connector, and workflow-library metadata"
     },
     {
+      "id": "capability-intelligence-search-truth",
+      "skill_file": "skill-files/capability-intelligence-builder-skill.md",
+      "ledger_states_handled": [
+        "Capability intelligence outcome search truth hardening requested",
+        "Capability intelligence outcome search truth hardening blocked"
+      ],
+      "permission_flag": "capability-intelligence-search-truth",
+      "helper_scripts": [
+        "scripts/repo-map",
+        "scripts/docs-list",
+        "scripts/pre-commit-check"
+      ],
+      "permission_level": "local_execution",
+      "explicit_permission_required": true,
+      "requires_authority": [
+        "local_execution"
+      ],
+      "forbidden_actions": [
+        "capability execution",
+        "credential or environment-value reads",
+        "remote publication",
+        "npm publish",
+        "version change",
+        "git tag",
+        "GitHub release creation",
+        "deploy",
+        "production mutation"
+      ],
+      "success_ledger_state": "Capability intelligence outcome search truth hardening complete locally",
+      "blocked_ledger_state": "Capability intelligence outcome search truth hardening blocked",
+      "next_permission": "review CLI input validation defects or select another evidence-backed product objective",
+      "evidence_required": [
+        "positive lexical or concept match before readiness scoring",
+        "empty-query no-match test",
+        "unmatched-query no-match test",
+        "relevant-query ranking test",
+        "CLI and HTTP no-match tests",
+        "complete local check",
+        "strict read-only inventory scan"
+      ],
+      "safety_gates": [
+        "target package identity check",
+        "read-only local inventory",
+        "no capability invocation",
+        "no source installation or authentication",
+        "no automatic commit or remote publication"
+      ],
+      "idempotency_evidence": [
+        "repeated unmatched query remains empty",
+        "repeated relevant query ordering is deterministic",
+        "rerun validates existing source and tests without rewriting them"
+      ],
+      "provenance": "the first target-repository self-use after the library terminal assessment proved that readiness scoring could manufacture irrelevant outcome-search results"
+    },
+    {
       "id": "library-next-objective-assessment",
       "skill_file": "skill-files/coding-workflow-orchestrator-skill.md",
       "ledger_states_handled": [

@@ -157,6 +157,8 @@ function runtimeApi() {
   Object.assign(api, require("./lib/run-next/route-access"));
   Object.assign(api, require("./lib/run-next/route-dispatch"));
   Object.assign(api, require("./lib/run-next/library-route-selection"));
+  Object.assign(api, require("./lib/run-next/capability-intelligence-route"));
+  Object.assign(api, require("./lib/run-next/capability-intelligence-product"));
   Object.assign(api, require("./lib/run-next/local-foundations"));
   Object.assign(api, require("./lib/run-next/release-routes"));
   Object.assign(api, require("./lib/run-next/github-routes"));
@@ -318,6 +320,9 @@ function routeStatus(status, active = {}) {
 
   const libraryFoundationRoute = runtimeApi().selectLibraryFoundationRoute(status);
   if (libraryFoundationRoute) return libraryFoundationRoute;
+
+  const capabilityIntelligenceRoute = runtimeApi().selectCapabilityIntelligenceRoute(status);
+  if (capabilityIntelligenceRoute) return capabilityIntelligenceRoute;
 
   if (normalized === "no ledger item for repo") {
     return {

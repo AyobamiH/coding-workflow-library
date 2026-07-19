@@ -41,6 +41,7 @@ const HANDLERS = {
   "pre-commit-validation-hook": "runPreCommitValidationHook",
   "migration-review-helper": "runMigrationReviewHelper",
   "library-next-objective-assessment": "runLibraryNextObjectiveAssessment",
+  "capability-intelligence-search-truth": "runCapabilityIntelligenceSearchTruth",
 };
 
 function dispatchRoute(route, active) {

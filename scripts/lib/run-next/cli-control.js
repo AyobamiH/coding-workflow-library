@@ -5,6 +5,7 @@ const path = require("path");
 const laneState = require("../../lane-state");
 const objectiveAuthority = require("../../objective-authority");
 const autonomousBoundaries = require("../../autonomous-boundaries");
+const routeMetadata = require("../../../routes/skill-routes.json");
 
 const ALLOWED_FLAGS = new Set([
   "auth-check",
@@ -57,6 +58,7 @@ const ALLOWED_FLAGS = new Set([
   "production_mutation",
   "secret_mutation",
   "destructive_action",
+  ...routeMetadata.routes.map((route) => route.permission_flag).filter(Boolean),
 ]);
 
 function parseArgs(rawArgs, allowedFlags) {

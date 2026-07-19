@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add an executable, lane-scoped Capability Intelligence search-truth route and derive accepted route permission flags from audited metadata so new routes cannot pass audit while failing CLI parsing.
 - Add deterministic library next-objective assessment, a lane-scoped terminal route, CLI delegation, and isolation tests so a verified empty reusable queue is no longer reported as an unknown ledger state.
 - Make `lane-state objective-set --reset` start a replacement objective as active instead of inheriting the previous objective's terminal status.
 - Split every former 1,000-line review candidate into focused `run-next` parts or workflow-extraction modules, add responsibility comments and compatibility facades, and tighten source-size policy from a 2,200-line hard maximum to 1,000 lines with early review at 750.
