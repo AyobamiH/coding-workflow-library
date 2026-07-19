@@ -42,6 +42,7 @@ const HANDLERS = {
   "migration-review-helper": "runMigrationReviewHelper",
   "library-next-objective-assessment": "runLibraryNextObjectiveAssessment",
   "capability-intelligence-search-truth": "runCapabilityIntelligenceSearchTruth",
+  "capability-intelligence-cli-input-truth": "runCapabilityIntelligenceCliInputTruth",
 };
 
 function dispatchRoute(route, active) {

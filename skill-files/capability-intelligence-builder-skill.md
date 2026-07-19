@@ -68,8 +68,9 @@ Use the library controls around the target work when appropriate:
 8. Reconcile each source so every discovered record is represented, deliberately de-duplicated, or reported as a parse failure.
 9. Build deterministic outcome search, duplicate detection, host comparison, lifecycle readiness, and risk views on top of the same normalized inventory. Require a positive lexical or concept match before readiness can affect outcome ranking; readiness orders relevant results but must never manufacture relevance.
 10. Ensure human, JSON, export, API, and interface views derive from the same source model.
-11. Add synthetic fixtures for every adapter and negative tests for malformed data, silent loss, unsafe fields, duplicate identities, and lifecycle overclaiming.
-12. Run a real strict scan only after synthetic tests pass. Record aggregate counts, not private source payloads.
+11. Give each CLI command an explicit option grammar. Reject unsupported options, duplicate singleton options, and values outside shared model enums before scanning source metadata.
+12. Add synthetic fixtures for every adapter and negative tests for malformed data, silent loss, unsafe fields, duplicate identities, lifecycle overclaiming, and command-input typos.
+13. Run a real strict scan only after synthetic tests pass. Record aggregate counts, not private source payloads.
 
 ## Evidence Required
 
@@ -105,6 +106,8 @@ Use the library controls around the target work when appropriate:
 - One adapter fails: preserve other source results, mark the adapter failed, and fail strict coverage.
 - Outcome ranking favours low-level primitives: require a positive match, then weight direct name and query matches above broad inferred synonyms.
 - Empty or unmatched outcomes return installed tools: gate readiness scoring behind relevance and add CLI/API no-match regressions.
+- Unknown CLI options appear to succeed: use command-specific option allowlists and fail before scanning.
+- Invalid filter values return an empty success: validate against shared model enums and report accepted values.
 - Host roots contain duplicate skills: retain each host-specific artifact and add duplicate relationships.
 - A source format changes: fail closed and add a versioned fixture before supporting the new shape.
 

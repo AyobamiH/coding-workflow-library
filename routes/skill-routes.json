@@ -2026,6 +2026,63 @@
       "provenance": "the first target-repository self-use after the library terminal assessment proved that readiness scoring could manufacture irrelevant outcome-search results"
     },
     {
+      "id": "capability-intelligence-cli-input-truth",
+      "skill_file": "skill-files/capability-intelligence-builder-skill.md",
+      "ledger_states_handled": [
+        "Capability intelligence CLI input truth hardening requested",
+        "Capability intelligence CLI input truth hardening blocked"
+      ],
+      "permission_flag": "capability-intelligence-cli-input-truth",
+      "helper_scripts": [
+        "scripts/repo-map",
+        "scripts/docs-list",
+        "scripts/pre-commit-check"
+      ],
+      "permission_level": "local_execution",
+      "explicit_permission_required": true,
+      "requires_authority": [
+        "local_execution"
+      ],
+      "forbidden_actions": [
+        "capability execution",
+        "credential or environment-value reads",
+        "remote publication",
+        "npm publish",
+        "version change",
+        "git tag",
+        "GitHub release creation",
+        "deploy",
+        "production mutation"
+      ],
+      "success_ledger_state": "Capability intelligence CLI input truth hardening complete locally",
+      "blocked_ledger_state": "Capability intelligence CLI input truth hardening blocked",
+      "next_permission": "review export overwrite safety or select another evidence-backed product objective",
+      "evidence_required": [
+        "command-specific option allowlists",
+        "unsupported-option rejection test",
+        "repeated singleton-option rejection test",
+        "risk-level enum validation",
+        "valid risk-level regression",
+        "validation before source scanning",
+        "complete local check",
+        "strict read-only inventory scan"
+      ],
+      "safety_gates": [
+        "target package identity check",
+        "input validation precedes inventory scanning",
+        "read-only local inventory",
+        "no capability invocation",
+        "no source installation or authentication",
+        "no automatic commit or remote publication"
+      ],
+      "idempotency_evidence": [
+        "repeated unsupported options fail with the same bounded category",
+        "repeated valid risk filters remain deterministic",
+        "rerun validates existing source and tests without rewriting them"
+      ],
+      "provenance": "the product reconnaissance evidence proved that unknown options and invalid risk levels could look successful, violating the inventory truth contract"
+    },
+    {
       "id": "library-next-objective-assessment",
       "skill_file": "skill-files/coding-workflow-orchestrator-skill.md",
       "ledger_states_handled": [

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add a lane-scoped Capability Intelligence CLI input-truth route that proves command-specific option rejection and shared risk-level validation before source scanning.
 - Add an executable, lane-scoped Capability Intelligence search-truth route and derive accepted route permission flags from audited metadata so new routes cannot pass audit while failing CLI parsing.
 - Add deterministic library next-objective assessment, a lane-scoped terminal route, CLI delegation, and isolation tests so a verified empty reusable queue is no longer reported as an unknown ledger state.
 - Make `lane-state objective-set --reset` start a replacement objective as active instead of inheriting the previous objective's terminal status.
