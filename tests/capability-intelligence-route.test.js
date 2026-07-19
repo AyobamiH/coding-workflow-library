@@ -21,6 +21,9 @@ try {
   assert.equal(selectCapabilityIntelligenceRoute("Unrelated state"), null);
   const { ALLOWED_FLAGS } = require("../scripts/lib/run-next/cli-control");
   assert.ok(ALLOWED_FLAGS.has(route.permission), "audited route permission was not accepted by the CLI");
+  const terminal = selectCapabilityIntelligenceRoute("Capability intelligence outcome search truth hardening complete locally");
+  assert.equal(terminal.kind, "human-boundary");
+  assert.doesNotMatch(terminal.nextAction, /unknown/i);
 
   runtime.configure({
     actions: [],

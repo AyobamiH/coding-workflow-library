@@ -6,6 +6,16 @@
 
 function selectCapabilityIntelligenceRoute(status) {
   const normalized = String(status || "").toLowerCase();
+  if (normalized === "capability intelligence outcome search truth hardening complete locally") {
+    return {
+      skill: "capability-intelligence-builder-skill",
+      permission: null,
+      kind: "human-boundary",
+      finalStatus: "Capability intelligence outcome search truth hardening complete locally",
+      nextPermission: "review CLI input validation defects or select another evidence-backed product objective",
+      nextAction: "search truth is locally proven; select the next bounded product defect rather than rerunning completed work",
+    };
+  }
   if (![
     "capability intelligence outcome search truth hardening requested",
     "capability intelligence outcome search truth hardening blocked",
