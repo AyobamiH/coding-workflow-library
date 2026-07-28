@@ -38,7 +38,7 @@ function manifest() {
     },
     validation_commands: ["npm test"],
     paths: { allowed: [packageDir, artifacts, notes], forbidden: [path.join(root, ".env")] },
-    approval: { issuer: "release-authority", expires_at: "2099-01-01T00:00:00.000Z", identity: "" },
+    approval: { issuer: "release-authority", expires_at: "2099-01-01T00:00:00.000Z", nonce: "route-nonce-rc4", identity: "" },
   };
   value.approval.identity = base.approvalIdentity(value);
   return value;

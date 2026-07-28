@@ -38,7 +38,7 @@ function fixture(name = "@example/agentproof", version = "0.1.0-rc.4", npmTag = 
     },
     validation_commands: ["npm test", "npm run typecheck"],
     paths: { allowed: [packageDir, tarball], forbidden: [path.join(root, ".env")] },
-    approval: { issuer: "test-authority", expires_at: "2099-01-01T00:00:00.000Z", identity: "" },
+    approval: { issuer: "test-authority", expires_at: "2099-01-01T00:00:00.000Z", nonce: `test-nonce-`, identity: "" },
   };
   manifest.approval.identity = contract.approvalIdentity(manifest);
   return manifest;

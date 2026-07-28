@@ -9,7 +9,7 @@ The caller supplies a versioned manifest containing:
 - GitHub repository, branch, annotated tag, and prerelease/final classification;
 - package name/version, exact tarball SHA-256, npm access, and explicit dist-tag;
 - validation commands plus allowed and forbidden paths;
-- an approval issuer, expiry, and identity digest bound to the repository, package,
+- an approval issuer, expiry, single-use nonce, and identity digest bound to the repository, package,
   version, artifact digest, Git tag, npm tag, and GitHub release type.
 
 `validateDeclarativeRelease(manifest)` is local and non-mutating. It rejects missing,

@@ -47,6 +47,9 @@ function approvalIdentity(manifest) {
     git_tag: release.git_tag,
     npm_tag: release.npm_tag,
     github_release_type: release.github_release_type,
+    approval_issuer: manifest.approval?.issuer,
+    approval_expires_at: manifest.approval?.expires_at,
+    approval_nonce: manifest.approval?.nonce,
   })).digest("hex");
 }
 
@@ -69,7 +72,7 @@ function validateManifest(manifest, now = new Date()) {
     if (!Array.isArray(manifest.paths?.allowed) || !Array.isArray(manifest.paths?.forbidden)) throw new Error("allowed and forbidden paths are required");
     canonicalExisting(release.release_notes, "release.release_notes");
     const approval = manifest.approval || {};
-    if (!approval.issuer || !approval.expires_at || !approval.identity) throw new Error("approval issuer, expiry, and identity are required");
+    if (!approval.issuer || !approval.expires_at || !approval.nonce || !approval.identity) throw new Error("approval issuer, expiry, nonce, and identity are required");
     const expires = new Date(approval.expires_at);
     if (!Number.isFinite(expires.getTime()) || expires <= now) throw new Error("approval is expired");
     const expected = approvalIdentity(manifest);
