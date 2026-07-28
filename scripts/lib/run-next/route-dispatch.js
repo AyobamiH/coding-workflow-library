@@ -34,6 +34,7 @@ const HANDLERS = {
   "github-open-source-handoff": "runGithubOpenSourceHandoff",
   "first-version-tag": "runFirstVersionTag",
   "semver-release-prep": "runSemverReleasePrep",
+  "generic-npm-prerelease": "runGenericNpmPrerelease",
   "workflow-corpus-recovery": "runWorkflowCorpusRecovery",
   "docs-list-foundation": "runDocsListFoundation",
   "repo-map-helper-automation": "runRepoMapHelperAutomation",

@@ -79,6 +79,7 @@ function parseArgs(rawArgs, allowedFlags) {
     lane: null,
     stateFile: laneState.defaultStateFile(),
     repo: null,
+    releaseManifest: null,
   };
 
   for (let index = 0; index < rawArgs.length; index += 1) {
@@ -98,6 +99,7 @@ function parseArgs(rawArgs, allowedFlags) {
     else if (arg === "--lane") parsed.lane = requireValue(rawArgs, ++index, arg);
     else if (arg === "--state-file") parsed.stateFile = requireValue(rawArgs, ++index, arg);
     else if (arg === "--repo") parsed.repo = requireValue(rawArgs, ++index, arg);
+    else if (arg === "--release-manifest") parsed.releaseManifest = requireValue(rawArgs, ++index, arg);
     else if (arg === "--allow") {
       const value = requireValue(rawArgs, ++index, arg);
       if (!allowedFlags.has(value)) throw new Error(`unsupported permission flag: ${value}`);
@@ -121,6 +123,7 @@ function printHelp(allowedFlags) {
   ./scripts/run-next --repo <path> --status
   ./scripts/run-next --repo <path> --resume --dry-run
   ./scripts/run-next --repo <path> --allow <route-or-authority> [--dry-run]
+  ./scripts/run-next --release-manifest <absolute-path> --dry-run
   ./scripts/run-next --lane <id> --state-file <path> --explain-next
   ./scripts/run-next --lane <id> --state-file <path> --allow <route-or-authority> [--dry-run]
   ./scripts/run-next --list-routes

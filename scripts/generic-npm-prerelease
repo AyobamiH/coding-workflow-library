@@ -1,0 +1,51 @@
+#!/usr/bin/env node
+"use strict";
+
+const route = require("./lib/run-next/npm-release-route");
+
+function parse(argv) {
+  const args = { dryRun: false, manifest: "" };
+  for (let index = 0; index < argv.length; index += 1) {
+    if (argv[index] === "--dry-run") args.dryRun = true;
+    else if (argv[index] === "--manifest") args.manifest = argv[++index] || "";
+    else throw new Error(`unknown argument: ${argv[index]}`);
+  }
+  return args;
+}
+
+async function main() {
+  const args = parse(process.argv.slice(2));
+  const loaded = route.loadManifest(args.manifest);
+  if (!loaded.ok) {
+    console.error(JSON.stringify(loaded));
+    process.exitCode = 1;
+    return;
+  }
+  if (!args.dryRun) {
+    console.error(JSON.stringify({
+      ok: false,
+      state: "BLOCKED_CAPABILITY",
+      summary: "real publication requires the installed authenticated adapter; credentials are never accepted by this CLI",
+    }));
+    process.exitCode = 1;
+    return;
+  }
+  const result = route.validateDeclarativeRelease(loaded.manifest);
+  if (!result.ok) {
+    console.error(JSON.stringify(result));
+    process.exitCode = 1;
+    return;
+  }
+  console.log(JSON.stringify({
+    ok: true,
+    state: "DRY_RUN",
+    manifest: loaded.path,
+    identity: route.releaseIdentity(loaded.manifest, result.assetDigests),
+    evidence: [...result.evidence, "dry-run: no git, npm, GitHub, or credential access"],
+  }, null, 2));
+}
+
+main().catch((error) => {
+  console.error(JSON.stringify({ ok: false, state: "BLOCKED_SAFETY", summary: error.message }));
+  process.exitCode = 1;
+});
