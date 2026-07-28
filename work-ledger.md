@@ -1751,3 +1751,107 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Boundaries: no force push, version, tag, GitHub Release, npm publish, deployment, production call, secret mutation, or destructive action occurred.
 * Next recommended skill: coding-workflow-orchestrator-skill for P0 foundation maintenance. Review GitHub Action runtime versions in a separate bounded maintenance objective before the warning becomes a failure.
 * Whether John is needed: No for the completed publication and proof. A new objective is required for release, npm publication, production work, or another roadmap expansion.
+
+## 2026-07-17 - Remote Reconciliation Complete Locally
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Reconcile the local repository with recent published work without losing the existing run-note edit.
+* Current permission level: preservation-safe local stash, read-only fetch, fast-forward merge, stash reapply, and validation. No commit, push, release, deployment, secret access, or destructive action.
+* Current status: COMPLETE LOCALLY: `main` matches `origin/main` at `eeca768`; the original local run-note patch remains present.
+* Selected skill: repo-map-skill and github-handoff-skill.
+* Preservation evidence: the exact run-note patch ID was `7db5f3c5234f41e8c830f931aa1d8e5b8ff6e871` before and after reconciliation; the temporary named stash was dropped only after verification.
+* Branch evidence: the final divergence is `0 0`; no merge commit was created because the update used `git merge --ff-only`.
+* Boundaries: no commit, push, force update, package publication, release, deployment, production mutation, secret access, or destructive action occurred.
+* Exact next action: validate the reconciled documentation and retain the local evidence for a later explicitly approved commit.
+* Whether John is needed: No for the completed reconciliation; yes before any commit or remote publication.
+## 2026-07-17 - Coding Agent Skills Completion Verification
+
+* Active repo: `<workspace>/projects/coding-agent-skills`.
+* Current objective: Finish the existing nested-ignore timeout repair by verifying the already-created exact local commit and preparing a truthful GitHub handoff without creating a release or deploying anything.
+* Current permission level: `local_execution` and local validation only. Remote publication, tag, release, package publication, deployment, production mutation, secret mutation, and destructive action remain ungranted by this ledger entry.
+* Current status: Local verification and release evidence bundle built.
+* Selected skill: release-preflight-skill through coding-workflow-orchestrator-skill.
+* Last commands run: coding route trace, project-adapter validation, GitHub handoff audit, repository status and exact commit inspection.
+* Files changed: no target files; this Workflow Library objective record only.
+* Validation evidence: target worktree is clean; local `main` is one commit ahead of `origin/main` at `0d899bc`; generic audit completed; optional project-adapter validation refused because no project declaration exists.
+* Blockers: the reusable GitHub PR executor remains hard-coded to the historical wagging-web-wins contract and must not be used for this repository; remote publication remains a separate exact approval boundary.
+* Next recommended skill: verification-bundle-self-test, followed by the target repository's own full validation commands.
+* Exact next action: run the local verification bundle and native validation, then hold before push unless exact remote publication authority is confirmed.
+* Whether John is needed: Only before remote publication.
+
+## 2026-07-17 - Hardware Ledger Completion Verification
+
+* Active repo: `<workspace>/projects/hardware-ledger`.
+* Current objective: Finish the existing evidence-led portfolio change set by correcting stale validation claims, verifying the repaired lockfile and complete local build, and preparing an exact handoff without deploying anything.
+* Current permission level: `local_execution` and local validation only. Commit, remote publication, deployment, production mutation, secret mutation, and destructive action remain ungranted by this ledger entry.
+* Current status: Local verification and release evidence bundle built.
+* Selected skill: release-preflight-skill through coding-workflow-orchestrator-skill.
+* Last commands run: coding route trace, project-adapter validation, GitHub handoff audit, repository status, diff review, and stale-claim inspection.
+* Files changed: target README and project registry claim corrections; this Workflow Library objective record.
+* Validation evidence: 13-file pre-existing worktree had no conflicts and `git diff --check` passed; generic route and handoff audits completed; optional project-adapter validation refused because no project declaration exists.
+* Blockers: the reusable GitHub PR executor remains hard-coded to the historical wagging-web-wins contract and must not be used for this repository; commit and remote publication remain separate exact approval boundaries.
+* Next recommended skill: verification-bundle-self-test, followed by the target repository's lint, tests, production build, and diff check.
+* Exact next action: run the local verification bundle and native validation, then prepare an exact commit packet.
+* Whether John is needed: Before commit or remote publication.
+
+## 2026-07-17 - run-next Autonomous Work Loop
+
+* Active repo: `projects/coding-agent-skills`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: verification-bundle-self-test. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: Verification bundle self-test blocked.
+* Selected skill: release-preflight-skill / verification bundle autonomous self-test.
+* Last commands run: `scripts/run-next --repo projects/coding-agent-skills --allow verification-bundle-self-test`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; verification bundle target repo: projects/coding-agent-skills; evidence pack mode: dry-run; release boundary: no npm publish, npm version, git tag, git push, GitHub release, deploy, remote mutation, secret read, or production call is permitted in this route; npm package readiness command exit: 0; npm package readiness final classification: FAIL; release preflight command exit: 1; release preflight final classification: unavailable; evidence pack command exit: 0; evidence pack wrote files: no, dry-run mode; script syntax checks: passed; skill-cleaner exit: 0; validate-skills exit: 0; validate-skills result: PASS.
+* Blockers: verification bundle self-test command failures: release preflight.
+* Next recommended skill: error-evidence-skill.
+* Exact next action: fix verification bundle self-test failures.
+* Whether John is needed: Yes for the next permission boundary..
+
+## 2026-07-17 - run-next Autonomous Work Loop
+
+* Active repo: `<workspace>/projects/coding-agent-skills`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: verification-bundle-self-test. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: Verification bundle self-test complete.
+* Selected skill: release-preflight-skill / verification bundle autonomous self-test.
+* Last commands run: `scripts/run-next --repo <workspace>/projects/coding-agent-skills --allow verification-bundle-self-test`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; verification bundle target repo: <workspace>/projects/coding-agent-skills; evidence pack mode: dry-run; release boundary: no npm publish, npm version, git tag, git push, GitHub release, deploy, remote mutation, secret read, or production call is permitted in this route; npm package readiness command exit: 0; npm package readiness final classification: NOT_VERIFIED; release preflight command exit: 0; release preflight final classification: NOT_VERIFIED; evidence pack command exit: 0; evidence pack wrote files: no, dry-run mode; script syntax checks: passed; skill-cleaner exit: 0; validate-skills exit: 0; validate-skills result: PASS.
+* Blockers: verification bundle self-test ran safely; npm readiness=NOT_VERIFIED; release preflight=NOT_VERIFIED; evidence pack mode=dry-run.
+* Next recommended skill: release-preflight-skill.
+* Exact next action: approve evidence-pack write test or route next immediate skill bundle.
+* Whether John is needed: Yes for the next permission boundary..
+
+## 2026-07-17 - run-next Autonomous Work Loop
+
+* Active repo: `<workspace>/projects/hardware-ledger`.
+* Current objective: Run `scripts/run-next` from the coding workflow library and continue only until the next real permission boundary.
+* Current permission level: verification-bundle-self-test. No deploy, Supabase migration, Supabase mutation, production endpoint call, direct `main` push, force push, merge, token printing, token file write, unrelated staging, or `evidence/` inclusion.
+* Current status: Verification bundle self-test complete.
+* Selected skill: release-preflight-skill / verification bundle autonomous self-test.
+* Last commands run: `scripts/run-next --repo <workspace>/projects/hardware-ledger --allow verification-bundle-self-test`.
+* Files changed: local library records only; no target repo files edited.
+* Validation evidence: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; verification bundle target repo: <workspace>/projects/hardware-ledger; evidence pack mode: dry-run; release boundary: no npm publish, npm version, git tag, git push, GitHub release, deploy, remote mutation, secret read, or production call is permitted in this route; npm package readiness command exit: 0; npm package readiness final classification: FAIL; release preflight command exit: 0; release preflight final classification: WARN; evidence pack command exit: 0; evidence pack wrote files: no, dry-run mode; script syntax checks: passed; skill-cleaner exit: 0; validate-skills exit: 0; validate-skills result: PASS.
+* Blockers: verification bundle self-test ran safely; npm readiness=FAIL; release preflight=WARN; evidence pack mode=dry-run.
+* Next recommended skill: release-preflight-skill.
+* Exact next action: approve evidence-pack write test or route next immediate skill bundle.
+* Whether John is needed: Yes for the next permission boundary..
+## 2026-07-17 - Generic Downstream Completion Route Capability Gap
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Record the boundary discovered while using Workflow Library against Coding Agent Skills and Hardware Ledger so the generic downstream completion path is not overstated.
+* Current permission level: `local_execution` and local documentation only. No downstream commit, push, repository creation, release, deployment, secret mutation, production mutation, or destructive action.
+* Current status: Generic downstream completion route gap recorded locally.
+* Selected skill: coding-workflow-orchestrator-skill and github-handoff-skill.
+* Last commands run: generic coding evidence audits; `run-next --explain`; verification-bundle dry-runs and real runs with relative and absolute target paths; target-native validation; read-only remote discovery; production dependency audit and fix dry-run.
+* Files changed: Workflow Library ledger/run evidence; Hardware Ledger claim corrections; no Coding Agent Skills file changes.
+* Validation evidence: absolute-path verification bundles completed for both targets; relative target paths produced a false release-preflight failure because helpers resolve from the library working directory; the current GitHub mutation route is hard-coded to the historical wagging-web-wins repository, expected commit, branch, PR files, and PR number, so it was not used for either requested target.
+* Capability gap: provide a generic downstream objective schema carrying target repository owner/name, exact commit, allowed files, branch strategy, and permitted consequence classes; resolve target paths once at route entry; fail if the configured remote identity does not match the objective.
+* Risk level: high if bypassed because the existing mutation route can address the wrong remote; low for the local-only verification route when absolute paths are used.
+* Approval needed: separate skill/workflow update approval before implementing the generic mutation route; exact downstream commit/push/repository-creation approval remains target-specific.
+* Suggested implementation path: add a portable downstream handoff route with fixture coverage for two unrelated repositories, relative/absolute path equivalence, wrong-remote refusal, exact-file staging, non-force push, and no hard-coded project constants.
+* Validation required: route audit, skill validation, full package tests, wrong-target negative tests, clean temporary repo handoff simulation, and exact remote dry-run evidence.
+* Future classification: workflow/library capability update.
+* Whether John is needed: Yes before implementation or any external handoff.

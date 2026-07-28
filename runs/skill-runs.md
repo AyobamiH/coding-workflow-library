@@ -1566,6 +1566,20 @@ This file records every real use of the coding workflow skills library.
 * Follow-up skill needed: migration-review-skill / coding-workflow-orchestrator-skill.
 * Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.
 
+## 2026-07-15 - Business-Value Readiness Loop
+
+* Skill used: build-verify-skill.
+* Goal: Run the smallest supported local validation for the Coding Workflow Library as the seventh bounded business-value loop.
+* Starting state: Clean worktree on `main`; no release, publish, package, tag, commit, push, deploy, migration, install, or external action authorized.
+* Commands/tools used: `./scripts/pre-commit-check --full`; `npm run check`; `npm run package:readiness`; `npm run release:preflight`; read-only coding repository map and deployment preflight.
+* Files inspected: `AGENTS.md`; `RUNBOOK.md`; `tools.md`; `skill-files/build-verify-skill.md`; `package.json`; validation output.
+* Files changed: `runs/skill-runs.md` only.
+* Evidence collected: full pre-commit gate passed 13 checks with zero failures or skips; package structure checks passed; release preflight passed source, clean-tree, README, release-notes, and evidence-pack dry-run checks; npm pack dry-run was not run; no tag exists at HEAD.
+* Result: Local validation passed; package and release readiness remain `NOT_VERIFIED` at their explicit remote/package boundaries.
+* Failure/recovery notes: `npm run check` emitted more output than the session could retain, so its readiness and release-preflight stages were rerun separately and both exited 0. No secrets, environment files, package registry, production endpoint, remote Git operation, or deployment surface was accessed.
+* Follow-up skill needed: release-preflight-skill if an explicitly approved release objective is opened.
+* Upgrade idea: Add a concise machine-readable summary mode to `npm run check` so long validation output remains easy to retain as orchestration evidence.
+
 ## 2026-07-06 - run-next Autonomous Work Loop
 
 * Skill used: coding-workflow-orchestrator-skill; selected next skill was build-verify-skill / github-handoff-skill / coding-workflow-orchestrator-skill.
@@ -1790,3 +1804,57 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: the local env file emitted shell parse warnings and was unnecessary because GitHub CLI already had valid independent authentication. CI emitted a non-failing Node 20 action-runtime deprecation warning; no job failed.
 * Follow-up skill needed: coding-workflow-orchestrator-skill for P0 foundation maintenance. GitHub Actions dependency maintenance may be scheduled separately.
 * Upgrade idea: review supported major versions for checkout/setup actions before the runtime warning becomes blocking; do not alter passing CI inside an evidence-only bookkeeping step.
+
+## 2026-07-17 - Preservation-Safe Remote Reconciliation
+
+* Skill used: repo-map-skill and github-handoff-skill.
+* Goal: Preserve the existing local run-note edit while reconciling `main` with the latest published remote work.
+* Starting state: local `main` was 34 commits behind `origin/main` with only `runs/skill-runs.md` modified.
+* Commands/tools used: repository-map validation; read-only fetch; exact-file named stash; `git merge --ff-only origin/main`; exact stash reapply; patch-ID comparison; exact temporary stash removal; branch and worktree verification.
+* Evidence collected: local `main` and `origin/main` now match at `eeca768`; divergence is `0 0`; the preserved run-note patch ID remained `7db5f3c5234f41e8c830f931aa1d8e5b8ff6e871` before and after reconciliation.
+* Result: COMPLETE LOCALLY: 34 remote commits were fast-forwarded, the pre-existing run note was preserved exactly, and the temporary preservation stash was removed.
+* Boundaries: no commit, push, force operation, release, deployment, secret access, or destructive repository action occurred.
+* Follow-up skill needed: repo-map-skill for final local validation; a separate approval is required before any commit or remote publication.
+* Upgrade idea: keep patch-ID comparison in future preservation-safe reconciliations so content preservation is independently verifiable.
+
+## 2026-07-17 - run-next Autonomous Work Loop
+
+* Skill used: coding-workflow-orchestrator-skill; selected next skill was release-preflight-skill / verification bundle autonomous self-test.
+* Goal: Read `work-ledger.md`, classify status `Local verification and release evidence bundle built`, check permission flags, and run only the next safe action.
+* Starting state: Target repo `projects/coding-agent-skills`; permission flags `verification-bundle-self-test`; dry-run `no`.
+* Commands/tools used: `scripts/run-next --repo projects/coding-agent-skills --allow verification-bundle-self-test`.
+* Files inspected: `AGENTS.md`; `RUNBOOK.md`; `tools.md`; `work-ledger.md`; selected ledger entry for `projects/coding-agent-skills`.
+* Files changed: `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; verification bundle target repo: projects/coding-agent-skills; evidence pack mode: dry-run; release boundary: no npm publish, npm version, git tag, git push, GitHub release, deploy, remote mutation, secret read, or production call is permitted in this route; npm package readiness command exit: 0; npm package readiness final classification: FAIL; release preflight command exit: 1; release preflight final classification: unavailable; evidence pack command exit: 0; evidence pack wrote files: no, dry-run mode; script syntax checks: passed; skill-cleaner exit: 0; validate-skills exit: 0; validate-skills result: PASS.
+* Result: BLOCKED: verification bundle self-test command failures: release preflight.
+* Failure/recovery notes: verification bundle self-test command failures: release preflight.
+* Follow-up skill needed: error-evidence-skill.
+* Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.
+
+## 2026-07-17 - run-next Autonomous Work Loop
+
+* Skill used: coding-workflow-orchestrator-skill; selected next skill was release-preflight-skill / verification bundle autonomous self-test.
+* Goal: Read `work-ledger.md`, classify status `Local verification and release evidence bundle built`, check permission flags, and run only the next safe action.
+* Starting state: Target repo `<workspace>/projects/coding-agent-skills`; permission flags `verification-bundle-self-test`; dry-run `no`.
+* Commands/tools used: `scripts/run-next --repo <workspace>/projects/coding-agent-skills --allow verification-bundle-self-test`.
+* Files inspected: `AGENTS.md`; `RUNBOOK.md`; `tools.md`; `work-ledger.md`; selected ledger entry for `<workspace>/projects/coding-agent-skills`.
+* Files changed: `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; verification bundle target repo: <workspace>/projects/coding-agent-skills; evidence pack mode: dry-run; release boundary: no npm publish, npm version, git tag, git push, GitHub release, deploy, remote mutation, secret read, or production call is permitted in this route; npm package readiness command exit: 0; npm package readiness final classification: NOT_VERIFIED; release preflight command exit: 0; release preflight final classification: NOT_VERIFIED; evidence pack command exit: 0; evidence pack wrote files: no, dry-run mode; script syntax checks: passed; skill-cleaner exit: 0; validate-skills exit: 0; validate-skills result: PASS.
+* Result: Verification bundle self-test complete: verification bundle self-test ran safely; npm readiness=NOT_VERIFIED; release preflight=NOT_VERIFIED; evidence pack mode=dry-run.
+* Failure/recovery notes: No forbidden deploy, migration, Supabase mutation, production endpoint call, direct main push, force push, merge, token printing, token file write, unrelated staging, or evidence inclusion occurred..
+* Follow-up skill needed: release-preflight-skill.
+* Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.
+
+## 2026-07-17 - run-next Autonomous Work Loop
+
+* Skill used: coding-workflow-orchestrator-skill; selected next skill was release-preflight-skill / verification bundle autonomous self-test.
+* Goal: Read `work-ledger.md`, classify status `Local verification and release evidence bundle built`, check permission flags, and run only the next safe action.
+* Starting state: Target repo `<workspace>/projects/hardware-ledger`; permission flags `verification-bundle-self-test`; dry-run `no`.
+* Commands/tools used: `scripts/run-next --repo <workspace>/projects/hardware-ledger --allow verification-bundle-self-test`.
+* Files inspected: `AGENTS.md`; `RUNBOOK.md`; `tools.md`; `work-ledger.md`; selected ledger entry for `<workspace>/projects/hardware-ledger`.
+* Files changed: `work-ledger.md`; `runs/skill-runs.md`.
+* Evidence collected: read AGENTS.md; read RUNBOOK.md; read tools.md; read work-ledger.md; verification bundle target repo: <workspace>/projects/hardware-ledger; evidence pack mode: dry-run; release boundary: no npm publish, npm version, git tag, git push, GitHub release, deploy, remote mutation, secret read, or production call is permitted in this route; npm package readiness command exit: 0; npm package readiness final classification: FAIL; release preflight command exit: 0; release preflight final classification: WARN; evidence pack command exit: 0; evidence pack wrote files: no, dry-run mode; script syntax checks: passed; skill-cleaner exit: 0; validate-skills exit: 0; validate-skills result: PASS.
+* Result: Verification bundle self-test complete: verification bundle self-test ran safely; npm readiness=FAIL; release preflight=WARN; evidence pack mode=dry-run.
+* Failure/recovery notes: No forbidden deploy, migration, Supabase mutation, production endpoint call, direct main push, force push, merge, token printing, token file write, unrelated staging, or evidence inclusion occurred..
+* Follow-up skill needed: release-preflight-skill.
+* Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.
