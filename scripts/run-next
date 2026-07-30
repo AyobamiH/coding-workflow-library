@@ -304,6 +304,10 @@ function main() {
 
 function routeStatus(status, active = {}) {
   const normalized = status.toLowerCase();
+  if (args.releaseManifest) {
+    if (!dryRun) return { skill: "release-preflight-skill", permission: "release-publication", requiresAuthority: ["remote_publication"], kind: "permission-boundary", finalStatus: "BLOCKED_SAFETY", nextAction: "generic release manifest execution requires --dry-run until an installed authenticated adapter is configured" };
+    return { skill: "release-preflight-skill / github-handoff-skill", permission: null, requiresAuthority: ["local_execution"], kind: "generic-npm-prerelease", nextAction: "validate the declarative exact-tarball npm prerelease without external calls" };
+  }
   const activeObjective = active.rawLane?.objective ? objectiveAuthority.normalizeObjective(active.rawLane.objective) : null;
 
   const releaseVersion = runtimeApi().releaseVersionFromObjective(activeObjective?.id);
