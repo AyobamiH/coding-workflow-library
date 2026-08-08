@@ -54,6 +54,7 @@ try {
   write(gitRepo, "package.json", JSON.stringify({
     scripts: {
       build: "node scripts/build.js",
+      "receipts:test": "node scripts/build.js --receipts",
       test: "SECRET_TOKEN=super-secret-token-value node scripts/build.js",
       lint: "eslint .",
     },
@@ -79,7 +80,7 @@ try {
   assert.ok(map.languages.some((item) => item.language === "typescript"), "TypeScript should be detected");
   assert.ok(map.languages.some((item) => item.language === "javascript"), "JavaScript should be detected");
   assert.equal(map.package_scripts.build, "node scripts/build.js", "package scripts should be extracted");
-  assert.equal(map.command_candidates.test, "npm run test", "test command candidate should be extracted");
+  assert.equal(map.command_candidates.test, "npm run test", "canonical test command should win over focused variants");
   assert.ok(map.docs.available, "docs-list integration should be available");
   assert.ok(map.docs.documents >= 5, "docs-list summary should report documents");
   assert.ok(map.env_files.some((entry) => entry.path === ".env" && entry.status === "present"), "env file presence should be reported");

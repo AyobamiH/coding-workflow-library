@@ -44,6 +44,7 @@ const HANDLERS = {
   "library-next-objective-assessment": "runLibraryNextObjectiveAssessment",
   "capability-intelligence-search-truth": "runCapabilityIntelligenceSearchTruth",
   "capability-intelligence-cli-input-truth": "runCapabilityIntelligenceCliInputTruth",
+  "capability-intelligence-evidence-truth": "runCapabilityIntelligenceEvidenceTruth",
 };
 
 function dispatchRoute(route, active) {

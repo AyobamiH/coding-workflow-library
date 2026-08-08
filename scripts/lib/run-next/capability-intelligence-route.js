@@ -6,6 +6,30 @@
 
 function selectCapabilityIntelligenceRoute(status) {
   const normalized = String(status || "").toLowerCase();
+  if (normalized === "capability intelligence evidence truth and maturity complete locally") {
+    return {
+      skill: "capability-intelligence-builder-skill",
+      permission: null,
+      kind: "human-boundary",
+      finalStatus: "Capability intelligence evidence truth and maturity complete locally",
+      nextPermission: "collect a second independent receipt producer or resolve product-recon draft provenance",
+      nextAction: "the current P0 product truth queue is complete; do not invent issuer authentication or distribution work without new evidence",
+    };
+  }
+  if ([
+    "unlabelled plugin purpose audit and read-only inspection command complete locally at 5ded92a",
+    "capability intelligence inspection surfaces mature locally at 1de53d8",
+    "capability intelligence evidence truth and maturity requested",
+    "capability intelligence evidence truth and maturity blocked",
+  ].includes(normalized)) {
+    return {
+      skill: "capability-intelligence-builder-skill",
+      permission: "capability-intelligence-evidence-truth",
+      requiresAuthority: ["local_execution"],
+      kind: "capability-intelligence-evidence-truth",
+      nextAction: "keep connector cache flags as hints, validate explicit observed receipts, reconcile the product backlog, and stop before publication or capability invocation",
+    };
+  }
   if (normalized === "capability intelligence cli input truth hardening complete locally") {
     return {
       skill: "capability-intelligence-builder-skill",

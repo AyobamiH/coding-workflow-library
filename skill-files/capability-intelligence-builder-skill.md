@@ -43,6 +43,7 @@ Adapt commands to the target repository and use its documented entrypoints:
 <CAPABILITY_CLI> coverage --json
 <CAPABILITY_CLI> ask "<OUTCOME>"
 <CAPABILITY_CLI> duplicates
+<CAPABILITY_CLI> receipts --input <EXPLICIT_RECEIPT_FILE> --json
 <CAPABILITY_CLI> export --output <TEMP_ROOT>/capabilities.json --redacted
 <TARGET_TEST_COMMAND>
 ```
@@ -70,7 +71,10 @@ Use the library controls around the target work when appropriate:
 10. Ensure human, JSON, export, API, and interface views derive from the same source model.
 11. Give each CLI command an explicit option grammar. Reject unsupported options, duplicate singleton options, and values outside shared model enums before scanning source metadata.
 12. Add synthetic fixtures for every adapter and negative tests for malformed data, silent loss, unsafe fields, duplicate identities, lifecycle overclaiming, and command-input typos.
-13. Run a real strict scan only after synthetic tests pass. Record aggregate counts, not private source payloads.
+13. Treat cached provider flags as metadata hints unless they are observed runtime evidence. A directory `enabled` field must not silently become lifecycle `enabled=yes`.
+14. If observed receipts are supported, require an explicit bounded input, current-artifact identity match, constrained evidence checks, latest-observation semantics, and clear issuer-trust limits. Receipt import must not invoke or mutate a capability.
+15. Keep the target product's canonical backlog and maturity direction in the target repository, including limitations exposed by real workflow use.
+16. Run a real strict scan only after synthetic tests pass. Record aggregate counts, not private source payloads.
 
 ## Evidence Required
 
@@ -80,6 +84,8 @@ Use the library controls around the target work when appropriate:
 - Artifact counts by type, risk, and lifecycle state.
 - Deterministic repeated-run evidence.
 - Tests proving installed does not imply enabled, authenticated, runnable, or verified.
+- Tests proving cached connector flags remain hints rather than lifecycle claims.
+- Passed, failed, stale, unmatched, malformed, unsafe, and repeated observed-receipt fixtures when receipts are supported.
 - Tests proving connector IDs, authorization material, secret-shaped values, and private paths do not reach output.
 - Strict scan result from the real local environment.
 - UI or API smoke evidence when the product exposes those surfaces.
@@ -94,6 +100,7 @@ Use the library controls around the target work when appropriate:
 - Do not mark a capability authenticated from cache presence or enabled from installation alone.
 - Do not mark a capability runnable from a manifest claim.
 - Do not mark a capability verified without bounded observed evidence.
+- Do not describe schema-valid operator-supplied receipts as cryptographic issuer proof.
 - Do not execute discovered tools merely to improve inventory status.
 - Do not copy target-product implementation into this workflow library.
 - Do not install, publish, push, tag, release, deploy, or mutate production without separate authority.
@@ -108,6 +115,8 @@ Use the library controls around the target work when appropriate:
 - Empty or unmatched outcomes return installed tools: gate readiness scoring behind relevance and add CLI/API no-match regressions.
 - Unknown CLI options appear to succeed: use command-specific option allowlists and fail before scanning.
 - Invalid filter values return an empty success: validate against shared model enums and report accepted values.
+- Cached connector enablement appears as lifecycle truth: retain the value as a safe hint and leave lifecycle state unknown.
+- A receipt targets a changed artifact: report it as stale and do not change lifecycle state.
 - Host roots contain duplicate skills: retain each host-specific artifact and add duplicate relationships.
 - A source format changes: fail closed and add a versioned fixture before supporting the new shape.
 
@@ -131,5 +140,5 @@ Report:
 
 - Add signed publisher evidence without converting signatures into runtime proof.
 - Compare redacted inventories across teams without uploading private skill bodies.
-- Add observed execution receipts through a separate, explicit verification boundary.
+- Authenticate receipt issuers only after multiple independent producers prove the need and trust model.
 - Add compatibility drift alerts for plugin, skill, and tool-schema updates.

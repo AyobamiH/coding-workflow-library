@@ -215,7 +215,7 @@ All listed P2 items are complete. No generic capability work is active. New foun
 - Lane-scoped state and objective authority.
 - Reproducible workflow corpus extraction foundation.
 - Deterministic documentation inventory foundation (`scripts/docs-list`).
-- Deterministic source-only repository map helper (`scripts/repo-map`).
+- Deterministic source-only repository map helper (`scripts/repo-map`), including real-consumer proof that canonical package scripts take precedence over focused variants.
 - Deterministic source-only project KB compiler (`scripts/project-kb`).
 - Pre-commit validation hook (`scripts/pre-commit-check`, `scripts/install-git-hooks`, `templates/hooks/pre-commit`).
 - Deterministic source-only migration review helper (`scripts/migration-review`).

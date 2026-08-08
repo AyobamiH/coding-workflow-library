@@ -2,6 +2,20 @@
 
 This file records every real use of the coding workflow skills library.
 
+## 2026-08-08 - Capability Evidence Truth And Backlog Recovery
+
+* Skill used: `coding-workflow-orchestrator-skill` and `capability-intelligence-builder-skill`.
+* Goal: recover and disposition the accessible conversation backlog, finish all bounded local work, and use Capability Intelligence plus the workflow library as reciprocal real-world maturity tests.
+* Starting state: library `main` was clean and aligned; Capability Intelligence had a stale private lane, lifecycle-overclaiming connector hints, no observed-receipt contract, no canonical product backlog, 27 passing tests, and seven unrelated untracked product-recon drafts.
+* Commands/tools used: corrected corpus aggregates, `docs-list`, `repo-map`, lane-state inspection, route dry-run and execution, focused and full tests, strict product scan, route/skill validation, package dry-runs, exact-file staging, and non-printing staged-secret scans.
+* Files inspected: public workflow controls and history, private secret-free lane metadata, Capability Intelligence source/tests/docs/package metadata, and read-only repository status for unresolved product lanes.
+* Files changed: connector and receipt implementation; product backlog, maturity, privacy, contract, schema, tests, and CLI; reusable lane route and skill guidance; repository-map candidate selection and fixture; conversation ledger and public run records.
+* Evidence collected: 55 recovered items with no missing disposition; 5,194 connector records with unknown lifecycle status; 31 product tests; strict 6,916-artifact/13-source scan; 40-route audit; dry-run lane immutability; selected-lane-only real transition; real-consumer `npm run test` candidate; safe package manifests; local product commit `e299196`.
+* Result: COMPLETE LOCALLY WITH EXTERNAL BLOCKERS. All independently executable work is complete; blocked, investigation, deferred, stale, duplicate, and invalid items have explicit reasoning and reopen conditions.
+* Failure/recovery notes: the first real route attempted to buffer an unbounded full-inventory JSON probe, stopped safely, and marked only the selected lane blocked. A bounded aggregate probe replaced it, the retry completed, and no other lane changed. The real product also exposed `repo-map` preferring a focused test script; exact canonical-name precedence and a regression fixture repaired it.
+* Follow-up skill needed: none. The next legitimate objective must come from a blocked-item decision, a second independent receipt producer, or new repeated evidence.
+* Upgrade idea: authenticate receipt producers only after at least two independent producer contracts exist; keep inventory separate from automatic installation or invocation.
+
 ## 2026-07-17 - Library Next-Objective Foundation
 
 * Skill used: coding-workflow-orchestrator-skill and build-verify-skill.

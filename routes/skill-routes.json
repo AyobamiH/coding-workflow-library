@@ -2083,6 +2083,69 @@
       "provenance": "the product reconnaissance evidence proved that unknown options and invalid risk levels could look successful, violating the inventory truth contract"
     },
     {
+      "id": "capability-intelligence-evidence-truth",
+      "skill_file": "skill-files/capability-intelligence-builder-skill.md",
+      "ledger_states_handled": [
+        "Unlabelled plugin purpose audit and read-only inspection command complete locally at 5ded92a",
+        "Capability intelligence inspection surfaces mature locally at 1de53d8",
+        "Capability intelligence evidence truth and maturity requested",
+        "Capability intelligence evidence truth and maturity blocked"
+      ],
+      "permission_flag": "capability-intelligence-evidence-truth",
+      "helper_scripts": [
+        "scripts/repo-map",
+        "scripts/docs-list",
+        "scripts/pre-commit-check"
+      ],
+      "permission_level": "local_execution",
+      "explicit_permission_required": true,
+      "requires_authority": [
+        "local_execution"
+      ],
+      "forbidden_actions": [
+        "capability execution",
+        "automatic capability installation",
+        "credential or environment-value reads",
+        "arbitrary receipt discovery",
+        "remote publication",
+        "npm publish",
+        "version change",
+        "git tag",
+        "GitHub release creation",
+        "deploy",
+        "production mutation"
+      ],
+      "success_ledger_state": "Capability intelligence evidence truth and maturity complete locally",
+      "blocked_ledger_state": "Capability intelligence evidence truth and maturity blocked",
+      "next_permission": "collect a second independent receipt producer or resolve product-recon draft provenance",
+      "evidence_required": [
+        "connector cache flags retained only as safe metadata hints",
+        "connector lifecycle enablement remains unknown",
+        "explicit observed receipt bundle schema",
+        "current-artifact fingerprint matching",
+        "passed, failed, stale, unmatched, malformed, and unsafe receipt tests",
+        "canonical product backlog",
+        "product maturity direction",
+        "complete local check",
+        "strict read-only inventory scan",
+        "repository map validation"
+      ],
+      "safety_gates": [
+        "target package identity check",
+        "receipt input must be explicit and size bounded",
+        "receipt import must not invoke or mutate a capability",
+        "read-only local inventory",
+        "no source installation or authentication",
+        "no automatic commit or remote publication"
+      ],
+      "idempotency_evidence": [
+        "repeated receipt validation returns equivalent results",
+        "receipt overlay does not mutate the source inventory",
+        "rerun validates existing product backlog and maturity files without rewriting them"
+      ],
+      "provenance": "real Capability Intelligence use exposed connector lifecycle overclaiming, missing observed-receipt validation, stale lane metadata, and the absence of an independent product backlog and maturity direction"
+    },
+    {
       "id": "library-next-objective-assessment",
       "skill_file": "skill-files/coding-workflow-orchestrator-skill.md",
       "ledger_states_handled": [

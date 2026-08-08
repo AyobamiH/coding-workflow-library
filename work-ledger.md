@@ -4,6 +4,18 @@ This is the persistent control-plane ledger for `coding-workflow-orchestrator-sk
 
 Each entry records the active repo, objective, permission boundary, selected skill, evidence, blockers, and exact next action. The ledger is operational state, not a polished report.
 
+## 2026-08-08 - Conversation Backlog Recovery And Capability Evidence Truth
+
+* Active repos: `<LIBRARY_REPO>` and local `<CAPABILITY_INTELLIGENCE_REPO>`; other product repositories were inspected read-only only where needed for disposition evidence.
+* Current objective: recover the accessible engineering backlog, execute every bounded local item, mature both local tools through real use, and leave explicit dispositions for all remaining work.
+* Current permission level: `local_execution`; no remote publication, package publication, version change, tag, release, deploy, production mutation, secret access, destructive action, or external service mutation.
+* Current status: complete locally with external and owner-decision blockers retained. Fifty-five recovered items have explicit dispositions: 38 verified complete, 6 relevant blocked, 2 needing investigation, 6 intentionally deferred, 1 stale, 1 duplicate, and 1 invalid.
+* Selected skills: coding-workflow-orchestrator-skill and capability-intelligence-builder-skill, with `docs-list`, `repo-map`, route audit, lane isolation, and exact-file commit controls.
+* Evidence: Capability Intelligence connector hints no longer claim lifecycle readiness; bounded observed receipts can prove only fingerprint-matched verification; its canonical backlog and maturity record exist; 31 product tests and a strict 6,916-artifact scan passed. The new lane route dry-run changed no state, its first bounded run stopped safely on oversized output, and the aggregate retry completed while changing only the selected lane. Real use also exposed and repaired `repo-map` preferring `receipts:test` over canonical `test`.
+* Local commit evidence: Capability Intelligence `e299196` (`Add observed capability evidence truth`); reusable workflow changes are committed separately under this objective. Seven pre-existing untracked product-recon drafts remain untouched and unpackaged.
+* Exact next action: obtain the external evidence or owner decision for one explicitly blocked item, or investigate a second independent receipt producer; do not invent a generic broker or agent role.
+* Whether John is needed: only for a recorded product/provenance/distribution decision or new authority. No locally executable backlog item remains in this mission.
+
 ## 2026-07-17 - Library Next-Objective Assessment
 
 * Active repo: `<LIBRARY_REPO>`.

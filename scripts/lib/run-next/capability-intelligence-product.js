@@ -216,7 +216,113 @@ function runCapabilityIntelligenceCliInputTruth() {
   };
 }
 
+function runCapabilityIntelligenceEvidenceTruth() {
+  const { actions, dryRun, evidence, fs, LIBRARY_ROOT, path, targetRepo } = runtime.pick([
+    "actions",
+    "dryRun",
+    "evidence",
+    "fs",
+    "LIBRARY_ROOT",
+    "path",
+    "targetRepo",
+  ]);
+  const run = runtime.lazy("run");
+
+  if (dryRun) {
+    actions.push("would verify the target is the standalone capability-intelligence package");
+    actions.push("would prove cached connector flags remain metadata hints rather than lifecycle claims");
+    actions.push("would prove explicit observed receipts handle passed, failed, stale, unmatched, malformed, and unsafe evidence");
+    actions.push("would verify the product backlog and maturity direction are canonical and independently readable");
+    actions.push("would run focused tests, the complete local check, strict inventory, docs inventory, and repo-map validation");
+    actions.push("would stop before commit, push, publication, release, deploy, capability execution, or secret access");
+    evidence.push("dry-run selected the evidence-truth route without changing the target or lane state");
+    return {
+      finalStatus: "DRY RUN PASSED",
+      ledgerStatus: "Capability intelligence evidence truth and maturity requested",
+      summary: "connector lifecycle truth, observed receipts, and product maturity evidence would be validated locally",
+      nextPermission: "capability-intelligence-evidence-truth",
+      nextSkill: "capability-intelligence-builder-skill",
+      objectiveStatus: "active",
+      exitCode: 0,
+    };
+  }
+
+  const packagePath = path.join(targetRepo, "package.json");
+  const packageJson = fs.existsSync(packagePath)
+    ? parseJson(fs.readFileSync(packagePath, "utf8"), null)
+    : null;
+  if (packageJson?.name !== "capability-intelligence") {
+    return evidenceTruthBlocked("target package is not capability-intelligence", "select the Capability Intelligence repository");
+  }
+
+  const requiredFiles = [
+    "docs/BACKLOG.md",
+    "docs/MATURITY.md",
+    "docs/observed-receipts.md",
+    "schemas/observed-receipt.schema.json",
+    "src/receipts.js",
+    "test/receipts.test.js",
+  ];
+  const checks = [
+    ["focused evidence-truth tests", run("node", ["--test", "test/receipts.test.js", "test/scanner.test.js", "test/cli-server.test.js"], { cwd: targetRepo })],
+    ["complete local check", run("npm", ["run", "check"], { cwd: targetRepo })],
+    ["strict inventory scan", run("node", ["bin/capability-intelligence.js", "scan", "--strict", "--summary"], { cwd: targetRepo })],
+    ["documentation inventory", run(path.join(LIBRARY_ROOT, "scripts", "docs-list"), ["--repo", targetRepo, "--json"], { cwd: LIBRARY_ROOT })],
+    ["repository map validation", run(path.join(LIBRARY_ROOT, "scripts", "repo-map"), ["--repo", targetRepo, "--validate"], { cwd: LIBRARY_ROOT })],
+  ];
+  const connectorProbe = run("node", [
+    "--input-type=module",
+    "--eval",
+    "import { scanEnvironment } from './src/scanner.js'; const inventory = scanEnvironment(); const connectors = inventory.artifacts.filter((artifact) => artifact.source === 'codex-app-directory'); console.log(JSON.stringify({ coverage: inventory.coverage.status, count: connectors.length, lifecycleUnknown: connectors.every((artifact) => artifact.lifecycle.enabled === 'unknown'), hintsSafe: connectors.every((artifact) => ['yes', 'no', 'unknown'].includes(artifact.metadata.enabledHint)) }));",
+  ], { cwd: targetRepo, allowFailure: true });
+  const connectorResult = parseJson(connectorProbe.stdout, null);
+  const probeChecks = [
+    ["all maturity contract files exist", requiredFiles.every((file) => fs.existsSync(path.join(targetRepo, file)))],
+    ["bounded real connector probe succeeds", connectorProbe.code === 0 && connectorResult?.coverage === "passed"],
+    ["real connector source is represented", connectorResult?.count > 0],
+    ["connector cache flags do not claim lifecycle enablement", connectorResult?.count > 0 && connectorResult.lifecycleUnknown === true],
+    ["connector hints remain inspectable as safe metadata", connectorResult?.count > 0 && connectorResult.hintsSafe === true],
+  ];
+
+  for (const [name, result] of checks) evidence.push(`${name}: ${result.code === 0 ? "PASS" : "FAIL"}`);
+  for (const [name, passed] of probeChecks) evidence.push(`${name}: ${passed ? "PASS" : "FAIL"}`);
+  evidence.push(`real connector records checked: ${connectorResult?.count || 0}`);
+  evidence.push("receipt trust boundary: explicit operator-supplied local overlay; no cryptographic issuer claim");
+  evidence.push("boundary: no capability invocation, credential read, remote publication, deployment, or source mutation");
+
+  const failures = [
+    ...checks.filter(([, result]) => result.code !== 0).map(([name]) => name),
+    ...probeChecks.filter(([, passed]) => !passed).map(([name]) => name),
+  ];
+  if (failures.length) {
+    return evidenceTruthBlocked(`local evidence-truth checks failed: ${failures.join(", ")}`, "repair the bounded local product defect and rerun validation");
+  }
+
+  return {
+    finalStatus: "Capability intelligence evidence truth and maturity complete locally",
+    ledgerStatus: "Capability intelligence evidence truth and maturity complete locally",
+    summary: "connector hints remain non-lifecycle metadata; observed receipt overlays, canonical backlog, maturity direction, focused tests, strict inventory, docs inventory, and repo-map validation passed",
+    nextPermission: "collect a second independent receipt producer or resolve product-recon draft provenance",
+    nextSkill: "capability-intelligence-builder-skill",
+    objectiveStatus: "complete",
+    exitCode: 0,
+  };
+}
+
+function evidenceTruthBlocked(summary, nextPermission) {
+  return {
+    finalStatus: "BLOCKED_SAFETY",
+    ledgerStatus: "Capability intelligence evidence truth and maturity blocked",
+    summary,
+    nextPermission,
+    nextSkill: "capability-intelligence-builder-skill / error-evidence-skill",
+    objectiveStatus: "blocked",
+    exitCode: 1,
+  };
+}
+
 module.exports = {
   runCapabilityIntelligenceCliInputTruth,
+  runCapabilityIntelligenceEvidenceTruth,
   runCapabilityIntelligenceSearchTruth,
 };

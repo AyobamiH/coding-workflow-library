@@ -311,13 +311,25 @@ function packageScripts(repo, files) {
     for (const name of Object.keys(scripts).sort((a, b) => a.localeCompare(b))) {
       safeScripts[name] = safeScriptCommand(scripts[name]);
     }
+
+    // Prefer the conventional whole-project script before considering focused
+    // variants such as receipts:test or lint:docs. This keeps orientation
+    // advice useful without imposing a package-script naming policy.
+    const names = Object.keys(safeScripts);
+    const selectCandidate = (exactNames, pattern) => {
+      const exact = exactNames.find((name) => Object.hasOwn(safeScripts, name));
+      return exact || names.find((name) => pattern.test(name));
+    };
     const candidates = {};
-    for (const name of Object.keys(safeScripts)) {
-      if (/test/i.test(name)) candidates.test = candidates.test || `npm run ${name}`;
-      if (/build/i.test(name)) candidates.build = candidates.build || `npm run ${name}`;
-      if (/lint/i.test(name)) candidates.lint = candidates.lint || `npm run ${name}`;
-      if (/type(check)?/i.test(name)) candidates.typecheck = candidates.typecheck || `npm run ${name}`;
-      if (/validate|check/i.test(name)) candidates.validate = candidates.validate || `npm run ${name}`;
+    const selected = {
+      test: selectCandidate(["test"], /test/i),
+      build: selectCandidate(["build"], /build/i),
+      lint: selectCandidate(["lint"], /lint/i),
+      typecheck: selectCandidate(["typecheck", "type-check", "check:types"], /type(check)?|check:types/i),
+      validate: selectCandidate(["validate", "check"], /validate|check/i),
+    };
+    for (const [kind, name] of Object.entries(selected)) {
+      if (name) candidates[kind] = `npm run ${name}`;
     }
     return { scripts: safeScripts, candidates };
   } catch (error) {

@@ -302,6 +302,8 @@ coding-workflow extract-workflows \
 
 Generated corpus files, snapshots, comparisons, and `pseudonym-map.json` must stay outside the package repository. `workflow-snapshot.json` fingerprints content-derived manifest, corpus, and coverage components while omitting source mtimes, local paths, transcript bodies, and pseudonym mappings. `--compare-to` reports only changed component names, safe count deltas, and fingerprints; drift is informational unless `--require-unchanged` is supplied. Public docs may use only aggregate counts and safe classifications. See `docs/workflow-extraction-methodology.md`, `docs/workflow-corpus-recovery-report.md`, and `docs/agent-and-skill-roadmap.md`.
 
+The evidence-first disposition of backlog items recovered across the accessible conversation and local tool use is recorded in `docs/conversation-backlog-ledger.md`. It does not replace private lane state or product-specific backlogs.
+
 ## Documentation Inventory
 
 Use `scripts/docs-list` before broad documentation work so existing guidance is discovered before new docs are created:
@@ -365,7 +367,7 @@ Use `scripts/repo-map` before editing an unfamiliar workspace so the agent has d
 coding-workflow repo-map --repo /path/to/repo --validate
 ```
 
-The helper reports git state, top-level files and directories, detected languages, package/config markers, safe package scripts, command candidates, documentation summary from `scripts/docs-list`, source/database directories, environment-file presence without values, and secret-surface warning categories. It works for Git and non-Git directories. It does not install dependencies, run build/test commands in the target repo, mutate git, read `.env` values, call external services, inspect private corpus output, publish, deploy, push, tag, or prove runtime behaviour.
+The helper reports git state, top-level files and directories, detected languages, package/config markers, safe package scripts, command candidates, documentation summary from `scripts/docs-list`, source/database directories, environment-file presence without values, and secret-surface warning categories. Exact conventional package scripts such as `test` and `build` take precedence over focused variants when command candidates are selected. It works for Git and non-Git directories. It does not install dependencies, run build/test commands in the target repo, mutate git, read `.env` values, call external services, inspect private corpus output, publish, deploy, push, tag, or prove runtime behaviour.
 
 ## Project Knowledge Base
 

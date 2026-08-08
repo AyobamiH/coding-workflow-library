@@ -103,6 +103,12 @@ No new `run-next` route IDs were added for these helpers.
 
 They remain thin CLI commands until repeated lane-driven use demonstrates a stable route state transition. This avoids inventing ledger states merely to make helpers look orchestrated.
 
+## Real Consumer Feedback
+
+Capability Intelligence is a real local consumer of `docs-list`, `repo-map`, lane routing, and validation. Its receipt-specific package script exposed a deterministic orientation defect: alphabetic fuzzy matching selected `npm run receipts:test` as the repository-wide test candidate even though a canonical `test` script existed.
+
+`repo-map` now gives exact conventional names precedence before considering focused variants. The synthetic fixture includes both `test` and `receipts:test`, and the actual consuming repository now reports `npm run test`. This is a bounded maturity correction, not a new generic foundation or command-execution claim.
+
 ## Remote Portability Proof
 
 After `remote_publication` was granted, commits `c81fc66` and `f8968d2` were pushed by normal fast-forward to `main`.
