@@ -53,7 +53,7 @@ Modes:
   --orphans    Print only orphan/reference findings in human mode.
   --validate   Exit non-zero only for strict failures: orphaned current docs or duplicate titles.
 
-The helper uses git-tracked files when available. Historical release notes, run logs, and evidence notes are inventoried but not treated as current-doc orphan failures.`);
+The helper uses git-tracked files when available. Historical release notes, archive directories, run logs, and evidence notes are inventoried but not treated as current-doc orphan failures.`);
 }
 
 function parseArgs(argv) {
@@ -149,6 +149,7 @@ function classify(relativePath) {
   if (relativePath.startsWith("skill-files/")) return "skill";
   if (relativePath.startsWith("templates/")) return "template";
   if (relativePath.startsWith("docs/releases/") || relativePath === "CHANGELOG.md") return "release";
+  if (/(^|\/)(archive|archives)(\/|$)/.test(relativePath)) return "historical";
   if (relativePath.startsWith("runs/") || relativePath.startsWith("evidence/")) return "historical";
   if (relativePath.startsWith("tests/") || relativePath === "tests/library-validation-checklist.md") return "validation";
   if (relativePath === "build-queue.md" || relativePath === "docs/agent-and-skill-roadmap.md") return "roadmap";

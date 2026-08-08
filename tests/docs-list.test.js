@@ -44,6 +44,7 @@ try {
   write("docs/no-h1.md", "No heading here\n");
   write("docs/dup-a.md", "# Duplicate\n");
   write("docs/dup-b.md", "# Duplicate\n");
+  write("docs/archive/old-context.md", "# Old Context\n");
   write("docs/releases/v0.1.0.md", "# v0.1.0\n");
   write("skill-files/example-skill.md", "# Example Skill\n");
   write("templates/example-template.md", "# Example Template\n");
@@ -65,6 +66,7 @@ try {
     "docs/no-h1.md",
     "docs/dup-a.md",
     "docs/dup-b.md",
+    "docs/archive/old-context.md",
     "docs/releases/v0.1.0.md",
     "skill-files/example-skill.md",
     "templates/example-template.md",
@@ -82,12 +84,14 @@ try {
   assert.equal(report.documents.find((doc) => doc.path === "skill-files/example-skill.md").category, "skill");
   assert.equal(report.documents.find((doc) => doc.path === "templates/example-template.md").category, "template");
   assert.equal(report.documents.find((doc) => doc.path === "docs/releases/v0.1.0.md").category, "release");
+  assert.equal(report.documents.find((doc) => doc.path === "docs/archive/old-context.md").category, "historical");
   assert.deepEqual(paths, [...paths].sort((a, b) => a.localeCompare(b)), "documents should sort deterministically");
   assert.equal(extractTitle("# Hello\n"), "Hello");
   assert.ok(report.warnings.missing_h1.includes("docs/no-h1.md"), "missing H1 should be reported");
   assert.equal(report.warnings.duplicate_titles.length, 1, "duplicate titles should be reported");
   assert.ok(report.warnings.orphans.includes("docs/orphan.md"), "orphan documents should be reported");
   assert.ok(!report.warnings.orphans.includes("docs/current.md"), "linked docs should not be orphaned");
+  assert.ok(!report.warnings.orphans.includes("docs/archive/old-context.md"), "archived docs should not be current-document orphans");
   assert.ok(!paths.includes("state/workflow-corpus/private.md"), "private corpus outputs must be excluded");
   assert.ok(!paths.includes(".run-next/private.md"), "private run-next outputs must be excluded");
   assert.ok(!paths.includes("node_modules/pkg/README.md"), "generated dependency docs must be excluded");

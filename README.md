@@ -317,6 +317,8 @@ Use `scripts/docs-list` before broad documentation work so existing guidance is 
 coding-workflow docs-list --validate
 ```
 
+The inventory treats files under `archive/` or `archives/` path segments as historical evidence. They remain discoverable but do not fail strict current-document orphan checks.
+
 The helper inventories tracked Markdown documentation, classifies each file by repository area, extracts the first H1, reports duplicate titles, and checks whether current docs are referenced by the expected index/control documents. Historical release notes, run logs, and evidence notes are listed but are not treated as current-document orphan failures. It does not call an LLM, rewrite docs, inspect private corpus outputs, read secrets, publish, deploy, push, tag, or mutate external services.
 
 The `run-next` architecture is documented separately because adding a route should extend the correct domain module rather than regrow the executable entrypoint. Read `docs/run-next-modular-architecture.md` before broad `run-next` work.

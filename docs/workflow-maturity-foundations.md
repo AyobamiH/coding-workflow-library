@@ -109,6 +109,8 @@ Capability Intelligence is a real local consumer of `docs-list`, `repo-map`, lan
 
 `repo-map` now gives exact conventional names precedence before considering focused variants. The synthetic fixture includes both `test` and `receipts:test`, and the actual consuming repository now reports `npm run test`. This is a bounded maturity correction, not a new generic foundation or command-execution claim.
 
+Resolving Capability Intelligence reconnaissance provenance exposed a second generic classification gap: documentation beneath an `archive/` path was treated as current architecture and failed strict orphan validation. `docs-list` now inventories `archive/` and `archives/` path segments as historical evidence, with a fixture proving they remain visible without becoming current-document orphan failures.
+
 ## Remote Portability Proof
 
 After `remote_publication` was granted, commits `c81fc66` and `f8968d2` were pushed by normal fast-forward to `main`.
