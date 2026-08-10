@@ -7,6 +7,14 @@ This roadmap is rebuilt from two sources:
 
 It separates reusable skills and helpers from product-specific roles and newer unproven autonomy ideas.
 
+## Current Direction
+
+The current product direction is a reusable, lane-scoped autonomous coding control plane for evidence-backed repository work. Agents should be able to orient, select a bounded route, inherit objective authority, execute local steps, checkpoint, resume, validate, and stop at the first ungranted consequence boundary without asking the user to reconstruct context.
+
+The reusable foundation is currently broad and no new generic P0/P1 capability is proven missing. Near-term work should therefore come from one of three sources: a selected target-repository objective, a structured gap with concrete evidence, or repeated failures showing an existing skill, route, or helper cannot satisfy its contract. Maintenance keeps existing route, documentation, portability, package, privacy, and modularity truth intact; it must not manufacture a new product direction.
+
+Generic planner/worker/reviewer roles, fixed agent teams, capability brokering, and automatic prefetch remain held. Product-specific role pilots may continue in their own scope, but they are not reusable library architecture until repeated independent work proves stable inputs, outputs, authority, handoff, and measurable benefit.
+
 ## Dependency Graph
 
 ```text

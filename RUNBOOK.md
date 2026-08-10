@@ -25,6 +25,21 @@ Read `AGENTS.md` first. Its hard rules and permission gates override individual 
 17. Commit permission does not imply push permission.
 18. Keep public source portable: use semantic path placeholders and reject absolute user-home paths with `scripts/check-public-paths`.
 
+## Documentation Continuity
+
+Before broad work, establish direction from `docs/agent-and-skill-roadmap.md`, `build-queue.md`, and the selected private lane. Use `scripts/docs-list` to discover current documents and `scripts/library-next-objective --repo <LIBRARY_REPO> --validate` before proposing another reusable foundation.
+
+During implementation, update the owning documents with the code:
+
+- reusable capability or helper: `README.md`, roadmap, queue, and `CHANGELOG.md`;
+- route or permission boundary: route metadata, owning skill, `AGENTS.md` or `RUNBOOK.md`, and focused architecture documentation;
+- active target status: selected private lane only;
+- completed reusable run: `runs/skill-runs.md` plus `work-ledger.md` when historical library state changes.
+
+Before handoff, run `npm test`, review `git diff`, and confirm current capability, direction, queue status, and limitations agree. A documentation-only claim is not proof, and a passing test cannot make stale prose truthful.
+
+Lane `current_state` values are routing keys, not status-summary prose. Use only exact route handled/success/blocked/retry states or a documented terminal state. Record richer progress in lane notes, `work-ledger.md`, and `runs/skill-runs.md`; otherwise `run-next` must fail closed with `unknown ledger status`.
+
 ## Execution Order
 
 1. `AGENTS.md`: hard rules, permission gates, repo safety, secret handling, and routing constraints.
@@ -342,7 +357,7 @@ The helper reads only public queue and roadmap files. The matching `library-next
 
 Use `scripts/autonomy-outcomes --repo <LIBRARY_REPO> --json --validate` when the question is whether the workflow is completing, blocking, resuming, or stopping more reliably.
 
-The report uses only safe local lane, checkpoint, ledger, and run-log metadata. Missing optional lane state remains `WARN` and `not_verified`. Do not treat aggregate workflow outcomes as CI, deployment, runtime, database, or production evidence.
+The report uses only safe local lane, checkpoint, ledger, and run-log metadata. Missing optional lane state remains `WARN` and `not_verified`. Incomplete history is split into recoverable, stale, and missing-target counts so removed test fixtures are not presented as resumable work. Do not treat aggregate workflow outcomes as CI, deployment, runtime, database, or production evidence.
 
 ## Multi-Project Workflow Proof
 
@@ -361,6 +376,8 @@ Use the existing trace/runtime/error skill combination when a successful job pro
 ## Interrupted Run Resume
 
 Use `./scripts/run-next --repo /path/to/repo --status` to inspect the latest checkpoint. Use `./scripts/run-next --repo /path/to/repo --resume --dry-run` before any real resume. Resume must verify branch, tracked working tree, permission flags, and checkpoint validity before continuing. It must not reset, clean, stash, force push, or replay a possible mutation.
+
+Tests that execute a real `run-next` route must set `RUN_NEXT_DIR` to a temporary test-owned directory and remove that directory with the fixture. Dry-runs remain non-mutating and do not create checkpoints.
 
 ## Secret Handling
 

@@ -18,6 +18,8 @@ const stateFile = path.join(temporary, "lanes.json");
 const checkpointDir = path.join(temporary, ".run-next");
 const ledger = path.join(temporary, "work-ledger.md");
 const runLog = path.join(temporary, "runs", "skill-runs.md");
+const activeRepo = path.join(temporary, "active-repo");
+const completedRepo = path.join(temporary, "completed-repo");
 
 function write(relative, text) {
   const file = path.join(temporary, relative);
@@ -57,6 +59,8 @@ function checkpoint(overrides = {}) {
 }
 
 try {
+  fs.mkdirSync(activeRepo, { recursive: true });
+  fs.mkdirSync(completedRepo, { recursive: true });
   write("lanes.json", `${JSON.stringify({
     version: 1,
     lanes: [{
@@ -90,10 +94,12 @@ try {
       }
     }]
   }, null, 2)}\n`);
-  write(".run-next/repo/run-001.json", `${JSON.stringify(checkpoint(), null, 2)}\n`);
+  write(".run-next/repo/run-001.json", `${JSON.stringify(checkpoint({ repo: completedRepo }), null, 2)}\n`);
   write(".run-next/repo/run-002.json", `${JSON.stringify(checkpoint({
     run_id: "run-002",
+    repo: completedRepo,
     status: "completed",
+    updated_at: "2026-01-02T00:00:00.000Z",
     phase: "record",
     stop_reason: "resume completed record checkpoint",
     checkpoints: checkpoint().checkpoints.map((item) => ({
@@ -101,6 +107,14 @@ try {
       status: "completed",
       ...(item.name === "record" ? { metadata: { resumed: true } } : {}),
     })),
+  }), null, 2)}\n`);
+  write(".run-next/repo/run-003.json", `${JSON.stringify(checkpoint({
+    run_id: "run-003",
+    repo: activeRepo,
+  }), null, 2)}\n`);
+  write(".run-next/repo/run-004.json", `${JSON.stringify(checkpoint({
+    run_id: "run-004",
+    repo: path.join(temporary, "removed-repo"),
   }), null, 2)}\n`);
   write("work-ledger.md", `# Work Ledger
 
@@ -119,13 +133,15 @@ try {
 
   const report = buildReport({ stateFile, checkpointDir, ledger, runLog });
   assert.equal(report.status, "PASS");
-  assert.equal(report.sources.checkpoints.records, 2);
+  assert.equal(report.sources.checkpoints.records, 4);
   assert.equal(report.checkpoints.statuses.completed, 1);
-  assert.equal(report.checkpoints.statuses.incomplete, 1);
+  assert.equal(report.checkpoints.statuses.incomplete, 3);
   assert.equal(report.checkpoints.recovery_candidates, 1);
   assert.equal(report.checkpoints.record_only_resume_candidates, 1);
+  assert.equal(report.checkpoints.stale_candidates, 1);
+  assert.equal(report.checkpoints.missing_target_candidates, 1);
   assert.equal(report.checkpoints.resume_events, 2);
-  assert.equal(report.checkpoints.routes["verification-bundle-self-test"].total, 2);
+  assert.equal(report.checkpoints.routes["verification-bundle-self-test"].total, 4);
   assert.equal(report.lanes.blocker_states.blocked_permission, 1);
   assert.equal(report.history.run_log.result_classifications.blocked_or_failed, 1);
   assert.deepEqual(report.not_verified, []);

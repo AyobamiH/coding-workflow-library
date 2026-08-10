@@ -75,6 +75,7 @@ function lane(id, state) {
 
 try {
   assert.equal(classifyDisposition("implemented and published"), "complete");
+  assert.equal(classifyDisposition("implemented and published; missing-target history remains visible"), "complete");
   assert.equal(classifyDisposition("blocked pending evidence"), "active");
   assert.equal(classifyDisposition(""), "active");
 

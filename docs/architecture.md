@@ -59,6 +59,8 @@ Blockers are classified independently:
 
 Only a selected lane may change during a lane-aware run. Dry-runs never update lane state. Objective grants do not leak between lanes. Product monitoring evidence remains local unless it is deliberately sanitised for public documentation.
 
+The lane `current_state` field is a route-selection key. It must equal an exact state declared by route/control metadata or a documented terminal state; free-form progress text belongs in notes or historical records. Unknown state text fails closed instead of being inferred as completion or permission.
+
 ## Diagnostic Routes
 
 `zero-output-pipeline-investigation` is a lane-scoped read-only route. It composes existing trace, runtime, and error-classification skills with `scripts/pipeline-diagnostics`; the helper remains source-only, while approved adapters may add aggregate database metadata. Product-specific counts and paths remain private lane evidence rather than package content.

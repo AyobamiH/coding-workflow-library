@@ -14,6 +14,9 @@
 - Add a repository-wide 1,000-line review threshold, 2,200-line hard source-size gate, JSON audit output, modular runtime contract tests, recursive JavaScript syntax coverage, and documented responsibility decisions.
 - Add a structured, atomic, secret-safe skill-gap recorder with dry-run, JSON, validation, and duplicate/refusal coverage.
 - Add privacy-safe autonomy outcome reporting over local lane, checkpoint, ledger, and run metadata.
+- Distinguish recoverable checkpoints from stale and missing-target history, and isolate real-route test checkpoints through temporary `RUN_NEXT_DIR` storage.
+- Add a tested agent documentation continuity contract covering current direction, source-of-truth documents, update triggers, and evidence-backed handoff without promoting held agent roles or coupling separate products.
+- Clarify and test that lane `current_state` values are exact routing keys; narrative milestones remain in notes and historical records, while unknown states continue to fail closed.
 - Add a read-only multi-project proof harness and observe the same bounded contract across the workflow library, OpsTruth, and Wagging Web Wins without Git or lane-state leakage.
 - Verify exact commit `f8968d2` remotely: main validation and Ubuntu, macOS, and Windows portability jobs passed in GitHub Actions run `29484530598`.
 

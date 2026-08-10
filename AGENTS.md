@@ -6,6 +6,31 @@ This is the first file agents must read before working with the local coding wor
 
 It defines hard rules. Use `RUNBOOK.md` for operating guidance after these rules are understood.
 
+## Agent Start Sequence
+
+Before broad library work, read these authorities in order:
+
+1. `AGENTS.md` for hard boundaries and objective authority.
+2. `docs/agent-and-skill-roadmap.md` for current direction, available foundations, and held ideas.
+3. `build-queue.md` for evidence, status, dependencies, and acceptance conditions.
+4. `RUNBOOK.md` for the operating sequence.
+5. `skills-index.md` and `routes/skill-routes.json` for reusable skill and route ownership.
+6. The selected lane state, checkpoint, and target repository evidence for active work.
+
+Run `scripts/docs-list` before broad documentation work and `scripts/library-next-objective --repo <LIBRARY_REPO> --validate` before inventing a new reusable foundation. An available implementation idea is not a roadmap item until corpus, structured-gap, or repeated workflow evidence proves the need.
+
+## Documentation Continuity
+
+Documentation is part of the workflow change and must be reconciled before handoff.
+
+- A new or changed reusable capability updates `README.md`, `docs/agent-and-skill-roadmap.md`, `build-queue.md`, and `CHANGELOG.md` as applicable.
+- An operating-procedure or authority change updates `AGENTS.md`, `RUNBOOK.md`, and the owning skill or architecture document.
+- A route change updates `routes/skill-routes.json`, its owning skill, and route-facing documentation.
+- A maturity or priority change updates `build-queue.md`; active private project state stays in lane state rather than the public ledger.
+- A completed bounded run updates `runs/skill-runs.md` and, when historical library status changed, `work-ledger.md`.
+
+Run `npm test` before handoff. Its foundation-truth check verifies that these direction authorities remain present and cross-referenced, while evidence review remains responsible for whether their claims are true. If no product document changed, state why behavior, direction, and operating boundaries were unaffected.
+
 ## Core Rules
 
 - Read this file before any skill or runbook.
@@ -144,6 +169,8 @@ Do not ask John for another approval merely because the next skill is ready, a l
 Use project-scoped local lane state for active work. The public `work-ledger.md` is historical evidence and a legacy routing source, not a single global current state.
 
 Real repo paths, monitoring baselines, private evidence, and product-specific runtime status belong in a local secret-free state file outside the tracked package. Select one lane explicitly and never advance another lane as a side effect.
+
+`current_state` is route-keyed machine data. Set it only to an exact handled, success, blocked, retry, or documented terminal state from route/control metadata. Put narrative milestones in lane notes, `work-ledger.md`, or `runs/skill-runs.md`; never replace a routable state with free-form progress prose.
 
 Real `run-next` executions also write secret-free local checkpoint metadata under `.run-next/`. This directory is ignored by git and is used only to inspect or resume interrupted bounded runs.
 

@@ -68,6 +68,9 @@ function p1Entries(markdown) {
 
 function classifyDisposition(status) {
   if (!status) return "active";
+  // The leading status phrase is authoritative. Completion evidence may
+  // legitimately discuss missing-target history or previously blocked cases.
+  if (/^(implemented|complete|completed|published|proven|observed|rejected|held)\b/i.test(status.trim())) return "complete";
   if (/\b(not implemented|missing|pending|requested|blocked|active|ready to build)\b/i.test(status)) return "active";
   if (/\b(implemented|complete|completed|published|proven|observed|rejected|held)\b/i.test(status)) return "complete";
   return "unknown";

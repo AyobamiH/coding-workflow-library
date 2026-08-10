@@ -2,6 +2,34 @@
 
 This file records every real use of the coding workflow skills library.
 
+## 2026-08-10 - Agent Direction And Documentation Continuity
+
+* Skill used: `coding-workflow-orchestrator-skill` and `build-verify-skill`.
+* Goal: make each active product self-orienting for future agents without creating a runtime bridge or shared roadmap.
+* Starting state: both repositories documented purpose, maturity, and backlog, but neither enforced a read order or a change-to-document handoff contract; earlier recommendation and checkpoint-truth changes were already present locally.
+* Commands/tools used: repository control/doc inspection, documentation inventory, exact patches, focused documentation tests, full product validation, strict capability scan, route/skill validation, lane-state isolation check, and diff checks.
+* Files inspected: each repository's `AGENTS.md`, README, contributor guide, maturity/roadmap, backlog/queue, changelog, existing validation, and private secret-free lane summaries.
+* Files changed: independent agent orientation and continuity sections in both repositories; one Capability Intelligence documentation test; workflow foundation-truth assertions; route-keyed lane-state guidance; historical workflow records.
+* Evidence collected: Capability Intelligence passed 41 tests plus strict 13-source coverage; the workflow library passed its complete suite with 40 routes, 33 skills, 78 current documents, and no documentation inventory defects. Only the two selected lanes advanced.
+* Result: COMPLETE LOCALLY. Agents now have a tested source-of-truth map, current direction, available capability summary, held-work boundary, update triggers, and handoff rule in each product.
+* Failure/recovery notes: a narrative milestone was initially written into the workflow lane's route-keyed `current_state`, and `run-next` correctly failed closed with `unknown ledger status`. Source inspection showed broad matching would weaken safety, so the canonical terminal state was restored and the exact-state rule was documented and tested. Existing unrelated local work was preserved, and no package, remote, production, secret, or destructive action ran.
+* Follow-up skill needed: none for documentation continuity. Use each product's own backlog and evidence rules for its next objective.
+* Upgrade idea: add semantic freshness automation only after stale prose escapes the current review and marker checks; do not replace evidence review with keyword assertions.
+
+## 2026-08-10 - Checkpoint Outcome Truth Hardening
+
+* Skill used: `coding-workflow-orchestrator-skill` and `build-verify-skill`.
+* Goal: use the workflow library's own maturity helpers to gather independent evidence and correct proven checkpoint-reporting drift.
+* Starting state: Git was clean and aligned; `library-next-objective` reported no active reusable gap; `autonomy-outcomes` validated 495 checkpoints but labeled 474 as recovery candidates.
+* Commands/tools used: lane-safe state listing, next-objective validation, autonomy outcome validation, checkpoint source inspection, focused tests, full package tests, route audit, skill validation, and package dry-run.
+* Files inspected: checkpoint runtime, outcome reporter, lane and outcome tests, queue, operator docs, changelog, historical ledger, and run log.
+* Files changed: `scripts/autonomy-outcomes`; `scripts/library-next-objective`; `tests/autonomy-outcomes.test.js`; `tests/lane-state.test.js`; `tests/library-next-objective.test.js`; and directly relevant workflow docs and records.
+* Evidence collected: zero currently recoverable checkpoints, eight stale checkpoints, 466 missing-target fixture checkpoints, 21 completed checkpoints, no invalid records, and no new operator checkpoint after rerunning the isolated real-route fixture test.
+* Result: COMPLETE LOCALLY. Outcome reporting now distinguishes operational recovery work from retained stale or removed-fixture history, and the terminal classifier remains consistent with the no-gap queue.
+* Failure/recovery notes: the first documentation update caused `library-next-objective` to treat the phrase `missing-target history` as an active missing feature. Leading explicit completion status is now authoritative, with a regression test.
+* Follow-up skill needed: none until new repeated workflow evidence proves a reusable gap; later publication uses `github-handoff-skill` under a separate remote objective.
+* Upgrade idea: retain historical checkpoints until a separately approved retention policy exists; truthful classification is sufficient for current operation.
+
 ## 2026-08-08 - Capability Evidence Truth And Backlog Recovery
 
 * Skill used: `coding-workflow-orchestrator-skill` and `capability-intelligence-builder-skill`.

@@ -4,6 +4,30 @@ This is the persistent control-plane ledger for `coding-workflow-orchestrator-sk
 
 Each entry records the active repo, objective, permission boundary, selected skill, evidence, blockers, and exact next action. The ledger is operational state, not a polished report.
 
+## 2026-08-10 - Agent Direction And Documentation Continuity
+
+* Active repos: `<LIBRARY_REPO>` and the separate Capability Intelligence repository, each changed only within its own product authority.
+* Current objective: make product direction, available capability, planning authority, and documentation handoff explicit so future agents cannot silently drift either product.
+* Current permission level: `local_execution`; no commit, push, package publication, version change, tag, release, deploy, production mutation, secret access, destructive action, or cross-product runtime integration.
+* Current status: complete locally. Each repository now has an independent agent read order, current-direction statement, documentation update map, contributor handoff, and focused validation.
+* Selected skills: `coding-workflow-orchestrator-skill` and `build-verify-skill`; no new skill or route was needed.
+* Evidence: Capability Intelligence remains an advisory discovery/recommendation product; the workflow library remains a lane-scoped autonomous coding execution control plane; generic brokers and unproven agent-role systems remain held. Wagging and OneClickPostFactory lane states and timestamps remained unchanged. A free-form library milestone correctly failed closed as an unknown route state; the canonical `Library self-assessment complete, no active reusable foundation gap` state was restored, documented as machine-routing data, and resolved correctly through `run-next --explain-next`.
+* Validation evidence: Capability Intelligence passed 41 tests and a strict 6,921-artifact scan. The workflow library passed its full suite, foundation-truth test, 40-route audit, 33-skill validation, path/module checks, and 78-document inventory with zero current orphans, duplicate titles, or missing H1s.
+* Exact next action: retain these local bounded changes for a later publication objective; future material changes must update the owning product authorities before handoff.
+* Whether John is needed: only for a later commit/publication objective or a genuine product decision.
+
+## 2026-08-10 - Checkpoint Outcome Truth Hardening
+
+* Active repo: `<LIBRARY_REPO>` only.
+* Current objective: gather independent workflow self-use evidence and correct any proven autonomy-reporting defect without coupling the library to another product.
+* Current permission level: `local_execution`; no push, package publication, version change, tag, release, deploy, production mutation, secret access, or destructive cleanup.
+* Current status: complete locally. The workflow still has no active reusable foundation gap.
+* Selected skills: `coding-workflow-orchestrator-skill` and `build-verify-skill` through `scripts/autonomy-outcomes` and `scripts/library-next-objective`.
+* Evidence: 495 retained checkpoint records validated with no malformed record. The old report labeled all 474 incomplete records recoverable; source and test inspection proved 466 refer to removed fixture targets and eight were superseded by newer completion. The corrected report records zero current recovery candidates, eight stale candidates, and 466 missing-target candidates. A repeated real-route lane test left the operator checkpoint count unchanged because fixture runs now use a temporary `RUN_NEXT_DIR`.
+* Validation evidence: focused autonomy, lane-isolation, and next-objective tests passed; the next-objective classifier remains `NO_ACTIVE_REUSABLE_GAP`; full package validation passes independently.
+* Exact next action: retain local hardening for a later exact-file publication objective, or select a genuinely new target-repository objective. Historical checkpoint deletion was not performed.
+* Whether John is needed: only for a later remote publication objective or selection of new work.
+
 ## 2026-08-08 - Conversation Backlog Recovery And Capability Evidence Truth
 
 * Active repos: `<LIBRARY_REPO>` and local `<CAPABILITY_INTELLIGENCE_REPO>`; other product repositories were inspected read-only only where needed for disposition evidence.

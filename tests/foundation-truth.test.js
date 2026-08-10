@@ -23,6 +23,11 @@ const queue = read("build-queue.md");
 const roadmap = read("docs/agent-and-skill-roadmap.md");
 const maturity = read("docs/workflow-maturity-foundations.md");
 const workflow = read(".github/workflows/validate.yml");
+const agents = read("AGENTS.md");
+const readme = read("README.md");
+const runbook = read("RUNBOOK.md");
+const contributing = read("CONTRIBUTING.md");
+const architecture = read("docs/architecture.md");
 
 const implementedHelpers = [
   "scripts/add-skill-gap",
@@ -48,6 +53,22 @@ assert.match(queue, /No active P1 gaps are currently evidence-backed/);
 assert.match(queue, /GitHub Actions run `29484530598`/);
 assert.match(maturity, /official v7 releases/);
 assert.match(maturity, /exact remote proof for this dependency update remains pending publication/);
+
+assert.match(agents, /^## Agent Start Sequence$/m);
+assert.match(agents, /^## Documentation Continuity$/m);
+for (const authority of ["docs/agent-and-skill-roadmap.md", "build-queue.md", "RUNBOOK.md", "skills-index.md", "routes/skill-routes.json"]) {
+  assert.ok(agents.includes(authority), `AGENTS.md must identify ${authority}`);
+}
+assert.match(readme, /^## Agent Orientation$/m);
+assert.match(readme, /lane-scoped autonomous coding execution/);
+assert.match(runbook, /^## Documentation Continuity$/m);
+assert.match(roadmap, /^## Current Direction$/m);
+assert.match(roadmap, /no new generic P0\/P1 capability is proven missing/);
+assert.match(queue, /^## Agent Planning Contract$/m);
+assert.match(contributing, /^## Documentation Handoff$/m);
+assert.match(agents, /`current_state` is route-keyed machine data/);
+assert.match(runbook, /Lane `current_state` values are routing keys/);
+assert.match(architecture, /Unknown state text fails closed/);
 
 const actionUses = [...workflow.matchAll(/uses:\s+actions\/(checkout|setup-node)@v(\d+)/g)];
 assert.equal(actionUses.length, 4, "expected checkout and setup-node in both CI jobs");

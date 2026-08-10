@@ -10,6 +10,7 @@ const laneState = require("../scripts/lane-state");
 const ROOT = path.resolve(__dirname, "..");
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "coding-workflow-lanes-"));
 const stateFile = path.join(temporary, "lanes.json");
+const runNextDir = path.join(temporary, ".run-next");
 
 const initial = {
   version: 1,
@@ -40,6 +41,7 @@ function run(args) {
   return spawnSync(process.execPath, [path.join(ROOT, "scripts", "run-next"), ...args], {
     cwd: ROOT,
     encoding: "utf8",
+    env: { ...process.env, RUN_NEXT_DIR: runNextDir },
   });
 }
 

@@ -179,9 +179,12 @@ function checkpointSummary(directory) {
     resume_events: 0,
     recovery_candidates: 0,
     record_only_resume_candidates: 0,
+    stale_candidates: 0,
+    missing_target_candidates: 0,
     invalid_records: 0,
   };
   const errors = [];
+  const runs = [];
 
   for (const file of files) {
     let run;
@@ -199,6 +202,17 @@ function checkpointSummary(directory) {
       summary.invalid_records += 1;
       continue;
     }
+    runs.push(run);
+  }
+
+  const latestByRepo = new Map();
+  for (const run of runs) {
+    const repo = String(run.repo || "");
+    const prior = latestByRepo.get(repo);
+    if (!prior || String(run.updated_at || "") > String(prior.updated_at || "")) latestByRepo.set(repo, run);
+  }
+
+  for (const run of runs) {
 
     const status = safeLabel(run.status);
     const phase = safeLabel(run.phase);
@@ -219,8 +233,15 @@ function checkpointSummary(directory) {
     }
     if (/resume/i.test(String(run.stop_reason || ""))) summary.resume_events += 1;
     if (status !== "completed") {
-      summary.recovery_candidates += 1;
-      if (next && next.name === "record") summary.record_only_resume_candidates += 1;
+      const targetPresent = typeof run.repo === "string" && fs.existsSync(run.repo);
+      const latest = latestByRepo.get(String(run.repo || ""));
+      const supersededByCompletion = latest !== run && safeLabel(latest?.status) === "completed";
+      if (!targetPresent) summary.missing_target_candidates += 1;
+      else if (supersededByCompletion) summary.stale_candidates += 1;
+      else {
+        summary.recovery_candidates += 1;
+        if (next && next.name === "record") summary.record_only_resume_candidates += 1;
+      }
       increment(summary.stop_boundaries, boundaryClass(run.stop_reason));
     }
   }
@@ -315,6 +336,8 @@ function buildReport(options) {
       resume_events: checkpoints.summary.resume_events,
       recovery_candidates: checkpoints.summary.recovery_candidates,
       record_only_resume_candidates: checkpoints.summary.record_only_resume_candidates,
+      stale_candidates: checkpoints.summary.stale_candidates,
+      missing_target_candidates: checkpoints.summary.missing_target_candidates,
       invalid_records: checkpoints.summary.invalid_records,
     },
     history: {
@@ -363,6 +386,8 @@ function printHuman(report) {
   console.log(`Incomplete runs: ${report.checkpoints.statuses.incomplete || 0}`);
   console.log(`Recovery candidates: ${report.checkpoints.recovery_candidates}`);
   console.log(`Record-only resume candidates: ${report.checkpoints.record_only_resume_candidates}`);
+  console.log(`Stale candidates: ${report.checkpoints.stale_candidates}`);
+  console.log(`Missing-target candidates: ${report.checkpoints.missing_target_candidates}`);
   console.log(`Resume events: ${report.checkpoints.resume_events}`);
   console.log(`Lane records: ${report.sources.lane_state.records}`);
   console.log(`Historical run records: ${report.history.run_log.records}`);

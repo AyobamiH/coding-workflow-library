@@ -25,6 +25,8 @@ John should not have to describe the same next-step sequence each time. The ledg
 
 Real runs also create a local ignored checkpoint under `.run-next/`. The checkpoint records phase, completed steps, required permission, last verified commit, and stop reason so an interrupted run can be inspected with `--status` and resumed with `--resume --dry-run` before any real continuation.
 
+`autonomy-outcomes` treats an incomplete checkpoint as recoverable only while its target exists and no newer completed checkpoint supersedes it. Stale and missing-target history remains counted, but it is not presented as pending work. Test suites that execute real fixture routes isolate checkpoints through a temporary `RUN_NEXT_DIR`.
+
 ## Lane State And Historical Ledger
 
 Local lane state owns active multi-project execution state. `work-ledger.md` remains historical public evidence and a backwards-compatible route source. If a requested lane does not exist, `run-next` stops instead of borrowing another lane or repo state.

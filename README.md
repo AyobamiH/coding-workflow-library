@@ -8,6 +8,20 @@ Use this library when another LLM needs reusable instructions for repo mapping, 
 
 `RUNBOOK.md` is operational guidance after the hard rules are understood. `coding-workflow-orchestrator-skill` decides the next safe work item when the path is not obvious.
 
+## Agent Orientation
+
+The library is heading toward more reliable **lane-scoped autonomous coding execution**: select bounded work, inherit objective authority, use a reusable skill or route, collect evidence, resume safely after interruption, and stop at an explicit consequence boundary. It is not heading toward perpetual self-expansion or generic agent roles without repeated evidence that existing skills, helpers, and routes are insufficient.
+
+Available now:
+
+- project lanes, objective authority, decision records, checkpoints, resume, and until-blocked execution;
+- 33 active skills and 40 audited routes covering repository work, GitHub, package/release, runtime, Supabase, Cloudflare, browser, evidence, diagnostics, and secrets boundaries;
+- deterministic documentation inventory, repository map, project KB, migration review, pre-commit, public-path, module-size, package-readiness, and release-preflight helpers;
+- privacy-safe workflow-corpus, autonomy-outcome, multi-project, and runtime-truth evidence contracts;
+- a modular `run-next` control plane with tested local, remote-publication, production, secret, and destructive-action boundaries.
+
+Agents should read `AGENTS.md`, `docs/agent-and-skill-roadmap.md`, and `build-queue.md` before changing direction. The roadmap says what exists and what remains held; the queue owns evidence and acceptance; private lane state owns current project execution. Material changes must reconcile those authorities and `CHANGELOG.md` before handoff.
+
 ## Portable Paths
 
 Public documentation and evidence use semantic placeholders such as `<LIBRARY_REPO>`, `<TARGET_REPO>`, `<LOCAL_ENV_FILE>`, and `<TEMP_ROOT>`. Replace them locally; never commit a maintainer-specific absolute home-directory path.
@@ -353,9 +367,9 @@ coding-workflow next-objective \
   --json --validate
 ```
 
-The skill-gap recorder performs one structured atomic queue edit and rejects duplicate, malformed, private-path, or secret-shaped fields. The outcome report reads only safe local metadata and emits aggregate categories rather than paths, notes, commands, or raw logs. The multi-project proof runs the same source/readiness/preflight/dry-run contract across explicit targets, then proves Git status and temporary lane state did not change. The next-objective assessor cross-checks P1 statuses, P2 completion, missing-helper evidence, and held agent-role boundaries; it reports `NO_ACTIVE_REUSABLE_GAP`, `ACTIVE_REUSABLE_GAP`, or `EVIDENCE_INCONSISTENT` without editing the queue.
+The skill-gap recorder performs one structured atomic queue edit and rejects duplicate, malformed, private-path, or secret-shaped fields. The outcome report reads only safe local metadata and emits aggregate categories rather than paths, notes, commands, or raw logs. It distinguishes genuinely recoverable checkpoints from older runs superseded by completion and from checkpoints whose temporary target no longer exists. The multi-project proof runs the same source/readiness/preflight/dry-run contract across explicit targets, then proves Git status and temporary lane state did not change. The next-objective assessor cross-checks P1 statuses, P2 completion, missing-helper evidence, and held agent-role boundaries; it reports `NO_ACTIVE_REUSABLE_GAP`, `ACTIVE_REUSABLE_GAP`, or `EVIDENCE_INCONSISTENT` without editing the queue.
 
-These commands do not publish, deploy, call production, read secret values, or grant authority. A real local proof passed across the workflow library, OpsTruth, and Wagging Web Wins. Remote Linux/macOS/Windows exact-commit proof remains separate and unverified. See [docs/workflow-maturity-foundations.md](docs/workflow-maturity-foundations.md).
+These commands do not publish, deploy, call production, read secret values, or grant authority. A real local proof passed across the workflow library, OpsTruth, and Wagging Web Wins. Remote Linux/macOS/Windows proof is recorded separately and must always be tied to its exact published commit. See [docs/workflow-maturity-foundations.md](docs/workflow-maturity-foundations.md).
 
 ## Repository Map
 
@@ -486,7 +500,7 @@ Library release objectives use `release-coding-workflow-library-vX.Y.Z`. The sem
 ./scripts/run-next --repo /path/to/repo --resume --dry-run
 ```
 
-Resume mode verifies branch, tracked changes, required permissions, and checkpoint validity before continuing. It does not store secret values or command output bodies.
+Resume mode verifies branch, tracked changes, required permissions, and checkpoint validity before continuing. It does not store secret values or command output bodies. Workflow tests that execute real fixture routes must set an isolated `RUN_NEXT_DIR`; fixture checkpoints do not belong in the operator's runtime history.
 
 ## Zero-Output Pipeline Diagnostics
 

@@ -1,5 +1,11 @@
 # P0 - Foundations
 
+## Agent Planning Contract
+
+Agents use this queue after reading `AGENTS.md` and `docs/agent-and-skill-roadmap.md`. Every active reusable item needs evidence, a primary type, dependencies, required authority, a testable done definition, and a truthful status. New ideas enter through `scripts/add-skill-gap --dry-run` or repeated workflow evidence; implementation convenience does not create priority.
+
+When capability behavior or maturity changes, reconcile this queue with the roadmap, `README.md`, and `CHANGELOG.md`. Project-specific runtime state belongs in the selected private lane. Do not reactivate completed foundations, promote held agent roles, or create generic capability work solely to keep the library busy.
+
 ## Keep corrected workflow corpus current
 
 - Evidence source: `scripts/extract-session-workflows.mjs`, `docs/workflow-corpus-recovery-report.md`, private validated corpus coverage.
@@ -108,7 +114,7 @@ No active P1 gaps are currently evidence-backed. The entries below remain in thi
 - Authority required: `local_execution`.
 - Done definition: a read-only helper reports route completion, blocker, recovery, resume, and stop-boundary counts from safe local metadata without reading secrets or treating logs as production proof.
 - Reason for priority: the workflow records evidence but does not yet summarize whether autonomy is becoming more reliable.
-- Status: implemented and published through `scripts/autonomy-outcomes`, `schemas/autonomy-outcomes.schema.json`, CLI delegation, and focused privacy/determinism tests. The final local observation validated 398 checkpoint records with no invalid records and remained `WARN` only because optional default lane state was absent.
+- Status: implemented and published through `scripts/autonomy-outcomes`, `schemas/autonomy-outcomes.schema.json`, CLI delegation, and focused privacy/determinism tests. A later local truth audit validated 495 historical records with no invalid records, classified zero as currently recoverable, eight as stale after newer completion, and 466 as missing-target fixture history. The fixture leak is stopped by test-owned `RUN_NEXT_DIR` isolation; this latest classification and isolation hardening remains local pending a later publication objective, while historical evidence remains retained locally.
 
 ## Real multi-project workflow evidence
 
