@@ -239,6 +239,25 @@ try {
   assert.equal(aheadReport.next_action.code, "PUBLISH_LOCAL_COMMIT_OR_KEEP_LOCAL");
   assert.equal(aheadReport.blocker.classification, "BLOCKED_DECISION");
 
+  const capabilityBlocked = createRepo("capability blocked repo");
+  write(capabilityBlocked.repo, "local-fix.txt", "validated locally\n");
+  git(capabilityBlocked.repo, ["add", "--", "local-fix.txt"]);
+  commit(capabilityBlocked.repo, "Validated local fix");
+  const blockedObjective = activeObjective({
+    status: "blocked",
+    blockers: [{
+      state: "BLOCKED_CAPABILITY",
+      reason: "GitHub publication transport is unavailable.",
+      stage: "remote_publication",
+      recorded_at: "2026-01-02T00:00:00.000Z",
+    }],
+  });
+  const capabilityBlockedReport = buildReport(optionsFor(capabilityBlocked, { objective: blockedObjective }));
+  assert.equal(capabilityBlockedReport.next_action.code, "BLOCKED_CAPABILITY_REMOTE_PUBLICATION", "explicit capability blocker lost precedence to unpublished Git state");
+  assert.equal(capabilityBlockedReport.blocker.classification, "BLOCKED_CAPABILITY", "explicit blocker classification was downgraded");
+  assert.equal(capabilityBlockedReport.lane_state.objective.blockers[0].stage, "remote_publication");
+  assert.deepEqual(validateReport(capabilityBlockedReport, schema), [], "explicit blocker report did not validate against schema");
+
   const behind = createRepo("behind repo");
   git(behind.repo, ["update-ref", "refs/remotes/origin/main", remoteChild(behind.repo, behind.base, "Remote work")]);
   assert.equal(buildReport(optionsFor(behind)).git.upstream.relation, "behind");
@@ -373,7 +392,7 @@ try {
   assert.match(evidenceSource, /situational-truth\.json/, "evidence pack did not collect actual situational evidence");
   assert.match(evidenceSource, /Target repo: <target-repo>/, "evidence pack dry-run did not redact the target path");
 
-  console.log("situational-truth tests passed: Git relations, worktree counts, lane discovery, stale objective/authority, checkpoint freshness, product-native control boundaries, route warnings, schema, privacy, immutability, and deterministic next actions.");
+  console.log("situational-truth tests passed: Git relations, worktree counts, lane discovery, explicit blocker precedence, stale objective/authority, checkpoint freshness, product-native control boundaries, route warnings, schema, privacy, immutability, and deterministic next actions.");
 } finally {
   fs.rmSync(temporary, { recursive: true, force: true });
 }

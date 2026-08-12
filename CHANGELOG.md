@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Keep situational truth consistent with terminal lane fallback: product repositories without library-owned route, ledger, or build-queue files now report those surfaces as `NOT_APPLICABLE` instead of manufacturing a safety blocker.
+- Keep situational truth consistent with terminal lane fallback: product repositories without library-owned route, ledger, or build-queue files now report those surfaces as `NOT_APPLICABLE` instead of manufacturing a safety blocker, and explicit objective blockers retain precedence over generic unpublished-commit guidance.
 
 - Preserve product-lane truth when no executable route matches: held, completed, blocked, and unmatched active lanes now retain specific non-mutating classifications instead of falling through to `NEEDS JOHN`, with lane-isolation regression coverage.
 - Reconcile authenticated Git publication and terminal lifecycle truth: purpose-scoped `GH_TOKEN` delivery now reaches one Git child through an ephemeral GitHub-only header, completed objectives revoke every authority class, completed checkpoints clear their required permission, and regression tests cover lane isolation and legacy stale-record detection.

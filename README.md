@@ -401,7 +401,7 @@ Use `scripts/situational-truth` after repository orientation and before selectin
 coding-workflow situational-truth --repo . --validate
 ```
 
-For an ordinary target repository, library-owned routes, `work-ledger.md`, and `build-queue.md` are optional control surfaces. Missing files report `NOT_APPLICABLE`; existing but invalid files still fail. A terminal private lane remains authoritative without requiring product-specific state to be copied into a public ledger, while active unmatched state still reports a routing contradiction.
+For an ordinary target repository, library-owned routes, `work-ledger.md`, and `build-queue.md` are optional control surfaces. Missing files report `NOT_APPLICABLE`; existing but invalid files still fail. A terminal private lane remains authoritative without requiring product-specific state to be copied into a public ledger, while active unmatched state still reports a routing contradiction. An explicit objective blocker also takes precedence over generic Git suggestions, so an unavailable publication transport remains `BLOCKED_CAPABILITY` even when a validated commit is waiting locally.
 
 The helper reconciles worktree counts, local/upstream commit relation, unpublished commits, discovered lane state, lane/repository match, objective and authority freshness, ignored checkpoint freshness, route/ledger recognition, build-queue status, and product-specific routes embedded in the generic package. It returns one deterministic bounded next action and one specific blocker class. Live warnings are informational unless a strict failure flag is supplied.
 

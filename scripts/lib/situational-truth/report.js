@@ -38,6 +38,13 @@ function nextAction(git, laneState, checkpoint, project) {
   if (git.upstream.relation === "behind") return action("RECONCILE_REMOTE_ADVANCE", "BLOCKED_SAFETY", `local branch is ${git.upstream.behind} commit(s) behind its upstream`);
   if (laneState.status === "unreadable") return action("REFRESH_LANE_STATE", "BLOCKED_SAFETY", "lane state exists but is unreadable or invalid");
   if (laneState.lane && laneState.lane.match_status === "mismatch") return action("REFRESH_LANE_STATE", "BLOCKED_SAFETY", "selected lane does not match this repository");
+  const explicitBlocker = laneState.objective && laneState.objective.blockers.find((item) => item.state !== "COMPLETE");
+  if (explicitBlocker) {
+    const code = explicitBlocker.state === "BLOCKED_CAPABILITY" && explicitBlocker.stage === "remote_publication"
+      ? "BLOCKED_CAPABILITY_REMOTE_PUBLICATION"
+      : explicitBlocker.state;
+    return action(code, explicitBlocker.state, explicitBlocker.reason);
+  }
   if (git.unpublished_local_commits > 0) {
     return action(
       "PUBLISH_LOCAL_COMMIT_OR_KEEP_LOCAL",

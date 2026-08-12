@@ -126,7 +126,7 @@
         "objective": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["id", "status", "freshness", "authority", "granted_authorities", "authority_stale", "reasons"],
+          "required": ["id", "status", "freshness", "authority", "granted_authorities", "authority_stale", "reasons", "blockers"],
           "properties": {
             "id": { "type": ["string", "null"] },
             "status": { "type": ["string", "null"] },
@@ -134,7 +134,20 @@
             "authority": { "type": ["object", "null"] },
             "granted_authorities": { "type": "array", "items": { "type": "string" } },
             "authority_stale": { "type": "boolean" },
-            "reasons": { "type": "array", "items": { "type": "string" } }
+            "reasons": { "type": "array", "items": { "type": "string" } },
+            "blockers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["state", "reason", "stage"],
+                "properties": {
+                  "state": { "enum": ["BLOCKED_CAPABILITY", "BLOCKED_PERMISSION", "BLOCKED_SAFETY", "BLOCKED_DECISION", "WAITING_CONDITION", "COMPLETE"] },
+                  "reason": { "type": "string" },
+                  "stage": { "type": "string" }
+                }
+              }
+            }
           }
         },
         "issues": { "type": "array", "items": { "type": "string" } }

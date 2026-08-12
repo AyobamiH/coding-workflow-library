@@ -128,6 +128,7 @@ function finalizeObjective(result, git, checkpoint) {
       granted_authorities: [],
       authority_stale: false,
       reasons: [],
+      blockers: [],
     };
     return result;
   }
@@ -142,6 +143,11 @@ function finalizeObjective(result, git, checkpoint) {
     granted_authorities: Object.entries(authority).filter(([, value]) => value === true).map(([key]) => key),
     authority_stale: fresh.authority_stale,
     reasons: fresh.reasons,
+    blockers: (objective.blockers || []).map((blocker) => ({
+      state: blocker.state,
+      reason: redactText(blocker.reason || ""),
+      stage: redactText(blocker.stage || "unspecified"),
+    })),
   };
   if (fresh.classification.startsWith("STALE")) result.status = "stale";
   return result;
