@@ -11,7 +11,7 @@ It separates reusable skills and helpers from product-specific roles and newer u
 
 The current product direction is a reusable, lane-scoped autonomous coding control plane for evidence-backed repository work. Agents should be able to orient, select a bounded route, inherit objective authority, execute local steps, checkpoint, resume, validate, and stop at the first ungranted consequence boundary without asking the user to reconstruct context.
 
-The reusable foundation is currently broad and no new generic P0/P1 capability is proven missing. Near-term work should therefore come from one of three sources: a selected target-repository objective, a structured gap with concrete evidence, or repeated failures showing an existing skill, route, or helper cannot satisfy its contract. Maintenance keeps existing route, documentation, portability, package, privacy, and modularity truth intact; it must not manufacture a new product direction.
+The reusable foundation is currently broad. A self-dogfooding recon proved one bounded control-plane gap: tests and terminal queue status could look healthy while Git publication, lane discovery, objective authority, and checkpoint evidence were stale. That gap is implemented and locally validated as deterministic situational truth; remote publication is a separate pending consequence, and no new generic P0/P1 capability is proven missing after this bounded reconciliation. Further work should come from a selected target-repository objective, a structured gap with concrete evidence, or repeated failures showing an existing skill, route, or helper cannot satisfy its contract. Maintenance keeps existing route, documentation, portability, package, privacy, and modularity truth intact; it must not manufacture a new product direction.
 
 Generic planner/worker/reviewer roles, fixed agent teams, capability brokering, and automatic prefetch remain held. Product-specific role pilots may continue in their own scope, but they are not reusable library architecture until repeated independent work proves stable inputs, outputs, authority, handoff, and measurable benefit.
 
@@ -39,6 +39,7 @@ corrected workflow corpus
   -> capability adapter evaluation (completed: narrow adapters only)
   -> narrow open-source SOPS + age secret-access adapter (implemented)
   -> purpose-scoped encrypted secret delivery (implemented)
+  -> current-state reconciliation and lane discovery (implemented; remote publication pending)
   -> capability acquisition/prefetch, rejected until repeated adapter insufficiency is proven
   -> agent-role system, only after repeated role contracts are proven
 ```
@@ -81,6 +82,7 @@ Implemented:
 - `scripts/extract-session-workflows.mjs`
 - `scripts/docs-list`
 - `scripts/repo-map`
+- `scripts/situational-truth`
 - `scripts/project-kb`
 - `scripts/pre-commit-check`
 - `scripts/install-git-hooks`
@@ -176,21 +178,22 @@ The adapter evaluation found no need for a generic broker. Capability Intelligen
 10. Keep `scripts/project-kb` current as the deterministic source-only project memory compiler.
 11. Keep `scripts/pre-commit-check` and `scripts/install-git-hooks` current as the deterministic local commit gate.
 12. Keep `scripts/migration-review` current as the deterministic source-only migration risk helper.
+13. Run `scripts/situational-truth` before broad route selection or resume so passing tests cannot conceal unpublished Git work, stale lane authority, or checkpoint drift.
 
 ### P2
 
-13. Keep `scripts/browser-live-proof` and `browser-live-proof-skill` current as the bounded browser-observation foundation, including redirect and screenshot-content warnings.
-14. Keep `scripts/github-deep-review` and `github-deep-review-skill` current as the thread-aware, read-only PR evidence foundation; unavailable protection metadata must stay unknown.
-15. Keep the Linux/macOS/Windows portable contract and reviewed routing-shape exceptions current.
-16. Keep `scripts/opstruth-classify` current as the deterministic mixed-evidence truth-model self-test.
-17. Keep the hardened release/package preflight current: validated human/JSON reports, crisp mode-specific blockers, safe package-manifest inspection, version and release-note baseline checks, and optional aggregate-only corpus evidence are implemented and published.
+14. Keep `scripts/browser-live-proof` and `browser-live-proof-skill` current as the bounded browser-observation foundation, including redirect and screenshot-content warnings.
+15. Keep `scripts/github-deep-review` and `github-deep-review-skill` current as the thread-aware, read-only PR evidence foundation; unavailable protection metadata must stay unknown.
+16. Keep the Linux/macOS/Windows portable contract and reviewed routing-shape exceptions current.
+17. Keep `scripts/opstruth-classify` current as the deterministic mixed-evidence truth-model self-test.
+18. Keep the hardened release/package preflight current: validated human/JSON reports, crisp mode-specific blockers, safe package-manifest inspection, version and release-note baseline checks, and optional aggregate-only corpus evidence are implemented and published.
 
 ### P3
 
-18. Keep optional provider reads subordinate to existing workflow skills, evidence contracts, redaction, and authority gates.
-19. Keep the SOPS + age adapter narrow: keep private identities outside source, preserve output suppression, and never let injection grant the child command extra authority.
-20. Use `secret-bundle-delivery-skill` only when one source serves multiple consumers; keep real manifests, ciphertext, reports, and local paths private.
-20. Revisit capability acquisition and prefetch only after at least two real runs prove the same unresolved adapter insufficiency.
-21. Revisit agent-role system only after at least two independent sessions prove a reusable role contract.
+19. Keep optional provider reads subordinate to existing workflow skills, evidence contracts, redaction, and authority gates.
+20. Keep the SOPS + age adapter narrow: keep private identities outside source, preserve output suppression, and never let injection grant the child command extra authority.
+21. Use `secret-bundle-delivery-skill` only when one source serves multiple consumers; keep real manifests, ciphertext, reports, and local paths private.
+22. Revisit capability acquisition and prefetch only after at least two real runs prove the same unresolved adapter insufficiency.
+23. Revisit agent-role system only after at least two independent sessions prove a reusable role contract.
 
-The evidence-backed reusable-foundation sequence through capability adapter evaluation and remote portability proof is complete. Workflow reliability now has a bounded entrypoint, structured skill-gap recording, privacy-safe outcome reporting, observed three-repository proof, exact-commit Ubuntu/macOS/Windows CI evidence, and a narrow open-source SOPS + age adapter with two-recipient recovery proof plus real output-suppressed GitHub checks and publication. Independent recovery storage and round-trip proof are complete. A separate manifest-driven layer now covers the real multi-consumer dotenv need without creating a generic broker: it maps every source name exactly once into purpose bundles, constrains consumer profiles, and proves delivery before source retirement. The earlier subscription-backed 1Password direction, system package, trust files, executable, and daemon are removed. No additional generic foundation is currently proven missing. The prior GitHub Actions runtime warning was addressed by moving the workflow from the v4 Node 20 action generation to the official v7 Node 24 generation; exact commit `e535230` passed validation plus Ubuntu, macOS, and Windows in run `29517093422`. New foundation-building should start only from corrected corpus evidence, a structured gap record, or repeated real workflow failures. See `docs/workflow-maturity-foundations.md` and `docs/modularity-audit.md`. Capability Intelligence remains parked as a separate product direction.
+The evidence-backed reusable-foundation sequence through capability adapter evaluation, remote portability proof, and local situational-truth reconciliation is complete. Workflow reliability now has a bounded entrypoint, current-state preflight, structured skill-gap recording, privacy-safe outcome reporting, observed three-repository proof, exact-commit Ubuntu/macOS/Windows CI evidence, and a narrow open-source SOPS + age adapter with two-recipient recovery proof plus real output-suppressed GitHub checks and publication. Independent recovery storage and round-trip proof are complete. A separate manifest-driven layer now covers the real multi-consumer dotenv need without creating a generic broker: it maps every source name exactly once into purpose bundles, constrains consumer profiles, and proves delivery before source retirement. The earlier subscription-backed 1Password direction, system package, trust files, executable, and daemon are removed. No additional generic foundation is currently proven missing. The prior GitHub Actions runtime warning was addressed by moving the workflow from the v4 Node 20 action generation to the official v7 Node 24 generation; exact commit `e535230` passed validation plus Ubuntu, macOS, and Windows in run `29517093422`. New foundation-building should start only from corrected corpus evidence, a structured gap record, or repeated real workflow failures. See `docs/workflow-maturity-foundations.md` and `docs/modularity-audit.md`. Capability Intelligence remains parked as a separate product direction.

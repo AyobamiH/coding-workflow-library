@@ -106,6 +106,16 @@ No active P1 gaps are currently evidence-backed. The entries below remain in thi
 - Reason for priority: valid completion must not degrade into `NEEDS JOHN`, and autonomy must not manufacture work merely to keep running.
 - Status: implemented and locally proven through `scripts/library-next-objective`, schema, CLI delegation, route metadata, focused classification tests, dry-run immutability, a real selected-lane run, unselected-lane hash stability, and a known terminal state.
 
+## Current-state reconciliation and lane discovery
+
+- Evidence source: self-dogfooding recon at local commit `b5606b9`, stale private objective/checkpoint metadata, missing default lane discovery in aggregate reporting, and `repo-map` output that omitted upstream relation.
+- Primary type: `CONTROL_PLANE`, `VALIDATION`.
+- Dependency: lane state, objective authority, checkpoints, repo-map, route metadata, historical ledger, and structured build queue.
+- Authority required: `local_execution`.
+- Done definition: one deterministic non-mutating helper reports Git worktree and upstream relation, unpublished commits, safe lane discovery and repository match, objective/authority and checkpoint freshness, route/ledger/queue contradictions, product-route warnings, privacy findings, one bounded next action, and one specific blocker class; synthetic tests cover aligned/ahead/behind/diverged and stale/missing cases.
+- Reason for priority: passing implementation tests did not prove that the currently selected objective, authority, checkpoint, and remote relation still described the repository being operated.
+- Status: implemented and locally validated through `scripts/situational-truth`, shared lane discovery, repository-map Git relation fields, evidence/failure report redaction, route ownership warnings, schema, CLI delegation, and synthetic regression tests. Remote publication remains outside this objective.
+
 ## Autonomy outcome reporting
 
 - Evidence source: lane objectives, checkpoints, blocker classes, `work-ledger.md`, and `runs/skill-runs.md`.

@@ -1,0 +1,90 @@
+#!/usr/bin/env node
+
+"use strict";
+
+const fs = require("fs");
+const path = require("path");
+const { buildReport, printHuman, validateReport } = require("./lib/situational-truth/report");
+
+function usage() {
+  console.log(`Usage:
+  ./scripts/situational-truth --repo <path> [--json] [--validate]
+    [--state-file <path>] [--lane <id>] [--discover-state]
+    [--fail-on-stale] [--fail-on-unpublished] [--redact-paths]
+
+Build a deterministic, source-only, privacy-safe reconciliation of Git, lane,
+objective, checkpoint, route, ledger, and build-queue state. The helper reads
+local metadata only and never mutates files, Git, lane state, or external services.`);
+}
+
+function requireValue(argv, index, flag) {
+  const value = argv[index];
+  if (!value) throw new Error(`${flag} requires a value`);
+  return value;
+}
+
+function parseArgs(argv) {
+  const args = {
+    repo: null,
+    json: false,
+    validate: false,
+    discoverState: false,
+    failOnStale: false,
+    failOnUnpublished: false,
+    redactPaths: true,
+    help: false,
+  };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--repo") args.repo = requireValue(argv, ++index, arg);
+    else if (arg === "--state-file") args.stateFile = requireValue(argv, ++index, arg);
+    else if (arg === "--lane") args.laneId = requireValue(argv, ++index, arg);
+    else if (arg === "--json") args.json = true;
+    else if (arg === "--validate") args.validate = true;
+    else if (arg === "--discover-state") args.discoverState = true;
+    else if (arg === "--fail-on-stale") args.failOnStale = true;
+    else if (arg === "--fail-on-unpublished") args.failOnUnpublished = true;
+    else if (arg === "--redact-paths") args.redactPaths = true;
+    else if (arg === "--help" || arg === "-h") args.help = true;
+    else throw new Error(`unknown argument: ${arg}`);
+  }
+  if (!args.repo && !args.help) throw new Error("--repo is required");
+  return args;
+}
+
+function main() {
+  let args;
+  try {
+    args = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error.message);
+    usage();
+    process.exit(2);
+  }
+  if (args.help) return usage();
+
+  try {
+    const report = buildReport(args);
+    const schema = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "schemas", "situational-truth.schema.json"), "utf8"));
+    const errors = validateReport(report, schema);
+    if (args.json) console.log(JSON.stringify(report, null, 2));
+    else printHuman(report);
+    if (errors.length) {
+      console.error(`Situational truth contract failed: ${errors.join(", ")}`);
+      process.exitCode = 1;
+      return;
+    }
+    const stale = report.lane_state.status === "stale"
+      || report.lane_state.objective.freshness.startsWith("STALE")
+      || !["FRESH", "NO_CHECKPOINT"].includes(report.checkpoint.freshness);
+    if (args.failOnStale && stale) process.exitCode = 1;
+    if (args.failOnUnpublished && report.git.unpublished_local_commits > 0) process.exitCode = 1;
+  } catch (error) {
+    console.error(`situational truth failed: ${error.message}`);
+    process.exitCode = 2;
+  }
+}
+
+if (require.main === module) main();
+
+module.exports = { parseArgs };

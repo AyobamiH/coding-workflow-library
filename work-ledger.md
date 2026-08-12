@@ -1891,3 +1891,18 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Validation required: route audit, skill validation, full package tests, wrong-target negative tests, clean temporary repo handoff simulation, and exact remote dry-run evidence.
 * Future classification: workflow/library capability update.
 * Whether John is needed: Yes before implementation or any external handoff.
+
+## 2026-08-12 - Current-State Reconciliation And Lane Discovery
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Add deterministic, read-only situational truth so repository Git state, private lane state, objective authority, checkpoint freshness, route evidence, and the build queue produce one bounded next action.
+* Current permission level: `local_execution` only. Local exact-file edits, validation, package smoke, and one local commit are allowed; remote publication, package publication, tags, releases, deployment, production mutation, secret mutation, destructive action, and product-repository work are not allowed.
+* Starting state: clean `main` at `b5606b9`, one unpublished commit ahead of `origin/main` at `145c5d7`; the discovered library lane was terminal but stale, retained granted authority, and referenced a checkpoint behind `HEAD`.
+* Current status: COMPLETE LOCALLY: situational truth reconciliation is implemented and locally validated; remote publication remains ungranted.
+* Selected skill: coding-workflow-orchestrator-skill with repo-map-skill for repository orientation.
+* Files changed: situational-truth helper modules and schema; shared lane-state discovery; CLI, repo-map, evidence, failure, route-audit, checkpoint, package, test, documentation, queue, ledger, and run-log integration.
+* Validation evidence: synthetic situational tests cover aligned, ahead, behind, diverged, dirty, lane discovery, stale objective and authority, checkpoint relations, lane mismatch, product-route warnings, schema validation, privacy redaction, immutability, and deterministic next actions. Direct `npm test`, pre-existing helper validations, route audit, skill cleaner, skill validation, diff checks, and package dry-run passed. The full pre-commit gate passed 26 checks; its nested `npm test` was truthfully skipped after the sandbox rejected nested npm execution, while the required direct run passed independently. The package manifest contained 242 expected public entries and no risky private/runtime paths. A clean temporary tarball install ran the packaged CLI successfully against a synthetic repository, then the temporary files were removed.
+* Live truth evidence: repository-local work remained unpublished; private lane state was discovered through the `home_openclaw_state` location class; stale authority and an ancestor checkpoint were reported without mutating the lane or exposing its absolute path in portable JSON.
+* Product-route evidence: route audit remains passing and now reports advisory warnings for product-specific routes and skills embedded in the generic package; no route was removed or executed.
+* Boundaries: no push, tag, npm publication, GitHub Release, deployment, production mutation, product-repository edit, secret read, reset, stash, clean, restore, or discard occurred.
+* Exact next action: retain the validated local commits or separately authorize a non-force publication objective with exact-commit CI verification.

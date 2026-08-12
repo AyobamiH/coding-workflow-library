@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AyobamiH/coding-workflow-library/schemas/situational-truth.schema.json",
+  "title": "Situational Truth Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "repo",
+    "git",
+    "lane_state",
+    "checkpoint",
+    "routes",
+    "build_queue",
+    "product_route_warnings",
+    "contradictions",
+    "privacy",
+    "next_action",
+    "blocker"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "status": { "enum": ["PASS", "WARN", "FAIL"] },
+    "repo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root", "name", "repository"],
+      "properties": {
+        "root": { "const": "." },
+        "name": { "type": "string", "minLength": 1 },
+        "repository": { "type": ["string", "null"] }
+      }
+    },
+    "git": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["is_git_repo", "branch", "repository", "worktree", "head", "upstream", "unpublished_local_commits", "release_summary"],
+      "properties": {
+        "is_git_repo": { "type": "boolean" },
+        "branch": { "type": ["string", "null"] },
+        "repository": { "type": ["string", "null"] },
+        "worktree": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "clean", "staged", "unstaged", "untracked", "changed_files"],
+          "properties": {
+            "status": { "enum": ["clean", "dirty", "not_a_git_repo"] },
+            "clean": { "type": ["boolean", "null"] },
+            "staged": { "type": "integer", "minimum": 0 },
+            "unstaged": { "type": "integer", "minimum": 0 },
+            "untracked": { "type": "integer", "minimum": 0 },
+            "changed_files": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "head": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sha", "short_sha", "committed_at", "subject"],
+          "properties": {
+            "sha": { "type": ["string", "null"] },
+            "short_sha": { "type": ["string", "null"] },
+            "committed_at": { "type": ["string", "null"] },
+            "subject": { "type": ["string", "null"] }
+          }
+        },
+        "upstream": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ref", "sha", "relation", "ahead", "behind"],
+          "properties": {
+            "ref": { "type": ["string", "null"] },
+            "sha": { "type": ["string", "null"] },
+            "relation": { "enum": ["aligned", "ahead", "behind", "diverged", "no_upstream", "unknown", "not_a_git_repo"] },
+            "ahead": { "type": "integer", "minimum": 0 },
+            "behind": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "unpublished_local_commits": { "type": "integer", "minimum": 0 },
+        "release_summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tag_count", "latest_tag", "head_tags"],
+          "properties": {
+            "tag_count": { "type": "integer", "minimum": 0 },
+            "latest_tag": { "type": ["string", "null"] },
+            "head_tags": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "lane_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "selected_location_class", "candidates", "lane", "objective", "issues"],
+      "properties": {
+        "status": { "enum": ["found", "missing", "stale", "unreadable", "not_applicable"] },
+        "selected_location_class": { "type": ["string", "null"] },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["location_class", "status", "live", "selected"],
+            "properties": {
+              "location_class": { "type": "string" },
+              "status": { "enum": ["found", "missing", "unreadable", "not_applicable"] },
+              "live": { "type": "boolean" },
+              "selected": { "type": "boolean" }
+            }
+          }
+        },
+        "lane": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["id", "status", "current_state", "next_permission", "last_updated", "match_status"],
+          "properties": {
+            "id": { "type": "string" },
+            "status": { "enum": ["active", "blocked", "hold", "complete"] },
+            "current_state": { "type": "string" },
+            "next_permission": { "type": "string" },
+            "last_updated": { "type": "string" },
+            "match_status": { "enum": ["matched", "mismatch", "missing"] }
+          }
+        },
+        "objective": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "status", "freshness", "authority", "granted_authorities", "authority_stale", "reasons"],
+          "properties": {
+            "id": { "type": ["string", "null"] },
+            "status": { "type": ["string", "null"] },
+            "freshness": { "enum": ["ACTIVE_FRESH", "TERMINAL_FRESH", "STALE_ACTIVE", "STALE_TERMINAL", "STALE_AUTHORITY", "NO_OBJECTIVE", "UNKNOWN"] },
+            "authority": { "type": ["object", "null"] },
+            "granted_authorities": { "type": "array", "items": { "type": "string" } },
+            "authority_stale": { "type": "boolean" },
+            "reasons": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "issues": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "freshness", "run_id", "run_status", "last_verified_commit", "required_permission", "permission_consistent", "issues"],
+      "properties": {
+        "status": { "enum": ["found", "missing"] },
+        "freshness": { "enum": ["FRESH", "ANCESTOR_OF_HEAD", "AHEAD_OF_HEAD", "MISSING_COMMIT", "UNKNOWN", "NO_CHECKPOINT"] },
+        "run_id": { "type": ["string", "null"] },
+        "run_status": { "type": ["string", "null"] },
+        "last_verified_commit": { "type": ["string", "null"] },
+        "required_permission": { "type": ["string", "null"] },
+        "permission_consistent": { "type": "boolean" },
+        "issues": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "routes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "count", "lane_state_recognized", "matching_route_ids", "ledger_state_present"],
+      "properties": {
+        "status": { "enum": ["PASS", "WARN", "FAIL"] },
+        "count": { "type": "integer", "minimum": 0 },
+        "lane_state_recognized": { "type": ["boolean", "null"] },
+        "matching_route_ids": { "type": "array", "items": { "type": "string" } },
+        "ledger_state_present": { "type": ["boolean", "null"] }
+      }
+    },
+    "build_queue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "classification", "active_gaps", "next_action"],
+      "properties": {
+        "status": { "enum": ["PASS", "WARN", "FAIL"] },
+        "classification": { "enum": ["NO_ACTIVE_REUSABLE_GAP", "ACTIVE_REUSABLE_GAP", "EVIDENCE_INCONSISTENT"] },
+        "active_gaps": { "type": "array", "items": { "type": "object" } },
+        "next_action": { "type": "string" }
+      }
+    },
+    "product_route_warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "classification", "signal"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "enum": ["route", "skill"] },
+          "classification": { "enum": ["PRODUCT_ROUTE_PRESENT", "PRODUCT_ROUTE_HOLD", "PRODUCT_ROUTE_SPLIT_DECISION_REQUIRED"] },
+          "signal": { "type": "string" }
+        }
+      }
+    },
+    "contradictions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "classification", "blocking"],
+        "properties": {
+          "code": { "type": "string" },
+          "classification": { "enum": ["BLOCKED_CAPABILITY", "BLOCKED_PERMISSION", "BLOCKED_SAFETY", "BLOCKED_DECISION", "WAITING_CONDITION"] },
+          "blocking": { "type": "boolean" }
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paths_redacted", "secret_values_excluded", "warnings"],
+      "properties": {
+        "paths_redacted": { "const": true },
+        "secret_values_excluded": { "const": true },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "next_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "summary"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string", "minLength": 1 }
+      }
+    },
+    "blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["classification", "reason"],
+      "properties": {
+        "classification": { "enum": ["NONE", "BLOCKED_CAPABILITY", "BLOCKED_PERMISSION", "BLOCKED_SAFETY", "BLOCKED_DECISION", "WAITING_CONDITION"] },
+        "reason": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

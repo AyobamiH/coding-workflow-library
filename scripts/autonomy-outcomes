@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 const fs = require("fs");
-const os = require("os");
 const path = require("path");
 const laneState = require("./lane-state");
+const laneDiscovery = require("./lib/lane-state-discovery");
 
 const SCHEMA_VERSION = 1;
 const CHECKPOINT_KEYS = new Set([
@@ -45,7 +45,7 @@ reported as not verified rather than failed.`);
 function parseArgs(argv) {
   const args = {
     repo: process.cwd(),
-    stateFile: process.env.CODING_WORKFLOW_STATE_FILE || path.join(os.homedir(), ".coding-workflow", "lanes.json"),
+    stateFile: laneDiscovery.defaultStateFile(),
     checkpointDir: null,
     ledger: null,
     runLog: null,

@@ -3,6 +3,8 @@
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
+const { redactText } = require("./lib/situational-truth/privacy");
+const { buildReport: buildSituationalReport } = require("./lib/situational-truth/report");
 
 function usage() {
   console.log(`Usage:
@@ -69,15 +71,7 @@ function run(command, args, options = {}) {
 }
 
 function redact(input) {
-  let value = String(input || "");
-  const secretWords = "(token|secret|password|passwd|api[_-]?key|access[_-]?key|auth|bearer|credential)";
-  value = value.replace(new RegExp(`(${secretWords}\\s*[:=]\\s*)[^\\s"'<>]+`, "gi"), "$1[redacted]");
-  value = value.replace(new RegExp("sk-" + "[A-Za-z0-9_-]{12,}", "g"), "[redacted-api-key]");
-  value = value.replace(/eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, "[redacted-jwt]");
-  value = value.replace(/postgres(?:ql)?:\/\/[^\s"'<>]+/gi, "postgres://[redacted]");
-  value = value.replace(/https?:\/\/[^:\s"'<>]+:[^@\s"'<>]+@[^\s"'<>]+/gi, "https://[redacted-credential]@[redacted-host]");
-  value = value.replace(new RegExp("BEGIN (?:RSA |OPENSSH |EC |DSA )?" + "PRIVATE KEY", "g"), "BEGIN [redacted-key-header]");
-  return value;
+  return redactText(input).replace(/BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY/g, "BEGIN [redacted-key-header]");
 }
 
 function write(file, content, dryRun) {
@@ -124,24 +118,26 @@ function main() {
   const gitProbe = run("git", ["-C", repo, "rev-parse", "--is-inside-work-tree"]);
   const isGitRepo = gitProbe.status === 0 && gitProbe.stdout.trim() === "true";
 
-  const plannedFiles = [
+  const relativeFiles = [
     "summary.md",
     "git-status.txt",
     "git-diff-stat.txt",
     "validation.txt",
+    "situational-truth.json",
     "next-step.md",
-  ].map((file) => path.join(outputDir, file));
+  ];
+  const relativeOutput = path.join("evidence", folderName).replaceAll(path.sep, "/");
 
   if (args.dryRun) {
     console.log(`# Evidence Pack Dry Run
 
-Target repo: ${repo}
+Target repo: <target-repo>
 Title: ${title}
-Would create: ${outputDir}
+Would create: ${relativeOutput}
 Git repo: ${isGitRepo ? "yes" : "no"}
 
 Files:
-${plannedFiles.map((file) => `- ${file}`).join("\n")}
+${relativeFiles.map((file) => `- ${relativeOutput}/${file}`).join("\n")}
 
 No files were written. No env files were read. No git staging, commit, push, deploy, publish, migration, database mutation, or external call was run.`);
     return;
@@ -154,12 +150,30 @@ No files were written. No env files were read. No git staging, commit, push, dep
   const diffStat = isGitRepo ? run("git", ["-C", repo, "diff", "--stat"]) : null;
   const diffCheck = isGitRepo ? run("git", ["-C", repo, "diff", "--check"]) : null;
   const recentLog = isGitRepo ? run("git", ["-C", repo, "log", "--oneline", "-5"]) : null;
+  let situational = null;
+  try {
+    const report = buildSituationalReport({ repo });
+    situational = {
+      status: 0,
+      stdout: `${JSON.stringify(report, null, 2)}\n`,
+    };
+  } catch {
+    situational = null;
+  }
+  let boundedNext = "Review the collected situational truth before selecting another bounded action.";
+  if (situational && situational.status === 0) {
+    try {
+      boundedNext = JSON.parse(situational.stdout).next_action.summary;
+    } catch {
+      boundedNext = "Situational truth output was unavailable; inspect validation.txt before continuing.";
+    }
+  }
 
   const summary = `# Evidence Pack
 
 ## Target Repo
 
-${repo}
+<target-repo>
 
 ## Title
 
@@ -201,10 +215,15 @@ Captured output was passed through local redaction for obvious token, password, 
     false,
   );
   write(
+    path.join(outputDir, "situational-truth.json"),
+    situational && situational.status === 0 ? situational.stdout : `${JSON.stringify({ status: "NOT_VERIFIED" }, null, 2)}\n`,
+    false,
+  );
+  write(
     path.join(outputDir, "next-step.md"),
     `# Next Step
 
-Review this evidence pack and decide the next explicit permission gate.
+${boundedNext}
 
 No publish, deploy, push, PR, tag, migration, database mutation, secret write, or production endpoint call was performed by this helper.
 `,
@@ -213,10 +232,10 @@ No publish, deploy, push, PR, tag, migration, database mutation, secret write, o
 
   console.log(`# Evidence Pack Created
 
-Output: ${outputDir}
+Output: ${relativeOutput}
 Git repo: ${isGitRepo ? "yes" : "no"}
 Files:
-${plannedFiles.map((file) => `- ${file}`).join("\n")}
+${relativeFiles.map((file) => `- ${relativeOutput}/${file}`).join("\n")}
 
 Next safe step:
 Review the evidence pack and decide the next explicit permission gate.`);

@@ -134,6 +134,7 @@ try {
   assert.notEqual(noIncomplete.stdout, "", "resume should produce a clear report");
   assert.match(noIncomplete.stdout, /NO INCOMPLETE RUN/, "newer completed run should supersede older stale incomplete checkpoints");
   assert.match(noIncomplete.stdout, /older incomplete checkpoints are stale/i, "stale incomplete checkpoints should be named as stale");
+  assert.match(noIncomplete.stdout, /permissions still required: none/, "completed run should not retain a displayed permission requirement");
 
   const stateText = fs.readFileSync(path.join(runDir, repoKey(targetRepo), "test-run-001.json"), "utf8");
   assert.doesNotMatch(stateText, /gh[pousr]_|github_pat_|sk-|eyJ[A-Za-z0-9_-]+\./, "checkpoint state contains secret-shaped content");

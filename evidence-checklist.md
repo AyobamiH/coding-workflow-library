@@ -31,6 +31,17 @@ Use this before final response or before saying a workflow is complete.
 - Important contract/config files identified.
 - Source-only limits recorded: no dependency install, target build/test execution, git mutation, external call, production proof, or secret read.
 
+## Situational Truth
+
+- `scripts/situational-truth --repo <path> --validate` ran before broad route selection/resume or a clear reason it was unavailable was recorded.
+- Worktree counts, upstream relation, unpublished commits, and current `HEAD` were classified.
+- Lane discovery source was reported by safe location class and the selected lane matched the repository.
+- Objective/authority freshness and checkpoint relation to `HEAD` were classified independently of passing tests.
+- Route/ledger/build-queue contradictions and product-route ownership warnings were recorded without removing routes.
+- One bounded next action and one specific blocker class were reported.
+- JSON and evidence output contained no private absolute paths, `.env` content, secret values, raw session bodies, or credential metadata.
+- The helper did not fetch, update lane state, rewrite checkpoints, mutate Git, call services, publish, deploy, or prove external runtime truth.
+
 ## Project Knowledge Base
 
 - `scripts/project-kb --repo <path> --validate` ran or a clear reason it was unavailable was recorded.

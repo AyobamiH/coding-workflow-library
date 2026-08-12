@@ -15,13 +15,14 @@ John should not have to describe the same next-step sequence each time. The ledg
 ## Core Loop
 
 1. Read `AGENTS.md` and `tools.md`.
-2. Select a local project lane, or use the legacy ledger mode when backwards compatibility is required.
-3. Map the selected lane or ledger status to a skill, job, and permission.
-4. Refuse to act if the required permission flag is missing.
-5. Run one bounded step when the route is implemented and permission is granted.
-6. Validate evidence.
-7. Update only the selected lane after lane-aware real execution; legacy mode updates `work-ledger.md` and `runs/skill-runs.md`.
-8. Stop at the next boundary.
+2. Run `scripts/situational-truth` to reconcile Git, lane, objective, authority, checkpoint, route, ledger, and queue evidence without mutation.
+3. Select a local project lane, or use the legacy ledger mode when backwards compatibility is required.
+4. Map the selected lane or ledger status to a skill, job, and permission.
+5. Refuse to act if the required permission flag is missing.
+6. Run one bounded step when the route is implemented and permission is granted.
+7. Validate evidence.
+8. Update only the selected lane after lane-aware real execution; legacy mode updates `work-ledger.md` and `runs/skill-runs.md`.
+9. Stop at the next boundary.
 
 Real runs also create a local ignored checkpoint under `.run-next/`. The checkpoint records phase, completed steps, required permission, last verified commit, and stop reason so an interrupted run can be inspected with `--status` and resumed with `--resume --dry-run` before any real continuation.
 
@@ -30,6 +31,10 @@ Real runs also create a local ignored checkpoint under `.run-next/`. The checkpo
 ## Lane State And Historical Ledger
 
 Local lane state owns active multi-project execution state. `work-ledger.md` remains historical public evidence and a backwards-compatible route source. If a requested lane does not exist, `run-next` stops instead of borrowing another lane or repo state.
+
+Lane-state discovery checks explicit and environment paths before the two supported home locations. The tracked example can describe shape but cannot become live state. Situational truth marks a lane stale when it mismatches the repo, its terminal objective retains authority, its objective evidence predates unpublished commits, or its checkpoint no longer verifies `HEAD`. It reports these facts but never repairs them.
+
+Passing package tests proves implementation contracts, not current execution coherence. Ahead/behind state, stale objective authority, checkpoint age, and product-specific routes in the generic package remain separate situational evidence.
 
 ## Skill Frontmatter as Router
 

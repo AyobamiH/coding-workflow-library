@@ -33,6 +33,7 @@ const implementedHelpers = [
   "scripts/add-skill-gap",
   "scripts/autonomy-outcomes",
   "scripts/multi-project-proof",
+  "scripts/situational-truth",
 ];
 
 for (const helper of implementedHelpers) {

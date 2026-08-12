@@ -1900,3 +1900,17 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: No forbidden deploy, migration, Supabase mutation, production endpoint call, direct main push, force push, merge, token printing, token file write, unrelated staging, or evidence inclusion occurred..
 * Follow-up skill needed: release-preflight-skill.
 * Upgrade idea: Add more executable paths to `scripts/run-next` for auth-check, exact-file commit, and local-validation states.
+
+## 2026-08-12 - Situational Truth Reconciliation
+
+* Skill used: coding-workflow-orchestrator-skill and repo-map-skill.
+* Goal: Reconcile repository, lane, objective, authority, checkpoint, route, and queue evidence into one deterministic privacy-safe report and bounded next action.
+* Starting state: clean library `main` at `b5606b9`, one commit ahead of `origin/main`; private library lane terminal but stale; objective authority retained after completion; checkpoint behind current `HEAD`.
+* Commands/tools used: Git ancestry and status inspection; source and route searches; `apply_patch`; synthetic Git/lane fixtures; helper and schema validation; full package tests; package dry-run; clean temporary tarball install and packaged CLI smoke.
+* Files changed: `scripts/situational-truth`; focused modules under `scripts/lib/situational-truth/`; shared lane discovery; JSON schemas; synthetic tests; CLI, repo-map, evidence, failure, route audit, checkpoint, package, docs, queue, ledger, and run-log integration.
+* Evidence collected: Git relations and worktree counts are deterministic; lane discovery checks explicit, environment, both supported home locations, and a non-live repository template; terminal/stale objective authority and checkpoint relations are classified; portable JSON redacts private paths; product-specific route warnings are advisory; next-action and blocker classifications are specific and deterministic.
+* Validation result: direct `npm test` passed; the full pre-commit gate passed 26 checks and explicitly skipped only its nested npm rerun after the sandbox returned `EPERM`; documentation inventory found 78 documents with no missing H1, duplicate title, or current-document orphan; route audit passed with 40 routes and 10 advisory product-route warnings; skill validation passed for 33 skills; package dry-run contained 242 safe entries; the installed tarball CLI validated a clean synthetic repository.
+* Result: COMPLETE LOCALLY: situational truth reconciliation is ready as one exact local commit on top of the existing unpublished work. Remote publication is not granted.
+* Failure/recovery notes: nested process spawning was unavailable in one sandboxed test path, so the test exercised the same source functions directly; the public runtime contract and packaged CLI were then verified through an independent clean install smoke. No private lane state was copied into package contents or public evidence.
+* Follow-up skill needed: github-handoff-skill only under a separate remote-publication objective; otherwise retain the local commits and use `coding-workflow situational-truth` before selecting subsequent work.
+* Upgrade idea: use repeated situational reports to decide whether product-specific route extraction deserves its own bounded split objective; do not remove routes based on warnings alone.

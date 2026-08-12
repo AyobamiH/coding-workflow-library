@@ -74,7 +74,15 @@
         "clean",
         "changed_files",
         "tracked_files",
-        "untracked_files"
+        "untracked_files",
+        "staged_files",
+        "unstaged_files",
+        "upstream_ref",
+        "upstream_head",
+        "relation",
+        "ahead",
+        "behind",
+        "unpublished_local_commits"
       ],
       "properties": {
         "status": {
@@ -108,6 +116,35 @@
           "minimum": 0
         },
         "untracked_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "staged_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unstaged_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upstream_ref": {
+          "type": ["string", "null"]
+        },
+        "upstream_head": {
+          "type": ["string", "null"]
+        },
+        "relation": {
+          "enum": ["aligned", "ahead", "behind", "diverged", "no_upstream", "unknown", "not_a_git_repo"]
+        },
+        "ahead": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "behind": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unpublished_local_commits": {
           "type": "integer",
           "minimum": 0
         }

@@ -3,6 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
+const { collectGitState } = require("./lib/situational-truth/git-state");
 
 const GENERATED_PARTS = new Set([
   ".git",
@@ -183,12 +184,6 @@ function walkFiles(dir, root, files = []) {
   return files;
 }
 
-function gitRoot(repo) {
-  const result = run("git", ["-C", repo, "rev-parse", "--show-toplevel"]);
-  if (result.status !== 0) return null;
-  return result.stdout.trim() || null;
-}
-
 function gitFiles(repo) {
   const tracked = run("git", ["-C", repo, "ls-files"]);
   if (tracked.status !== 0) return null;
@@ -213,8 +208,8 @@ function discoverFiles(repo) {
 }
 
 function gitSummary(repo) {
-  const root = gitRoot(repo);
-  if (!root) {
+  const state = collectGitState(repo);
+  if (!state.is_git_repo) {
     return {
       status: "not_a_git_repo",
       repo_root_found: false,
@@ -223,25 +218,36 @@ function gitSummary(repo) {
       changed_files: 0,
       tracked_files: 0,
       untracked_files: 0,
+      staged_files: 0,
+      unstaged_files: 0,
+      upstream_ref: null,
+      upstream_head: null,
+      relation: "not_a_git_repo",
+      ahead: 0,
+      behind: 0,
+      unpublished_local_commits: 0,
     };
   }
 
-  const branch = run("git", ["-C", repo, "branch", "--show-current"]);
-  const status = run("git", ["-C", repo, "status", "--porcelain=v1"]);
   const tracked = run("git", ["-C", repo, "ls-files"]);
-  const untracked = run("git", ["-C", repo, "ls-files", "--others", "--exclude-standard"]);
-  const statusLines = status.status === 0 ? status.stdout.split(/\r?\n/).filter(Boolean) : [];
-  const untrackedLines = untracked.status === 0 ? untracked.stdout.split(/\r?\n/).filter(Boolean) : [];
   const trackedLines = tracked.status === 0 ? tracked.stdout.split(/\r?\n/).filter(Boolean) : [];
 
   return {
-    status: statusLines.length ? "dirty" : "clean",
+    status: state.worktree.status,
     repo_root_found: true,
-    current_branch: (branch.stdout || "").trim() || null,
-    clean: statusLines.length === 0,
-    changed_files: statusLines.length,
+    current_branch: state.branch,
+    clean: state.worktree.clean,
+    changed_files: state.worktree.changed_files,
     tracked_files: trackedLines.length,
-    untracked_files: untrackedLines.length,
+    untracked_files: state.worktree.untracked,
+    staged_files: state.worktree.staged,
+    unstaged_files: state.worktree.unstaged,
+    upstream_ref: state.upstream.ref,
+    upstream_head: state.upstream.sha,
+    relation: state.upstream.relation,
+    ahead: state.upstream.ahead,
+    behind: state.upstream.behind,
+    unpublished_local_commits: state.unpublished_local_commits,
   };
 }
 
@@ -463,6 +469,8 @@ function printHuman(map) {
   console.log(`Source: ${map.repo.source}`);
   console.log(`Git status: ${map.git.status}`);
   console.log(`Branch: ${map.git.current_branch || "n/a"}`);
+  console.log(`Upstream: ${map.git.upstream_ref || "none"} (${map.git.relation}; ahead=${map.git.ahead}, behind=${map.git.behind})`);
+  console.log(`Unpublished local commits: ${map.git.unpublished_local_commits}`);
   console.log(`Files considered: ${map.repo.file_count_considered}/${map.repo.file_count_total}`);
   console.log(`Limit reached: ${map.repo.limit_reached ? "yes" : "no"}`);
 

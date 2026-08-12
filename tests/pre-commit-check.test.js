@@ -12,6 +12,7 @@ const installerScript = path.join(root, "scripts", "install-git-hooks");
 const templatePath = path.join(root, "templates", "hooks", "pre-commit");
 const {
   buildDefaultChecks,
+  isNestedSpawnUnavailable,
   runPreCommitCheck,
   scanDiffForSecrets,
 } = require(preCommitScript);
@@ -140,6 +141,9 @@ try {
 
   const commandList = buildDefaultChecks({ full: true }).map((check) => [check.command, ...check.args].join(" "));
   assert.equal(commandList.some((command) => /\bnpm publish\b|\bnpm version\b|\bgit tag\b|\bdeploy\b/.test(command)), false, "pre-commit checks must not publish, version, tag, or deploy");
+  assert.equal(isNestedSpawnUnavailable({ error: { code: "EPERM" } }), true, "EPERM should identify unavailable nested execution");
+  assert.equal(isNestedSpawnUnavailable({ error: { code: "EACCES" } }), true, "EACCES should identify unavailable nested execution");
+  assert.equal(isNestedSpawnUnavailable({ status: 1 }), false, "ordinary test failures must not be skipped");
 
   const repeatedA = runPreCommitCheck({ repo: root, checkPlan: [] });
   const repeatedB = runPreCommitCheck({ repo: root, checkPlan: [] });

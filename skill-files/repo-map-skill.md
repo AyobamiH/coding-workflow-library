@@ -49,15 +49,16 @@ find . -maxdepth 3 -iname 'runbook*' -ls
 1. Run `scripts/repo-map --repo <path>` before editing or selecting deeper skills.
 2. Read the human report or JSON output.
 3. Confirm whether the target is a Git repo or a non-Git directory.
-4. Use the top-level files, package/config markers, source directories, docs summary, and command candidates to choose the next safe skill.
-5. Search for user-named files case-insensitively before saying they are missing.
-6. Read only relevant project files, not broad credential directories.
-7. Record gaps explicitly: missing file, wrong path, wrong case, no git repo, or insufficient source evidence.
+4. Use the top-level files, package/config markers, source directories, docs summary, command candidates, and Git upstream relation to choose the next safe skill.
+5. Run `scripts/situational-truth` before broad route selection when lane, objective, checkpoint, or publication state matters.
+6. Search for user-named files case-insensitively before saying they are missing.
+7. Read only relevant project files, not broad credential directories.
+8. Record gaps explicitly: missing file, wrong path, wrong case, no git repo, or insufficient source evidence.
 
 ## Evidence Required
 
 - `scripts/repo-map` command and exit status.
-- Git status classification or `not_a_git_repo`.
+- Git worktree status, upstream relation, unpublished local commit count, or `not_a_git_repo`.
 - Top-level file and directory summary.
 - Detected language/config/package markers.
 - Docs summary when available.
@@ -95,4 +96,4 @@ Report:
 
 ## Upgrade Ideas
 
-Use repo-map evidence as the input for the future project-KB compiler and migration-review helper. Do not expand it into a full static-analysis platform without new evidence.
+Keep structural orientation here and use `scripts/situational-truth` for lane/objective/checkpoint reconciliation. Do not expand repo-map into a second control plane or full static-analysis platform without new evidence.

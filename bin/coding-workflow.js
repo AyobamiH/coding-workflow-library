@@ -47,6 +47,10 @@ const COMMANDS = {
     script: "scripts/repo-map",
     description: "Produce a privacy-safe source-only repository orientation report.",
   },
+  "situational-truth": {
+    script: "scripts/situational-truth",
+    description: "Reconcile Git, lane, objective, checkpoint, route, and queue truth without mutation.",
+  },
   "project-kb": {
     script: "scripts/project-kb",
     description: "Compile a deterministic source-only project knowledge base.",
@@ -121,6 +125,7 @@ Usage:
   coding-workflow extract-workflows --source /path/to/sessions --output-dir /private/path
   coding-workflow docs-list [--json] [--validate] [--orphans]
   coding-workflow repo-map --repo /path/to/repo [--json] [--validate]
+  coding-workflow situational-truth --repo /path/to/repo [--state-file /path/to/lanes.json] [--json] [--validate]
   coding-workflow project-kb --repo /path/to/repo [--output /path/to/PROJECT_KB.md] [--json] [--validate] [--dry-run]
   coding-workflow pre-commit-check [--staged] [--full] [--json]
   coding-workflow migration-review --repo /path/to/repo [--json] [--validate] [--migrations-dir relative/path]

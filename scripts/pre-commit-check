@@ -26,7 +26,8 @@ Run deterministic local checks before committing this library.
 Modes:
   default   Fast checks: whitespace, JS syntax, docs-list, repo-map, project-kb, routes, skills.
   --staged  Also inspect the staged diff for unsafe whitespace and secret-shaped additions.
-  --full    Include npm test and advisory skill-cleaner.
+  --full    Include npm test and advisory skill-cleaner. If the host rejects nested
+            npm execution, report it as skipped and require a direct npm test run.
   --json    Print structured output without raw command logs.
 
 This helper does not install dependencies, stage files, commit, push, publish, deploy,
@@ -176,6 +177,12 @@ function executeCommandCheck(repo, check) {
     ? git(repo, check.args)
     : run(check.command, check.args, { cwd: repo });
   const output = redact(`${result.stdout || ""}${result.stderr || ""}`.trim(), repo);
+  if (check.id === "npm-test" && isNestedSpawnUnavailable(result)) {
+    return checkResult(check.id, "skipped", {
+      command: commandLabel(check.command, check.args),
+      message: "nested npm execution unavailable; run npm test directly",
+    });
+  }
   if (result.status === 0) {
     return checkResult(check.id, "passed", {
       command: commandLabel(check.command, check.args),
@@ -187,6 +194,10 @@ function executeCommandCheck(repo, check) {
     message: `exit ${typeof result.status === "number" ? result.status : 1}`,
     output,
   });
+}
+
+function isNestedSpawnUnavailable(result) {
+  return ["EACCES", "EPERM"].includes(result && result.error && result.error.code);
 }
 
 function stagedFiles(repo) {
@@ -393,6 +404,7 @@ if (require.main === module) {
 module.exports = {
   buildDefaultChecks,
   inspectStaged,
+  isNestedSpawnUnavailable,
   redact,
   runPreCommitCheck,
   scanDiffForSecrets,

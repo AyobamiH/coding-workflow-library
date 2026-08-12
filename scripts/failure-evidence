@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require("fs");
+const { redactText } = require("./lib/situational-truth/privacy");
 
 function usage() {
   console.log(`Usage:
@@ -23,98 +24,92 @@ function parseArgs(argv) {
 }
 
 function redact(input) {
-  let value = String(input || "");
-  value = value.replace(new RegExp("sk-" + "[A-Za-z0-9_-]{12,}", "g"), "[redacted-api-key]");
-  value = value.replace(/eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, "[redacted-jwt]");
-  value = value.replace(/postgres(?:ql)?:\/\/[^\s"'<>]+/gi, "postgres://[redacted]");
-  value = value.replace(/https?:\/\/[^:\s"'<>]+:[^@\s"'<>]+@[^\s"'<>]+/gi, "https://[redacted-credential]@[redacted-host]");
-  value = value.replace(/(token|secret|password|passwd|api[_-]?key|access[_-]?key|auth|bearer|credential)\s*[:=]\s*[^\s"'<>]+/gi, "$1=[redacted]");
-  return value;
+  return redactText(input);
 }
 
 const RULES = [
   {
     classification: "missing credential",
-    severity: "John-required",
+    severity: "BLOCKED_CAPABILITY",
     pattern: /\b(token|credential|secret|api key|access token)\b.*\b(missing|required|not set|undefined)\b/i,
-    nextLedgerState: "Needs John: credential missing",
+    nextLedgerState: "Blocked capability: credential missing",
     recovery: "Provision the credential locally without pasting it into chat, then rerun the auth/tooling gate.",
   },
   {
     classification: "invalid credential",
-    severity: "John-required",
+    severity: "BLOCKED_CAPABILITY",
     pattern: /\b(bad credentials|invalid token|expired token|revoked|401 unauthorized|authentication failed)\b/i,
-    nextLedgerState: "Needs John: credential invalid",
+    nextLedgerState: "Blocked capability: credential invalid",
     recovery: "Replace or refresh the local credential and rerun the auth gate.",
   },
   {
     classification: "network unreachable",
-    severity: "retry-safe",
+    severity: "WAITING_CONDITION",
     pattern: /\b(network is unreachable|ENOTFOUND|ECONNRESET|ETIMEDOUT|timeout|temporary failure in name resolution)\b/i,
     nextLedgerState: "Blocked: network unreachable",
     recovery: "Retry after network/DNS availability is confirmed; do not mutate state while connectivity is unclear.",
   },
   {
     classification: "direct-host vs pooler mistake",
-    severity: "John-required",
+    severity: "BLOCKED_CAPABILITY",
     pattern: /\b(db\.[a-z0-9-]+\.supabase\.co|direct host|pooler|IPv6|Network is unreachable).*(5432|pooler|direct host|IPv6)|\bport 5432 failed\b/i,
-    nextLedgerState: "Needs John: database connection URL repair",
+    nextLedgerState: "Blocked capability: database connection route unavailable",
     recovery: "Use an approved IPv4-reachable pooler URL without printing it.",
   },
   {
     classification: "CLI unavailable",
-    severity: "John-required",
+    severity: "BLOCKED_CAPABILITY",
     pattern: /\b(command not found|not recognized|ENOENT|No such file or directory)\b/i,
-    nextLedgerState: "Needs John: local CLI unavailable",
+    nextLedgerState: "Blocked capability: local CLI unavailable",
     recovery: "Install or provide the approved local tool; do not use curl installers or repo-local installs unless approved.",
   },
   {
     classification: "auth unavailable",
-    severity: "John-required",
+    severity: "BLOCKED_CAPABILITY",
     pattern: /\b(gh auth status|not logged in|not authenticated|authentication required|login required)\b/i,
-    nextLedgerState: "Needs John: auth unavailable",
+    nextLedgerState: "Blocked capability: authentication unavailable",
     recovery: "Run the relevant auth gate and stop before push, PR, deploy, or external mutation.",
   },
   {
     classification: "permission denied",
-    severity: "John-required",
+    severity: "BLOCKED_PERMISSION",
     pattern: /\b(permission denied|access denied|403 forbidden|viewerPermission.*READ|resource not accessible)\b/i,
-    nextLedgerState: "Needs John: permission fix",
+    nextLedgerState: "Blocked permission: minimum scope unavailable",
     recovery: "Request the minimum required permission or token scope; do not retry with another account silently.",
   },
   {
     classification: "merge blocked",
-    severity: "hard-stop",
+    severity: "BLOCKED_SAFETY",
     pattern: /\b(mergeable.*false|merge conflict|required status check|branch protection|not mergeable|checks? failed)\b/i,
     nextLedgerState: "PR blocked by mergeability or checks",
     recovery: "Collect PR/check evidence and stop before merge.",
   },
   {
     classification: "validation failed",
-    severity: "retry-safe",
+    severity: "BLOCKED_SAFETY",
     pattern: /\b(validate-skills|lint|test|build|typecheck|syntax check).*\b(fail|failed|error|nonzero)\b/i,
     nextLedgerState: "Blocked: validation failed",
     recovery: "Fix the local validation issue or record it as a caveat before any handoff.",
   },
   {
     classification: "unsafe secret exposure risk",
-    severity: "hard-stop",
+    severity: "BLOCKED_SAFETY",
     pattern: /\b(secret|token|password|private key|database url|service role)\b.*\b(exposed|printed|leak|hardcoded|literal)\b/i,
     nextLedgerState: "Blocked: unsafe secret exposure risk",
     recovery: "Stop reading/printing values, report path/key/risk only, and contain the exposure.",
   },
   {
     classification: "external service mutation not permitted",
-    severity: "hard-stop",
+    severity: "BLOCKED_PERMISSION",
     pattern: /\b(not allowed|forbidden|permission not granted).*\b(deploy|push|publish|migration|db push|secret set|production|external service)\b/i,
-    nextLedgerState: "Needs John: permission gate",
+    nextLedgerState: "Blocked permission: external mutation authority absent",
     recovery: "Stop at the permission boundary and request the exact gate.",
   },
   {
     classification: "environment format issue",
-    severity: "retry-safe",
+    severity: "BLOCKED_SAFETY",
     pattern: /\b(env file format|bad substitution|unterminated quoted string|not a valid identifier|spaces around =|carriage return)\b/i,
-    nextLedgerState: "Needs John: env file format repair",
+    nextLedgerState: "Blocked safety: environment file format invalid",
     recovery: "Inspect variable-name shape only; do not print values.",
   },
 ];
@@ -124,9 +119,9 @@ function classify(text) {
   if (matches.length) return matches;
   return [
     {
-      classification: "unknown failure",
-      severity: "John-required",
-      nextLedgerState: "Needs John: failure classification",
+      classification: "unclassified failure evidence",
+      severity: "BLOCKED_DECISION",
+      nextLedgerState: "Blocked decision: failure evidence is insufficient",
       recovery: "Capture exact command, sanitized error, and smallest read-only confirming check.",
     },
   ];
@@ -170,7 +165,7 @@ function main() {
 
 ## Input
 
-${args.input ? args.input : "stdin"}
+${args.input ? "input_file" : "stdin"}
 
 ## Classifications
 
@@ -197,4 +192,11 @@ ${redacted.trim().slice(0, 4000)}
 No files were modified. Secret-shaped values were redacted from output.`);
 }
 
-main();
+if (require.main === module) main();
+
+module.exports = {
+  RULES,
+  classify,
+  parseArgs,
+  redact,
+};

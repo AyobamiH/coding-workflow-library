@@ -2,6 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { detectProductWarnings } = require("./lib/situational-truth/product-routes");
 
 const ROOT = path.resolve(__dirname, "..");
 const ROUTE_FILE = path.join(ROOT, "routes", "skill-routes.json");
@@ -183,6 +184,10 @@ function validateRoutes() {
     if (route.continue_after_blocker !== undefined && typeof route.continue_after_blocker !== "boolean") {
       errors.push(`${id}: continue_after_blocker must be boolean when present`);
     }
+  }
+
+  for (const warning of detectProductWarnings(parsed.routes, ROOT)) {
+    warnings.push(`${warning.id}: ${warning.classification} (${warning.signal})`);
   }
 
   return {

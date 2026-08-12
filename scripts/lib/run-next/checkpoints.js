@@ -153,6 +153,11 @@ function nextIncompleteCheckpoint(run) {
   return run.checkpoints.find((item) => item.status !== "completed") || null;
 }
 
+function pendingPermission(run, allowed = new Set()) {
+  if (!run || run.status === "completed" || !nextIncompleteCheckpoint(run)) return null;
+  return run.required_permission && !allowed.has(run.required_permission) ? run.required_permission : null;
+}
+
 function printCheckpointStatus(repo) {
   const run = latestRun(repo, false);
   console.log("# run-next checkpoint status");
@@ -173,7 +178,7 @@ function printCheckpointStatus(repo) {
   console.log(`completed checkpoints: ${run.checkpoints.filter((item) => item.status === "completed").map((item) => item.name).join(", ") || "none"}`);
   console.log(`next incomplete checkpoint: ${incomplete ? incomplete.name : "none"}`);
   console.log(`permissions granted: ${(run.permissions || []).join(", ") || "none"}`);
-  console.log(`permissions still required: ${run.required_permission && !(run.permissions || []).includes(run.required_permission) ? run.required_permission : "none"}`);
+  console.log(`permissions still required: ${pendingPermission(run, new Set(run.permissions || [])) || "none"}`);
   console.log(`last verified commit: ${run.last_verified_commit || "none"}`);
   console.log(`stop reason: ${run.stop_reason || (run.status === "completed" ? "completed" : "not recorded")}`);
   console.log(`recommended resume command: ${incomplete ? `./scripts/run-next --repo ${run.repo} --resume --dry-run` : "none; latest run is complete"}`);
@@ -310,7 +315,7 @@ function printResumeReport(result) {
   console.log(`completed checkpoints: ${run.checkpoints.filter((item) => item.status === "completed").map((item) => item.name).join(", ") || "none"}`);
   console.log(`next incomplete checkpoint: ${next ? next.name : "none"}`);
   console.log(`permissions granted: ${Array.from(args.allow).sort().join(", ") || "none"}`);
-  console.log(`permissions still required: ${run.required_permission && !args.allow.has(run.required_permission) ? run.required_permission : "none"}`);
+  console.log(`permissions still required: ${pendingPermission(run, args.allow) || "none"}`);
   console.log(`last verified commit: ${run.last_verified_commit || "none"}`);
   console.log(`stop reason: ${run.stop_reason || "not recorded"}`);
   console.log(`recommended resume command: ${next ? `./scripts/run-next --repo ${run.repo} --resume --dry-run` : "none"}`);
@@ -356,6 +361,7 @@ module.exports = {
   listCheckpointRuns,
   latestRun,
   nextIncompleteCheckpoint,
+  pendingPermission,
   printCheckpointStatus,
   runResume,
   validateResumeRun,

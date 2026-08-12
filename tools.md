@@ -87,6 +87,19 @@ Required boundaries:
 - Do not read `.env` contents, print token values, print DB URLs, install dependencies, run target build/test commands, mutate git, create files in the target repo, call external services, publish, deploy, push, tag, or prove runtime behaviour.
 - Treat framework/config detection as orientation evidence, not proof of runtime behaviour.
 
+## Situational Truth
+
+`scripts/situational-truth` is `local_execution` only. It reconciles current repository, lane, objective, authority, checkpoint, route, ledger, and build-queue metadata into one privacy-safe next action.
+
+Required boundaries:
+
+- Discover live lane state from an explicit path, environment override, canonical home state, then OpenClaw compatibility state; a tracked template is never live execution state.
+- Report Git branch, worktree counts, upstream relation, unpublished commit count, checkpoint relation to `HEAD`, objective freshness, product-route warnings, and one blocker class.
+- Keep `--validate` source-only and non-mutating. Use `--fail-on-stale` or `--fail-on-unpublished` only when that condition is an intentional hard gate.
+- Emit relative paths and safe location classes in JSON; never emit private home paths, secret values, raw session content, database URLs, credential metadata, or `.env` contents.
+- Do not fetch, edit lane state, rewrite checkpoints, stage, commit, push, publish, tag, release, deploy, call production, or infer external runtime truth.
+- Treat product-route findings as ownership warnings (`PRODUCT_ROUTE_PRESENT`, `PRODUCT_ROUTE_HOLD`, or `PRODUCT_ROUTE_SPLIT_DECISION_REQUIRED`), not permission to remove or execute a route.
+
 ## Project Knowledge Base
 
 `scripts/project-kb` is `local_execution` only. It compiles deterministic project memory from `repo-map`, `docs-list`, package metadata, route metadata, skill files, and selected public control documents.

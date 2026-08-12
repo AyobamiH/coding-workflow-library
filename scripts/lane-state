@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 const fs = require("fs");
-const os = require("os");
 const path = require("path");
 const objectiveAuthority = require("./objective-authority");
+const laneDiscovery = require("./lib/lane-state-discovery");
 
 const VERSION = 1;
 const PROHIBITED_KEYS = /(token|secret|password|credential|private[_-]?key|database[_-]?url|db[_-]?url)/i;
@@ -15,7 +15,7 @@ const SECRET_VALUES = [
 ];
 
 function defaultStateFile() {
-  return process.env.CODING_WORKFLOW_STATE_FILE || path.join(os.homedir(), ".coding-workflow", "lanes.json");
+  return laneDiscovery.defaultStateFile();
 }
 
 function parseArgs(argv) {

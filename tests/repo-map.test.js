@@ -73,6 +73,10 @@ try {
 
   assert.equal(map.git.repo_root_found, true, "git repo root should be detected");
   assert.equal(map.git.current_branch, "main", "current branch should be detected");
+  assert.equal(map.git.relation, "no_upstream", "repo without an upstream should be explicit");
+  assert.equal(map.git.unpublished_local_commits, 0, "repo without an upstream should not invent unpublished counts");
+  assert.ok(map.git.staged_files > 0, "staged file count should be reported");
+  assert.equal(map.git.unstaged_files, 0, "unstaged file count should be reported independently");
   assert.equal(map.package_manager, "npm", "package manager should be detected from lockfile");
   assert.ok(map.top_level.files.includes("README.md"), "top-level files should be listed");
   assert.ok(map.top_level.directories.includes("src"), "top-level dirs should be listed");

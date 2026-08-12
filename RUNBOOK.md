@@ -27,7 +27,7 @@ Read `AGENTS.md` first. Its hard rules and permission gates override individual 
 
 ## Documentation Continuity
 
-Before broad work, establish direction from `docs/agent-and-skill-roadmap.md`, `build-queue.md`, and the selected private lane. Use `scripts/docs-list` to discover current documents and `scripts/library-next-objective --repo <LIBRARY_REPO> --validate` before proposing another reusable foundation.
+Before broad work, establish current truth with `scripts/situational-truth --repo <TARGET_REPO> --validate`, then establish direction from `docs/agent-and-skill-roadmap.md`, `build-queue.md`, and the selected private lane. Use `scripts/docs-list` to discover current documents and `scripts/library-next-objective --repo <LIBRARY_REPO> --validate` before proposing another reusable foundation.
 
 During implementation, update the owning documents with the code:
 
@@ -44,14 +44,15 @@ Lane `current_state` values are routing keys, not status-summary prose. Use only
 
 1. `AGENTS.md`: hard rules, permission gates, repo safety, secret handling, and routing constraints.
 2. `coding-workflow-orchestrator-skill`: control-plane classification and next-skill selection when the next step is unclear.
-3. `scripts/run-next`: executable work-loop runner when ledger state and supplied `--allow` flags cover the next action.
-4. `routes/skill-routes.json`: ledger-state to skill ownership, permission flag, helper script, forbidden action, success state, blocked state, and evidence mapping.
-5. Skill frontmatter plus `skills-index.md`: routing contract and skill discovery.
-6. Selected `skill-files/*.md`: concrete commands, procedure, evidence, and safety rules.
-7. `tools.md`: tool permission levels, safe examples, approval requirements, and evidence expectations.
-8. `./scripts/route-audit`: route metadata validation after route edits.
-9. `./scripts/validate-skills`: library validation after skill edits.
-10. `evidence-checklist.md`: final evidence gate.
+3. `scripts/situational-truth`: non-mutating reconciliation of Git, lane, objective, checkpoint, route, ledger, and queue state before route selection or resume.
+4. `scripts/run-next`: executable work-loop runner when reconciled state and supplied authority cover the next action.
+5. `routes/skill-routes.json`: ledger-state to skill ownership, permission flag, helper script, forbidden action, success state, blocked state, and evidence mapping.
+6. Skill frontmatter plus `skills-index.md`: routing contract and skill discovery.
+7. Selected `skill-files/*.md`: concrete commands, procedure, evidence, and safety rules.
+8. `tools.md`: tool permission levels, safe examples, approval requirements, and evidence expectations.
+9. `./scripts/route-audit`: route metadata validation after route edits.
+10. `./scripts/validate-skills`: library validation after skill edits.
+11. `evidence-checklist.md`: final evidence gate.
 
 The system requests authority for consequences, not permission for every tool call.
 
@@ -61,11 +62,13 @@ Use `github-handoff-skill` before publication-oriented git work, use `scripts/co
 
 For later library releases, select an objective id shaped as `release-coding-workflow-library-vX.Y.Z`. Replacing an objective resets its checkpoints, blockers, and non-local grants; use `objective-set --reset` to deliberately restart the same objective id, then grant the required authority classes again. Run lane-scoped `run-next --dry-run` first, then the real route after the package, lockfile, changelog, release note, and exact-file release commit are ready. Do not reuse the historical `v0.1.0` or `v0.2.0` state to force routing. The real route owns the non-force push, exact-SHA CI wait, annotated tag, npm publication, and GitHub Release verification. Exact-SHA CI must pass before tag, npm publish, or GitHub Release creation.
 
-Use `scripts/pre-commit-check` before local commits in this library. Default mode is fast and local; `--staged` adds staged diff safety and secret-shaped marker scanning without values; `--full` adds `npm test` and `skill-cleaner`. `scripts/install-git-hooks` can install the optional managed `.git/hooks/pre-commit` template, but it must preserve unmanaged hooks unless `--force` is explicitly chosen. The hook does not grant commit, push, publish, deploy, or release authority.
+Use `scripts/pre-commit-check` before local commits in this library. Default mode is fast and local; `--staged` adds staged diff safety and secret-shaped marker scanning without values; `--full` adds `npm test` and `skill-cleaner`. A restricted host may reject nested npm execution with `EPERM` or `EACCES`; in that case the gate records the npm check as skipped and a separate direct `npm test` pass is required. `scripts/install-git-hooks` can install the optional managed `.git/hooks/pre-commit` template, but it must preserve unmanaged hooks unless `--force` is explicitly chosen. The hook does not grant commit, push, publish, deploy, or release authority.
 
 Use `scripts/check-module-size` after adding or reorganising JavaScript. Entry points should contain composition and dispatch, while route execution, evidence collection, report rendering, and checkpoint handling belong in responsibility-owned modules. Review files at 750 lines; the 1,000-line hard gate is enforced by `npm test` and pre-commit validation. Do not bypass the gate with a hand-written-file allowlist. For `run-next`, follow `docs/run-next-modular-architecture.md` and extend the owning module instead of restoring the old monolith.
 
 Use `<LIBRARY_REPO>`, `<TARGET_REPO>`, `<LOCAL_ENV_FILE>`, and `<TEMP_ROOT>` in tracked documentation and evidence. `scripts/run-next` defaults `--repo` to the current working directory and supports `CODING_WORKFLOW_HOME`, `CODING_WORKFLOW_ENV_FILE`, `CODING_WORKFLOW_TMPDIR`, and `CODING_WORKFLOW_NPM_CACHE` for local runtime placement. `scripts/check-public-paths` is deterministic and reports path categories without echoing matched private paths.
+
+`scripts/situational-truth` discovers lane state across the explicit argument, environment override, canonical home location, and OpenClaw compatibility location instead of stopping at the first missing default. It never updates the selected lane. A terminal objective with retained grants, an objective behind unpublished work, or a checkpoint behind `HEAD` is stale evidence even when `npm test` passes. Product-route warnings are advisory ownership findings; do not remove or execute those routes without a separate split decision.
 
 `scripts/run-next` is the default executable path when the next step is represented in lane state or `work-ledger.md`. In lane mode it reads the selected objective authority and can continue through multiple safe/local stages until a structured blocker appears. Legacy `--allow <route>` flags remain compatible; new work should prefer objective grants. Use `--explain`, `--explain-next`, or `--dry-run` when the selected job should be reported without mutating lane state, ledger, run log, target repo, or external services.
 
@@ -188,6 +191,7 @@ Use this mapping before acting:
 
 - Need to classify work, choose the next safe skill, enforce permissions, run one bounded loop, or update the ledger: `coding-workflow-orchestrator-skill`
 - Need to understand a repo before editing: `repo-map-skill` with `scripts/repo-map --repo <path>` first
+- Need to reconcile Git, lane, objective, checkpoint, route, and queue truth before selecting work: `coding-workflow-orchestrator-skill` with `scripts/situational-truth --repo <path>`
 - Need to investigate an error: `error-evidence-skill`
 - Need to verify build/test/lint status: `build-verify-skill`
 - Need to create a local redacted evidence pack: `evidence-pack-builder-skill`

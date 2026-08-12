@@ -147,6 +147,8 @@ The orchestrator must not perform deep implementation itself unless the selected
 
 Autonomous recovery means reconstructing state from the repository, local lane files, `.run-next/` checkpoints, skill frontmatter, route metadata, git history, and validation evidence before asking John for more narrative context. Ask for a prompt only when those local sources are insufficient and a real authority, capability, safety, or product-decision boundary remains.
 
+Run `scripts/situational-truth --repo <path> --validate` before selecting or resuming broad work. It reconciles upstream Git relation, unpublished commits, lane discovery and repository match, objective/authority freshness, checkpoint relation to `HEAD`, route/ledger/queue contradictions, and product-route ownership warnings. It is a read-only preflight, not another router: `scripts/run-next` still owns execution and state transitions.
+
 `routes/skill-routes.json` is the route ownership layer. Use it to keep reusable skills from becoming manual-only documents and to keep proven production workflow logic from staying hidden inside `scripts/run-next`. The runner should remain a bounded orchestrator over skills, route metadata, and helper scripts. Product-specific live actions still require explicit permission gates.
 
 When a completed library lane has no obvious next dependency, use `scripts/library-next-objective` and the `library-next-objective-assessment` route. `NO_ACTIVE_REUSABLE_GAP` is a successful stop boundary: select a target repository objective or record a new structured gap only when new evidence exists. Queue/roadmap disagreement is `BLOCKED_SAFETY`; it is never permission to infer an agent role, broker, release, or product task.
@@ -364,6 +366,7 @@ If the target is not a Git repo, record the Git failure, continue only with file
 Select from existing skills:
 
 - repo orientation -> `repo-map-skill` with `scripts/repo-map --repo <path>` first;
+- current-state reconciliation before route selection/resume -> this orchestrator with `scripts/situational-truth --repo <path>`;
 - env/secrets/public-private config -> `env-audit-skill`;
 - Supabase RLS/public anon safety -> `supabase-rls-audit-skill`;
 - security finding/patch plan -> `security-hardening-review-skill`;

@@ -57,6 +57,8 @@ Use this checklist after creating, updating, or reorganizing the coding workflow
 - [ ] Missing-skill records use the structured recorder and reject duplicate, private-path, and secret-shaped input
 - [ ] Autonomy outcomes remain aggregate-only and do not emit paths, notes, commands, or raw logs
 - [ ] Multi-project proof preserves target Git status and temporary lane state
+- [ ] Situational truth detects ahead/behind/diverged Git state, stale authority/checkpoints, lane mismatch, and product-route ownership without mutation
+- [ ] Situational truth JSON uses safe location classes and contains no private absolute paths or secret-shaped values
 
 ## Validation Commands
 
@@ -67,6 +69,7 @@ Use this checklist after creating, updating, or reorganizing the coding workflow
 ./scripts/check-module-size --json
 ./scripts/docs-list --validate
 ./scripts/repo-map --repo . --validate
+./scripts/situational-truth --repo . --validate
 ./scripts/project-kb --repo . --validate
 ./scripts/migration-review --repo . --validate
 ./scripts/browser-live-proof --help

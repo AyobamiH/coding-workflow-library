@@ -16,7 +16,7 @@ Available now:
 
 - project lanes, objective authority, decision records, checkpoints, resume, and until-blocked execution;
 - 33 active skills and 40 audited routes covering repository work, GitHub, package/release, runtime, Supabase, Cloudflare, browser, evidence, diagnostics, and secrets boundaries;
-- deterministic documentation inventory, repository map, project KB, migration review, pre-commit, public-path, module-size, package-readiness, and release-preflight helpers;
+- deterministic documentation inventory, repository map, situational truth, project KB, migration review, pre-commit, public-path, module-size, package-readiness, and release-preflight helpers;
 - privacy-safe workflow-corpus, autonomy-outcome, multi-project, and runtime-truth evidence contracts;
 - a modular `run-next` control plane with tested local, remote-publication, production, secret, and destructive-action boundaries.
 
@@ -75,6 +75,7 @@ skills/coding-workflow-library/
     workflow-corpus.schema.json
     workflow-source-manifest.schema.json
     repo-map.schema.json
+    situational-truth.schema.json
     project-kb.schema.json
     pre-commit-check.schema.json
     migration-review.schema.json
@@ -106,6 +107,7 @@ skills/coding-workflow-library/
     extract-session-workflows.mjs
     docs-list
     repo-map
+    situational-truth
     project-kb
     pre-commit-check
     check-public-paths
@@ -148,6 +150,7 @@ skills/coding-workflow-library/
     workflow-extraction.test.js
     docs-list.test.js
     repo-map.test.js
+    situational-truth.test.js
     project-kb.test.js
     pre-commit-check.test.js
     migration-review.test.js
@@ -383,7 +386,24 @@ Use `scripts/repo-map` before editing an unfamiliar workspace so the agent has d
 coding-workflow repo-map --repo /path/to/repo --validate
 ```
 
-The helper reports git state, top-level files and directories, detected languages, package/config markers, safe package scripts, command candidates, documentation summary from `scripts/docs-list`, source/database directories, environment-file presence without values, and secret-surface warning categories. Exact conventional package scripts such as `test` and `build` take precedence over focused variants when command candidates are selected. It works for Git and non-Git directories. It does not install dependencies, run build/test commands in the target repo, mutate git, read `.env` values, call external services, inspect private corpus output, publish, deploy, push, tag, or prove runtime behaviour.
+The helper reports git state, including upstream relation and unpublished local commit count, top-level files and directories, detected languages, package/config markers, safe package scripts, command candidates, documentation summary from `scripts/docs-list`, source/database directories, environment-file presence without values, and secret-surface warning categories. Exact conventional package scripts such as `test` and `build` take precedence over focused variants when command candidates are selected. It works for Git and non-Git directories. It does not install dependencies, run build/test commands in the target repo, mutate git, read `.env` values, call external services, inspect private corpus output, publish, deploy, push, tag, or prove runtime behaviour.
+
+## Situational Truth
+
+Use `scripts/situational-truth` after repository orientation and before selecting or resuming autonomous work:
+
+```bash
+./scripts/situational-truth --repo .
+./scripts/situational-truth --repo . --json
+./scripts/situational-truth --repo . --validate
+./scripts/situational-truth --repo . --fail-on-stale --fail-on-unpublished
+
+coding-workflow situational-truth --repo . --validate
+```
+
+The helper reconciles worktree counts, local/upstream commit relation, unpublished commits, discovered lane state, lane/repository match, objective and authority freshness, ignored checkpoint freshness, route/ledger recognition, build-queue status, and product-specific routes embedded in the generic package. It returns one deterministic bounded next action and one specific blocker class. Live warnings are informational unless a strict failure flag is supplied.
+
+Lane discovery checks an explicit `--state-file`, `CODING_WORKFLOW_STATE_FILE`, `$HOME/.coding-workflow/lanes.json`, then `$HOME/.openclaw/state/coding-workflow/lanes.json`; the tracked example is non-live fallback metadata only. Portable JSON emits location classes and repository-relative labels rather than private absolute paths. The helper is source-only and non-mutating: it does not refresh state, edit checkpoints, fetch remotes, read secrets, publish, deploy, or prove external runtime truth.
 
 ## Project Knowledge Base
 
@@ -585,7 +605,7 @@ Commit permission is separate from push, PR, deploy, migration, and release perm
 
 ## Pre-Commit Validation Hook
 
-`scripts/pre-commit-check` is the local commit gate for this library. It runs deterministic checks before a commit: `git diff --check`, Node syntax checks for core helpers, docs-list validation, repo-map validation, project-KB validation, migration-review validation, route audit, and skill validation. `--staged` also inspects the staged diff for whitespace issues and secret-shaped additions, reporting only file/risk category without printing values. `--full` adds `npm test` and `skill-cleaner`.
+`scripts/pre-commit-check` is the local commit gate for this library. It runs deterministic checks before a commit: `git diff --check`, Node syntax checks for core helpers, docs-list validation, repo-map validation, project-KB validation, migration-review validation, route audit, and skill validation. `--staged` also inspects the staged diff for whitespace issues and secret-shaped additions, reporting only file/risk category without printing values. `--full` adds `npm test` and `skill-cleaner`. If a restricted host explicitly rejects nested npm execution with `EPERM` or `EACCES`, the gate reports that one check as skipped; run `npm test` directly and retain both results rather than treating the skip as test evidence.
 
 ```bash
 ./scripts/pre-commit-check

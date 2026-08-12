@@ -214,6 +214,8 @@ Use for source-only migration risk review before any apply/deploy step. Run `scr
 - `scripts/lib/run-next/`: responsibility-owned runtime modules for CLI control, route access/dispatch, local foundations, release, GitHub, Supabase, scheduler, observability, reports, checkpoints, and shared runtime support.
 - `scripts/repo-map`: dependency-free source-only repository map helper for Git and non-Git directories, with JSON and validation modes.
 - `schemas/repo-map.schema.json`: portable schema for `scripts/repo-map --json` output.
+- `scripts/situational-truth`: dependency-free, non-mutating reconciliation of Git relation, unpublished work, discovered lane state, objective authority, checkpoints, route/ledger/queue consistency, product-route ownership, and one bounded next action.
+- `schemas/situational-truth.schema.json`: portable privacy-safe contract for `scripts/situational-truth --json` output.
 - `scripts/project-kb`: dependency-free project knowledge base compiler that synthesizes repo-map, docs-list, package, route, skill, and control-doc metadata without reading secrets or calling services.
 - `schemas/project-kb.schema.json`: portable schema for `scripts/project-kb --json` output.
 - `scripts/migration-review`: dependency-free source-only migration risk review helper for common migration directories, with JSON, validation, custom directory, and high-risk gate modes.

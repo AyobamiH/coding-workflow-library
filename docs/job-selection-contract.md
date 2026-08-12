@@ -5,6 +5,7 @@
 - selected lane from `--lane` and `--state-file`, or target repo path from `--repo` in legacy mode
 - local lane state, or `work-ledger.md` in legacy mode
 - local ignored `.run-next/` checkpoint state for `--status` and `--resume`
+- current `scripts/situational-truth` report for Git relation, unpublished work, state discovery, freshness, contradictions, and the next bounded action
 - skill frontmatter
 - `skills-index.md`
 - supplied `--allow` flags
@@ -24,12 +25,13 @@ The route's `requires_permission` value must match one supplied `--allow` flag b
 
 ## Priority Rules
 
-1. Explicit selected lane, otherwise exact target repo ledger item.
-2. Selected lane or ledger current status.
-3. Implemented `scripts/run-next` route.
-4. Skill frontmatter.
-5. `skills-index.md` and `RUNBOOK.md` fallback.
-6. Human boundary if still ambiguous.
+1. Refuse or classify dirty/diverged Git state and lane/repository mismatch.
+2. Report unpublished local work before manufacturing another objective.
+3. Reconcile stale objective authority and checkpoint evidence.
+4. Use the explicit selected lane, otherwise exact target repo ledger item.
+5. Use selected lane or ledger current status and the implemented `scripts/run-next` route.
+6. Fall back to skill frontmatter, `skills-index.md`, and `RUNBOOK.md`.
+7. Return one typed human boundary only if evidence remains ambiguous.
 
 ## Safety Rules
 
@@ -60,4 +62,4 @@ Resume additionally stops when the checkpoint references a missing repo, the bra
 
 ## Output Contract
 
-Every run reports mode, target repo, ledger item, current status, selected skill, required permission, can-run-now status, final status, summary, actions, evidence, and next permission or command when needed.
+Every run reports mode, target repo, ledger item, current status, selected skill, required permission, can-run-now status, final status, summary, actions, evidence, and next permission or command when needed. Before selection, situational truth reports one of the specific capability, permission, safety, decision, or waiting blocker classes; vague person-required labels are not part of the contract.
