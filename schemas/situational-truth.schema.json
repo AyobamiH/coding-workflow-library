@@ -160,7 +160,7 @@
       "additionalProperties": false,
       "required": ["status", "count", "lane_state_recognized", "matching_route_ids", "ledger_state_present"],
       "properties": {
-        "status": { "enum": ["PASS", "WARN", "FAIL"] },
+        "status": { "enum": ["PASS", "WARN", "FAIL", "NOT_APPLICABLE"] },
         "count": { "type": "integer", "minimum": 0 },
         "lane_state_recognized": { "type": ["boolean", "null"] },
         "matching_route_ids": { "type": "array", "items": { "type": "string" } },
@@ -172,8 +172,8 @@
       "additionalProperties": false,
       "required": ["status", "classification", "active_gaps", "next_action"],
       "properties": {
-        "status": { "enum": ["PASS", "WARN", "FAIL"] },
-        "classification": { "enum": ["NO_ACTIVE_REUSABLE_GAP", "ACTIVE_REUSABLE_GAP", "EVIDENCE_INCONSISTENT"] },
+        "status": { "enum": ["PASS", "WARN", "FAIL", "NOT_APPLICABLE"] },
+        "classification": { "enum": ["NO_ACTIVE_REUSABLE_GAP", "ACTIVE_REUSABLE_GAP", "EVIDENCE_INCONSISTENT", "NOT_APPLICABLE"] },
         "active_gaps": { "type": "array", "items": { "type": "object" } },
         "next_action": { "type": "string" }
       }

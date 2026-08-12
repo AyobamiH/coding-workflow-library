@@ -401,6 +401,8 @@ Use `scripts/situational-truth` after repository orientation and before selectin
 coding-workflow situational-truth --repo . --validate
 ```
 
+For an ordinary target repository, library-owned routes, `work-ledger.md`, and `build-queue.md` are optional control surfaces. Missing files report `NOT_APPLICABLE`; existing but invalid files still fail. A terminal private lane remains authoritative without requiring product-specific state to be copied into a public ledger, while active unmatched state still reports a routing contradiction.
+
 The helper reconciles worktree counts, local/upstream commit relation, unpublished commits, discovered lane state, lane/repository match, objective and authority freshness, ignored checkpoint freshness, route/ledger recognition, build-queue status, and product-specific routes embedded in the generic package. It returns one deterministic bounded next action and one specific blocker class. Live warnings are informational unless a strict failure flag is supplied.
 
 Lane discovery checks an explicit `--state-file`, `CODING_WORKFLOW_STATE_FILE`, `$HOME/.coding-workflow/lanes.json`, then `$HOME/.openclaw/state/coding-workflow/lanes.json`; the tracked example is non-live fallback metadata only. Portable JSON emits location classes and repository-relative labels rather than private absolute paths. The helper is source-only and non-mutating: it does not refresh state, edit checkpoints, fetch remotes, read secrets, publish, deploy, or prove external runtime truth.

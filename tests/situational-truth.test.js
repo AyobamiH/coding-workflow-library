@@ -346,6 +346,22 @@ try {
   const productReport = buildReport(optionsFor(product));
   assert.ok(productReport.product_route_warnings.some((item) => item.classification === "PRODUCT_ROUTE_SPLIT_DECISION_REQUIRED"), "product-specific route warning was missing");
 
+  const productWithoutLibraryControls = createRepo("product without library controls");
+  git(productWithoutLibraryControls.repo, ["rm", "build-queue.md", "docs/agent-and-skill-roadmap.md", "routes/skill-routes.json", "work-ledger.md"]);
+  commit(productWithoutLibraryControls.repo, "Use product-native control files");
+  git(productWithoutLibraryControls.repo, ["update-ref", "refs/remotes/origin/main", git(productWithoutLibraryControls.repo, ["rev-parse", "HEAD"])]);
+  const inactiveAuthority = Object.fromEntries(Object.keys(activeObjective().authority).map((name) => [name, false]));
+  const productWithoutControlsReport = buildReport(optionsFor(productWithoutLibraryControls, {
+    objective: activeObjective({ status: "complete", authority: inactiveAuthority }),
+  }));
+  assert.equal(productWithoutControlsReport.routes.status, "NOT_APPLICABLE", "missing product-local route metadata should be not applicable");
+  assert.equal(productWithoutControlsReport.routes.lane_state_recognized, null, "external route ownership should not become a false mismatch");
+  assert.equal(productWithoutControlsReport.routes.ledger_state_present, null, "missing historical public ledger should be not applicable");
+  assert.equal(productWithoutControlsReport.build_queue.classification, "NOT_APPLICABLE", "missing library build queue should be not applicable");
+  assert.equal(productWithoutControlsReport.next_action.code, "NO_ACTIVE_PROJECT_OBJECTIVE", "terminal product lane should remain the bounded truth");
+  assert.equal(productWithoutControlsReport.blocker.classification, "NONE", "terminal product lane should not manufacture a safety blocker");
+  assert.deepEqual(validateReport(productWithoutControlsReport, schema), [], "product-native report did not validate against schema");
+
   const privatePath = ["", "home", "private-user", "workspace", "repo"].join("/");
   const failureText = redactFailure(`gh auth status: not logged in while reading ${privatePath}\n`);
   const failure = classifyFailure(failureText);
@@ -357,7 +373,7 @@ try {
   assert.match(evidenceSource, /situational-truth\.json/, "evidence pack did not collect actual situational evidence");
   assert.match(evidenceSource, /Target repo: <target-repo>/, "evidence pack dry-run did not redact the target path");
 
-  console.log("situational-truth tests passed: Git relations, worktree counts, lane discovery, stale objective/authority, checkpoint freshness, route warnings, schema, privacy, immutability, and deterministic next actions.");
+  console.log("situational-truth tests passed: Git relations, worktree counts, lane discovery, stale objective/authority, checkpoint freshness, product-native control boundaries, route warnings, schema, privacy, immutability, and deterministic next actions.");
 } finally {
   fs.rmSync(temporary, { recursive: true, force: true });
 }

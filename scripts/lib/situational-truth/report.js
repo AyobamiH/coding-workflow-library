@@ -63,6 +63,15 @@ function nextAction(git, laneState, checkpoint, project) {
   if (project.build_queue.classification === "NO_ACTIVE_REUSABLE_GAP") {
     return action("SELECT_TARGET_REPOSITORY", "BLOCKED_DECISION", "select a target repository objective or record a new evidence-backed reusable gap");
   }
+  if (project.build_queue.classification === "NOT_APPLICABLE") {
+    const laneStatus = laneState.lane && laneState.lane.status;
+    const summary = (laneState.lane && laneState.lane.next_permission) || project.build_queue.next_action;
+    if (laneStatus === "hold") return action("OBJECTIVE_HELD", "BLOCKED_DECISION", summary);
+    if (laneStatus === "complete" || (laneState.objective && laneState.objective.status === "complete")) {
+      return action("NO_ACTIVE_PROJECT_OBJECTIVE", "NONE", summary);
+    }
+    return action("EXECUTE_SELECTED_PROJECT_OBJECTIVE", "NONE", summary);
+  }
   return action("RUN_VALIDATION", "BLOCKED_SAFETY", "queue, route, or ledger evidence is inconsistent");
 }
 
