@@ -2,6 +2,19 @@
 
 const runtime = require("./runtime-context");
 
+const BOUNDARY_KINDS = new Set([
+  "human-boundary",
+  "permission-boundary",
+  "lane-hold",
+  "terminal-boundary",
+  "lane-blocked",
+  "unrouted-active-state",
+]);
+
+function isBoundaryRoute(route) {
+  return BOUNDARY_KINDS.has(route.kind);
+}
+
 function permissionGranted(route) {
   const objectiveAuthority = runtime.get("objectiveAuthority");
   const selectedLane = runtime.get("selectedLane");
@@ -19,7 +32,7 @@ function hasSchedulerVaultApplyPermission() {
 }
 
 function canRunNow(route) {
-  if (route.kind === "human-boundary" || route.kind === "permission-boundary") return false;
+  if (isBoundaryRoute(route)) return false;
   if (route.kind === "not-implemented") return false;
   return permissionGranted(route);
 }
@@ -79,8 +92,10 @@ function releaseVersionFromObjective(objectiveId) {
 }
 
 module.exports = {
+  BOUNDARY_KINDS,
   canRunNow,
   hasSchedulerVaultApplyPermission,
+  isBoundaryRoute,
   modeLabel,
   needsJohn,
   nextApprovalCommand,

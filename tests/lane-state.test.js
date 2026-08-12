@@ -11,6 +11,7 @@ const ROOT = path.resolve(__dirname, "..");
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "coding-workflow-lanes-"));
 const stateFile = path.join(temporary, "lanes.json");
 const runNextDir = path.join(temporary, ".run-next");
+let runCounter = 0;
 
 const initial = {
   version: 1,
@@ -38,11 +39,24 @@ function lane(id, state, repoPath) {
 }
 
 function run(args) {
-  return spawnSync(process.execPath, [path.join(ROOT, "scripts", "run-next"), ...args], {
-    cwd: ROOT,
-    encoding: "utf8",
-    env: { ...process.env, RUN_NEXT_DIR: runNextDir },
-  });
+  const runId = ++runCounter;
+  const stdoutPath = path.join(temporary, `run-${runId}.stdout`);
+  const stderrPath = path.join(temporary, `run-${runId}.stderr`);
+  const stdoutFd = fs.openSync(stdoutPath, "w");
+  const stderrFd = fs.openSync(stderrPath, "w");
+  try {
+    const result = spawnSync(process.execPath, [path.join(ROOT, "scripts", "run-next"), ...args], {
+      cwd: ROOT,
+      env: { ...process.env, RUN_NEXT_DIR: runNextDir },
+      stdio: ["ignore", stdoutFd, stderrFd],
+    });
+    result.stdout = fs.readFileSync(stdoutPath, "utf8");
+    result.stderr = fs.readFileSync(stderrPath, "utf8");
+    return result;
+  } finally {
+    fs.closeSync(stdoutFd);
+    fs.closeSync(stderrFd);
+  }
 }
 
 try {
@@ -92,6 +106,44 @@ try {
   const missing = run(["--lane", "missing-lane", "--state-file", stateFile, "--explain-next"]);
   assert.equal(missing.status, 1, "missing lane should fail");
   assert.throws(() => laneState.getLane(afterZeroBlocked, "missing-lane"), /lane not found: missing-lane/, "missing lane error was unclear");
+
+  const fallbackState = laneState.readState(stateFile);
+  laneState.updateLane(fallbackState, "lane-a", {
+    current_state: "Product pilot intentionally paused",
+    next_permission: "select a concrete product objective",
+    status: "hold",
+    hold_reason: "real-user evidence is required before implementation continues",
+  });
+  laneState.updateLane(fallbackState, "lane-b", {
+    current_state: "Bounded product objective completed locally",
+    next_permission: "gather independent usage evidence",
+    status: "complete",
+  });
+  laneState.atomicWrite(stateFile, fallbackState);
+
+  const held = run(["--lane", "lane-a", "--state-file", stateFile, "--explain-next"]);
+  const heldOutput = `${held.stdout}${held.stderr}`;
+  assert.equal(held.status, 0, heldOutput);
+  assert.match(heldOutput, /Final status: HELD/);
+  assert.match(heldOutput, /real-user evidence is required/i);
+  assert.doesNotMatch(heldOutput, /NEEDS JOHN|unknown ledger status/i);
+
+  const beforeHeldReal = fs.readFileSync(stateFile, "utf8");
+  const heldReal = run(["--lane", "lane-a", "--state-file", stateFile]);
+  assert.equal(heldReal.status, 0, `${heldReal.stdout}${heldReal.stderr}`);
+  assert.equal(fs.readFileSync(stateFile, "utf8"), beforeHeldReal, "real held fallback changed lane state");
+
+  const completed = run(["--lane", "lane-b", "--state-file", stateFile, "--explain-next"]);
+  const completedOutput = `${completed.stdout}${completed.stderr}`;
+  assert.equal(completed.status, 0, completedOutput);
+  assert.match(completedOutput, /Final status: COMPLETE/);
+  assert.match(completedOutput, /gather independent usage evidence/i);
+  assert.doesNotMatch(completedOutput, /NEEDS JOHN|unknown ledger status/i);
+
+  const beforeCompletedReal = fs.readFileSync(stateFile, "utf8");
+  const completedReal = run(["--lane", "lane-b", "--state-file", stateFile]);
+  assert.equal(completedReal.status, 0, `${completedReal.stdout}${completedReal.stderr}`);
+  assert.equal(fs.readFileSync(stateFile, "utf8"), beforeCompletedReal, "real terminal fallback changed lane state");
 
   const prohibited = JSON.parse(JSON.stringify(afterZeroBlocked));
   prohibited.lanes[0].api_token = "not-a-real-value";

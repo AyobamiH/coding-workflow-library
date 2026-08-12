@@ -1,6 +1,7 @@
 "use strict";
 
 const runtime = require("./runtime-context");
+const { isBoundaryRoute } = require("./route-access");
 
 const HANDLERS = {
   "github-handoff": "runGithubHandoff",
@@ -48,7 +49,7 @@ const HANDLERS = {
 };
 
 function dispatchRoute(route, active) {
-  if (route.kind === "human-boundary" || route.kind === "permission-boundary") {
+  if (isBoundaryRoute(route)) {
     return runtime.get("stopAtBoundary")(route, active);
   }
   if (!runtime.get("permissionGranted")(route)) {

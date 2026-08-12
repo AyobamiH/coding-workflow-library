@@ -496,6 +496,8 @@ Each lane may carry an active objective with an authority envelope. `local_execu
 
 Child skills inherit the parent objective authority while the objective is active. A completed objective revokes every authority class, including `local_execution`; a new objective receives a fresh local-only envelope. Capability failures are recorded separately from permission: unavailable npm auth, missing `gh`, missing DB URL, or absent binaries are `BLOCKED_CAPABILITY`, while failed tests or unsafe package contents are `BLOCKED_SAFETY`.
 
+Lane states without an executable route retain their own truth classification. `hold` reports `HELD`, completed work reports `COMPLETE`, blocked work reports `BLOCKED`, and an unmatched active state reports `BLOCKED_DECISION` with the lane's recorded next condition. These boundary reports do not update the selected lane and do not turn an absent route into a generic user-approval request.
+
 Normal verified workflow-authored PR merge is part of `remote_publication`, not a separate John boundary. The runner may merge by normal repository rules only when checks pass, the reviewed head has not changed, the diff scope is intended, and repository policy does not require a different human reviewer. A merge moves the workflow into `POST_MERGE_VERIFY`; completion is recorded only after exact-commit and remote-alignment evidence are captured.
 
 ```bash

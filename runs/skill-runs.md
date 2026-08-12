@@ -1924,3 +1924,12 @@ This file records every real use of the coding workflow skills library.
 * Self-assessment result: `NO_ACTIVE_REUSABLE_GAP`, but the completed route left `local_execution` granted and retained its checkpoint permission internally. The original Git publication also proved that `gh auth git-credential` did not consume the injected runtime token.
 * Reusable correction: ephemeral GitHub-only Git credential transport, terminal authority revocation, completed-checkpoint permission cleanup, focused synthetic tests, and documentation truth updates.
 * Boundaries preserved: no npm publish, version change, tag, GitHub Release, deploy, production mutation, secret mutation, destructive action, product-repository edit, force push, or history rewrite.
+
+## 2026-08-12 - Product Objective Selection Dogfood
+
+* Skill used: coding-workflow-orchestrator-skill, repo-map-skill, project-kb-builder-skill, exact-file committer, and product-owned validation.
+* Goal: leave library self-maintenance, classify current project evidence, and resume one existing stalled objective.
+* Classification: OpsTruth complete for current video truth; Wagging blocked on safe provider-filtered telemetry; OneClickPostFactory held pending explicit target and real-user evidence; OpenClaw role pilot blocked on sandbox proof; Capability Intelligence active with a bounded local recommendation-evaluation workset.
+* Selected work: Capability Intelligence `CI-015` reconciliation because source, tests, documentation, and a second independent task evaluation were present and executable without production consequences.
+* Library defect found: unmatched held and terminal lane states were mislabeled as `NEEDS JOHN`; corrected with explicit non-mutating boundary classifications and regression tests.
+* Boundaries preserved: no npm publication, package version change, tag, release, deployment, production mutation, secret mutation, destructive action, or speculative agent/broker architecture.

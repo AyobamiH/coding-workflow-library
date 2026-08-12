@@ -256,7 +256,7 @@ function main() {
       activeCheckpointRun = runtimeApi().createCheckpointRun({ active, route });
       runtimeApi().completeCheckpoint(activeCheckpointRun, "inspect", { branch: runtimeApi().gitBranch(targetRepo), head: runtimeApi().gitHead(targetRepo) });
       runtimeApi().completeCheckpoint(activeCheckpointRun, "route", { status, skill: route.skill, job: route.kind || route.nextAction || "unknown" });
-      if (route.kind === "human-boundary" || route.kind === "permission-boundary") {
+      if (runtimeApi().isBoundaryRoute(route)) {
         runtimeApi().completeCheckpoint(activeCheckpointRun, "permission", { granted: false, reason: "human-boundary" });
       } else if (!runtimeApi().permissionGranted(route)) {
         runtimeApi().completeCheckpoint(activeCheckpointRun, "permission", { granted: false, reason: "permission-required" });
@@ -271,7 +271,7 @@ function main() {
     if (activeCheckpointRun) runtimeApi().finalizeCheckpointRun(activeCheckpointRun, result);
 
     if (!dryRun && selectedLane) {
-      runtimeApi().updateSelectedLane(result, route);
+      if (!runtimeApi().isBoundaryRoute(route)) runtimeApi().updateSelectedLane(result, route);
     } else if (!dryRun) {
       runtimeApi().appendLedger({
         status: result.ledgerStatus || result.finalStatus,
@@ -907,11 +907,46 @@ function routeStatus(status, active = {}) {
     };
   }
 
+  const lane = active.rawLane;
+  const laneStatus = String(lane?.status || "").toLowerCase();
+  const laneNext = lane?.next_permission || `select a route for lane state: ${status}`;
+  if (laneStatus === "hold") {
+    return {
+      skill: "coding-workflow-orchestrator-skill",
+      permission: null,
+      kind: "lane-hold",
+      finalStatus: "HELD",
+      nextPermission: laneNext,
+      nextAction: lane?.hold_reason || laneNext,
+    };
+  }
+  if (laneStatus === "complete" || activeObjective?.status === "complete") {
+    return {
+      skill: "coding-workflow-orchestrator-skill",
+      permission: null,
+      kind: "terminal-boundary",
+      finalStatus: "COMPLETE",
+      nextPermission: laneNext,
+      nextAction: laneNext,
+    };
+  }
+  if (laneStatus === "blocked") {
+    return {
+      skill: "coding-workflow-orchestrator-skill",
+      permission: null,
+      kind: "lane-blocked",
+      finalStatus: "BLOCKED",
+      nextPermission: laneNext,
+      nextAction: lane?.hold_reason || laneNext,
+    };
+  }
+
   return {
     skill: "coding-workflow-orchestrator-skill",
     permission: null,
-    kind: "human-boundary",
-    finalStatus: "NEEDS JOHN",
-    nextAction: `unknown ledger status: ${status}`,
+    kind: "unrouted-active-state",
+    finalStatus: "BLOCKED_DECISION",
+    nextPermission: laneNext,
+    nextAction: laneNext,
   };
 }

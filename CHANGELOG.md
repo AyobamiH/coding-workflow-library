@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Preserve product-lane truth when no executable route matches: held, completed, blocked, and unmatched active lanes now retain specific non-mutating classifications instead of falling through to `NEEDS JOHN`, with lane-isolation regression coverage.
 - Reconcile authenticated Git publication and terminal lifecycle truth: purpose-scoped `GH_TOKEN` delivery now reaches one Git child through an ephemeral GitHub-only header, completed objectives revoke every authority class, completed checkpoints clear their required permission, and regression tests cover lane isolation and legacy stale-record detection.
 - Add deterministic situational-truth reconciliation for Git divergence and unpublished work, safe lane discovery, objective/authority and checkpoint freshness, route/ledger/queue contradictions, product-route ownership warnings, privacy-safe evidence packs, specific blocker classes, CLI delegation, and synthetic tests.
 - Add a lane-scoped Capability Intelligence CLI input-truth route that proves command-specific option rejection and shared risk-level validation before source scanning.

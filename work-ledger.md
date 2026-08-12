@@ -1917,3 +1917,12 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Bounded fix: add an ephemeral GitHub-only Git child header beneath purpose-scoped secret delivery, revoke all authority on objective completion, clear completed checkpoint permission requirements, and retain legacy stale-record detection.
 * Backlog result: `scripts/library-next-objective --repo . --json --validate` remains `NO_ACTIVE_REUSABLE_GAP`; no agent role, capability broker, product route, package release, or speculative abstraction was promoted.
 * Exact next action: validate, commit, publish, and verify this bounded lifecycle correction, then refresh only the private library lane against the exact commit.
+
+## 2026-08-12 - Project Selection Dogfood And Lane Fallback Truth
+
+* Active repo: `<LIBRARY_REPO>` selecting among existing product lanes; selected product repo remained independently owned.
+* Current objective: use the completed library to identify and resume the highest-value evidence-backed stalled project objective.
+* Selection evidence: OpsTruth was clean/aligned with current video truth complete; Wagging required provider-filtered production telemetry unavailable through the inspected Supabase CLI; OneClickPostFactory remained an intentional hold pending a target and real-user review; OpenClaw role work remained blocked on sandbox proof; Capability Intelligence contained a coherent, tested recommendation-evaluation workset awaiting completion.
+* Dogfood defect: valid held and terminal product states without an executable route fell through to `NEEDS JOHN`, obscuring their recorded lane truth.
+* Bounded correction: classify unmatched held, complete, blocked, and active states explicitly; preserve the existing next condition; never mutate a held or terminal selected lane from the fallback path.
+* Boundaries: no product deployment, production mutation, secret mutation, destructive action, package version change, npm publication, tag, or GitHub Release.
