@@ -1906,3 +1906,14 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Product-route evidence: route audit remains passing and now reports advisory warnings for product-specific routes and skills embedded in the generic package; no route was removed or executed.
 * Boundaries: no push, tag, npm publication, GitHub Release, deployment, production mutation, product-repository edit, secret read, reset, stash, clean, restore, or discard occurred.
 * Exact next action: retain the validated local commits or separately authorize a non-force publication objective with exact-commit CI verification.
+
+## 2026-08-12 - Published Baseline And Terminal Lifecycle Reconciliation
+
+* Active repo: `<LIBRARY_REPO>`.
+* Current objective: Publish the exact `b5606b9 -> 73bcb54` history, verify exact-commit CI, then use current situational truth to continue only evidence-backed reusable library work.
+* Authority: `local_execution` and `remote_publication`; no npm publication, tag, GitHub Release, deployment, production mutation, secret mutation, destructive action, or product-repository work.
+* Published baseline: local and remote `main` resolved to `73bcb54300f805bc63815c7773db3dd55a2b8fba`; GitHub Actions run `31594083338` completed successfully with validation plus Ubuntu, macOS, and Windows portability jobs passing.
+* Dogfooding evidence: the encrypted GitHub role was valid for the expected account and repository write permission, but Git followed an empty persistent `gh` credential store; the first successful self-assessment then retained terminal `local_execution` and an internal checkpoint permission.
+* Bounded fix: add an ephemeral GitHub-only Git child header beneath purpose-scoped secret delivery, revoke all authority on objective completion, clear completed checkpoint permission requirements, and retain legacy stale-record detection.
+* Backlog result: `scripts/library-next-objective --repo . --json --validate` remains `NO_ACTIVE_REUSABLE_GAP`; no agent role, capability broker, product route, package release, or speculative abstraction was promoted.
+* Exact next action: validate, commit, publish, and verify this bounded lifecycle correction, then refresh only the private library lane against the exact commit.

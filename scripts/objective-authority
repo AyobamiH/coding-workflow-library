@@ -65,6 +65,10 @@ function defaultAuthority(overrides = {}) {
   return { ...authority, ...overrides };
 }
 
+function inactiveAuthority() {
+  return Object.fromEntries(AUTHORITY_CLASSES.map((name) => [name, false]));
+}
+
 function createObjective(input = {}) {
   const now = input.created_at || new Date().toISOString();
   return {
@@ -265,6 +269,7 @@ module.exports = {
   classifyBlocker,
   createObjective,
   defaultAuthority,
+  inactiveAuthority,
   hasAuthority,
   normalizeObjective,
   permissionGrantedForRoute,

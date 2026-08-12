@@ -278,7 +278,7 @@ coding-workflow secret-bundles run \
   --dry-run -- gh api user
 ```
 
-The real manifest, encrypted bundles, reports, and identities stay outside the repository. Every source name must map exactly once; runtime aliases are explicit; delivery profiles allow only declared command basenames; and source deletion requires `--allow-destructive` after coverage, encrypted status, and delivery proof pass in the same operation. The helper never grants a child command publication, deployment, provider-write, database-write, or production authority.
+The real manifest, encrypted bundles, reports, and identities stay outside the repository. Every source name must map exactly once; runtime aliases are explicit; delivery profiles allow only declared command basenames; and source deletion requires `--allow-destructive` after coverage, encrypted status, and delivery proof pass in the same operation. When an approved profile maps a held value to `GH_TOKEN` and delegates `git`, the helper supplies an ephemeral GitHub-only HTTP authorization header to that Git child so publication does not depend on a persistent `gh` login. The token remains out of arguments, files, and reports. The helper never grants a child command publication, deployment, provider-write, database-write, or production authority.
 
 ## Project-Scoped Workflow Lanes
 
@@ -494,7 +494,7 @@ Each lane may carry an active objective with an authority envelope. `local_execu
 - `secret_mutation`: setting or rotating external secrets.
 - `destructive_action`: force push, history rewrite, deletion, destructive migrations, teardown.
 
-Child skills inherit the parent objective authority. Capability failures are recorded separately from permission: unavailable npm auth, missing `gh`, missing DB URL, or absent binaries are `BLOCKED_CAPABILITY`, while failed tests or unsafe package contents are `BLOCKED_SAFETY`.
+Child skills inherit the parent objective authority while the objective is active. A completed objective revokes every authority class, including `local_execution`; a new objective receives a fresh local-only envelope. Capability failures are recorded separately from permission: unavailable npm auth, missing `gh`, missing DB URL, or absent binaries are `BLOCKED_CAPABILITY`, while failed tests or unsafe package contents are `BLOCKED_SAFETY`.
 
 Normal verified workflow-authored PR merge is part of `remote_publication`, not a separate John boundary. The runner may merge by normal repository rules only when checks pass, the reviewed head has not changed, the diff scope is intended, and repository policy does not require a different human reviewer. A merge moves the workflow into `POST_MERGE_VERIFY`; completion is recorded only after exact-commit and remote-alignment evidence are captured.
 
@@ -520,7 +520,7 @@ Library release objectives use `release-coding-workflow-library-vX.Y.Z`. The sem
 ./scripts/run-next --repo /path/to/repo --resume --dry-run
 ```
 
-Resume mode verifies branch, tracked changes, required permissions, and checkpoint validity before continuing. It does not store secret values or command output bodies. Workflow tests that execute real fixture routes must set an isolated `RUN_NEXT_DIR`; fixture checkpoints do not belong in the operator's runtime history.
+Resume mode verifies branch, tracked changes, required permissions, and checkpoint validity before continuing. Completion clears `required_permission` while retaining the non-secret permission history as evidence, so a finished run cannot look resumable or still gated. It does not store secret values or command output bodies. Workflow tests that execute real fixture routes must set an isolated `RUN_NEXT_DIR`; fixture checkpoints do not belong in the operator's runtime history.
 
 ## Zero-Output Pipeline Diagnostics
 

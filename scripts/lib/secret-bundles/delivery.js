@@ -1,6 +1,7 @@
 const path = require("path");
 const { bundleById, profileById } = require("./manifest");
 const { decryptJson } = require("./tooling");
+const { delegatedCommand } = require("./git-runtime");
 const { fail } = require("./errors");
 
 const ROOT = path.resolve(__dirname, "../../..");
@@ -57,7 +58,8 @@ function runProfile(manifest, profileId, command, allowSecretAccess, options = {
   const bundle = bundleById(manifest, profile.bundle);
   assertAllowed(profile, command);
   const invoke = options.invokeAdapterFn || invokeAdapter;
-  const execution = invoke(manifest, bundle, allowSecretAccess, command);
+  const childCommand = delegatedCommand(bundle, command);
+  const execution = invoke(manifest, bundle, allowSecretAccess, childCommand);
   if (!execution.passed) fail(allowSecretAccess ? "PROFILE_EXECUTION_FAILED" : "PROFILE_DRY_RUN_FAILED");
   return {
     schema_version: 1,
@@ -65,7 +67,11 @@ function runProfile(manifest, profileId, command, allowSecretAccess, options = {
     status: "PASS",
     profile: profile.id,
     bundle: bundle.id,
-    execution,
+    execution: {
+      ...execution,
+      command: portableCommandName(command[0]),
+      credential_transport: childCommand === command ? "direct" : "ephemeral_github_header",
+    },
     guarantees: {
       values_emitted: false,
       child_output_emitted: false,

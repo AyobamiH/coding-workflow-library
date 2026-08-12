@@ -33,6 +33,11 @@ function runNext(args) {
 
 try {
   const localOnly = objective("local-only");
+  assert.deepEqual(
+    authority.inactiveAuthority(),
+    Object.fromEntries(authority.AUTHORITY_CLASSES.map((name) => [name, false])),
+    "terminal authority envelope did not revoke every consequence class",
+  );
   let result = authority.permissionGrantedForRoute({
     route: { permission: "verification-bundle-self-test" },
     objective: localOnly,

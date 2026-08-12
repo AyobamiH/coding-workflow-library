@@ -59,6 +59,8 @@ Use this checklist after creating, updating, or reorganizing the coding workflow
 - [ ] Multi-project proof preserves target Git status and temporary lane state
 - [ ] Situational truth detects ahead/behind/diverged Git state, stale authority/checkpoints, lane mismatch, and product-route ownership without mutation
 - [ ] Situational truth JSON uses safe location classes and contains no private absolute paths or secret-shaped values
+- [ ] Completed lane objectives revoke every authority class and completed checkpoints clear `required_permission`
+- [ ] Purpose-scoped Git delivery uses an ephemeral GitHub-only child header and never emits or persists the injected token
 
 ## Validation Commands
 

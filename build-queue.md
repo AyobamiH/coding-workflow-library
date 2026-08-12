@@ -114,7 +114,17 @@ No active P1 gaps are currently evidence-backed. The entries below remain in thi
 - Authority required: `local_execution`.
 - Done definition: one deterministic non-mutating helper reports Git worktree and upstream relation, unpublished commits, safe lane discovery and repository match, objective/authority and checkpoint freshness, route/ledger/queue contradictions, product-route warnings, privacy findings, one bounded next action, and one specific blocker class; synthetic tests cover aligned/ahead/behind/diverged and stale/missing cases.
 - Reason for priority: passing implementation tests did not prove that the currently selected objective, authority, checkpoint, and remote relation still described the repository being operated.
-- Status: implemented and locally validated through `scripts/situational-truth`, shared lane discovery, repository-map Git relation fields, evidence/failure report redaction, route ownership warnings, schema, CLI delegation, and synthetic regression tests. Remote publication remains outside this objective.
+- Status: implemented and published at `73bcb54`; exact-commit GitHub Actions run `31594083338` passed validation plus Ubuntu, macOS, and Windows portability.
+
+## Terminal lifecycle and injected Git credential reconciliation
+
+- Evidence source: the first post-publication self-assessment completed successfully at `73bcb54` but immediately appeared stale because its terminal objective retained `local_execution`; its completed checkpoint retained the route permission internally; and an output-suppressed `GH_TOKEN` profile passed GitHub API checks but `git push` followed an empty persistent `gh` credential store.
+- Primary type: `CONTROL_PLANE`, `CAPABILITY_ADAPTER`, `VALIDATION`.
+- Dependency: objective authority, run-next checkpoints, situational truth, purpose-scoped secret bundles, and Git HTTPS transport.
+- Authority required: `local_execution`; any actual push still requires `remote_publication` and explicit secret access.
+- Done definition: completed objectives revoke every authority class; completed checkpoints clear `required_permission`; Git commands selected through a bundle that maps `GH_TOKEN` receive an ephemeral GitHub-only authorization header in the Git child environment; no token enters arguments, files, or reports; synthetic tests and a real library publication prove the path.
+- Reason for priority: authenticated capability existed, but provider selection and lifecycle writes contradicted current truth and incorrectly resembled missing permission or authentication.
+- Status: implemented and locally validated; publication and exact-commit CI remain part of this objective's authorized continuation.
 
 ## Autonomy outcome reporting
 

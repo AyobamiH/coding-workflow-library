@@ -8,6 +8,7 @@ const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 const laneState = require("../scripts/lane-state");
+const objectiveAuthority = require("../scripts/objective-authority");
 const { buildReport, classifyDisposition, validateReport } = require("../scripts/library-next-objective");
 const runtime = require("../scripts/lib/run-next/runtime-context");
 
@@ -49,10 +50,11 @@ No additional generic foundation is currently proven missing.
   return repo;
 }
 
-function runNext(args) {
+function runNext(args, env = {}) {
   return spawnSync(process.execPath, [path.join(ROOT, "scripts", "run-next"), ...args], {
     cwd: ROOT,
     encoding: "utf8",
+    env: { ...process.env, ...env },
   });
 }
 
@@ -70,6 +72,10 @@ function lane(id, state) {
     evidence_refs: [],
     hold_reason: "",
     notes: "fixture",
+    objective: objectiveAuthority.createObjective({
+      id: "library-self-assessment-fixture",
+      description: "fixture assessment",
+    }),
   };
 }
 
@@ -114,6 +120,68 @@ try {
   ]);
   assert.equal(dryRun.status, 0, dryRun.stderr || dryRun.stdout);
   assert.equal(fs.readFileSync(stateFile, "utf8"), before, "dry-run changed lane state");
+
+  const otherBeforeReal = JSON.stringify(laneState.getLane(laneState.readState(stateFile), "other"));
+  const runDirectory = path.join(temporary, "run-next-state");
+  const completionResult = {
+    ledgerStatus: "Library self-assessment complete, no active reusable foundation gap",
+    nextPermission: "select a target repository objective or record a new evidence-backed gap",
+    objectiveStatus: "complete",
+  };
+  runtime.configure({
+    fs,
+    path,
+    laneState,
+    objectiveAuthority,
+    LIBRARY_ROOT: ROOT,
+    EXPECTED_COMMIT: "",
+    EXPECTED_COMMIT_SUBJECT: "",
+    INTENDED_PR_FILES: [],
+    IMPORT_FUNCTION_NAME: "",
+    REQUIRED_IMPORT_SECRET: "",
+    args: { stateFile, lane: "library", allow: new Set() },
+    targetRepo: ROOT,
+    dryRun: false,
+    selectedLane: laneState.getLane(laneState.readState(stateFile), "library"),
+    evidence: [],
+    actions: [],
+    filesChanged: [],
+    spawnSync,
+    today: () => "2026-01-01",
+  });
+  const { updateSelectedLane } = require("../scripts/lib/run-next/runtime-core-part-1");
+  updateSelectedLane(completionResult, {
+    kind: "library-next-objective-assessment",
+    nextPermission: completionResult.nextPermission,
+  });
+  const afterReal = laneState.readState(stateFile);
+  const completedObjective = laneState.getLane(afterReal, "library").objective;
+  assert.equal(completedObjective.status, "complete");
+  assert.ok(Object.values(completedObjective.authority).every((value) => value === false), "completed objective retained authority");
+  assert.equal(JSON.stringify(laneState.getLane(afterReal, "other")), otherBeforeReal, "real route changed another lane");
+
+  const checkpointNames = ["inspect", "route", "permission", "execute", "verify", "record"];
+  runtime.configure({
+    autonomousBoundaries: {},
+    DEFAULT_RUN_NEXT_DIR: runDirectory,
+    CHECKPOINT_NAMES: checkpointNames,
+    args: { allow: new Set(["library-next-objective-assessment"]) },
+    targetRepo: ROOT,
+    dryRun: false,
+    selectedLane: null,
+  });
+  const { finalizeCheckpointRun } = require("../scripts/lib/run-next/checkpoints");
+  const checkpointRun = {
+    run_id: "completed-fixture",
+    repo: ROOT,
+    phase: "execute",
+    status: "incomplete",
+    checkpoints: checkpointNames.map((name) => ({ name, status: "pending" })),
+    required_permission: "library-next-objective-assessment",
+  };
+  finalizeCheckpointRun(checkpointRun, { finalStatus: "COMPLETE", summary: "fixture complete", exitCode: 0 });
+  assert.equal(checkpointRun.status, "completed");
+  assert.equal(checkpointRun.required_permission, null, "completed checkpoint retained a permission requirement");
 
   runtime.configure({
     fs,

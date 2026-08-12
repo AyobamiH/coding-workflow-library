@@ -32,7 +32,7 @@ Real runs also create a local ignored checkpoint under `.run-next/`. The checkpo
 
 Local lane state owns active multi-project execution state. `work-ledger.md` remains historical public evidence and a backwards-compatible route source. If a requested lane does not exist, `run-next` stops instead of borrowing another lane or repo state.
 
-Lane-state discovery checks explicit and environment paths before the two supported home locations. The tracked example can describe shape but cannot become live state. Situational truth marks a lane stale when it mismatches the repo, its terminal objective retains authority, its objective evidence predates unpublished commits, or its checkpoint no longer verifies `HEAD`. It reports these facts but never repairs them.
+Lane-state discovery checks explicit and environment paths before the two supported home locations. The tracked example can describe shape but cannot become live state. Situational truth marks a lane stale when it mismatches the repo, its terminal objective retains authority, its objective evidence predates unpublished commits, or its checkpoint no longer verifies `HEAD`. It reports these facts but never repairs them. The real route lifecycle prevents fresh drift by revoking all authority on objective completion and clearing the completed checkpoint's required permission while preserving safe historical evidence.
 
 Passing package tests proves implementation contracts, not current execution coherence. Ahead/behind state, stale objective authority, checkpoint age, and product-specific routes in the generic package remain separate situational evidence.
 

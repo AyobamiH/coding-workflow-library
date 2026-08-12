@@ -1914,3 +1914,13 @@ This file records every real use of the coding workflow skills library.
 * Failure/recovery notes: nested process spawning was unavailable in one sandboxed test path, so the test exercised the same source functions directly; the public runtime contract and packaged CLI were then verified through an independent clean install smoke. No private lane state was copied into package contents or public evidence.
 * Follow-up skill needed: github-handoff-skill only under a separate remote-publication objective; otherwise retain the local commits and use `coding-workflow situational-truth` before selecting subsequent work.
 * Upgrade idea: use repeated situational reports to decide whether product-specific route extraction deserves its own bounded split objective; do not remove routes based on warnings alone.
+
+## 2026-08-12 - Published Baseline And Lifecycle Dogfood
+
+* Skill used: coding-workflow-orchestrator-skill, github-handoff-skill, secret-bundle-delivery-skill, and situational truth.
+* Goal: publish the exact two-commit baseline, verify exact-SHA CI, assess the reusable backlog, and fix only defects proved by the library's own run.
+* Starting state: clean `main` at `73bcb54`, two commits ahead of `origin/main`; connected GitHub app authenticated, local `gh` host store empty, and a purpose-scoped encrypted GitHub role available.
+* Evidence collected: direct tests and the full pre-commit gate passed; the role proved the expected account plus repository push/admin permission without emitting values; non-force publication aligned remote `main` to `73bcb54300f805bc63815c7773db3dd55a2b8fba`; Actions run `31594083338` passed all four jobs.
+* Self-assessment result: `NO_ACTIVE_REUSABLE_GAP`, but the completed route left `local_execution` granted and retained its checkpoint permission internally. The original Git publication also proved that `gh auth git-credential` did not consume the injected runtime token.
+* Reusable correction: ephemeral GitHub-only Git credential transport, terminal authority revocation, completed-checkpoint permission cleanup, focused synthetic tests, and documentation truth updates.
+* Boundaries preserved: no npm publish, version change, tag, GitHub Release, deploy, production mutation, secret mutation, destructive action, product-repository edit, force push, or history rewrite.

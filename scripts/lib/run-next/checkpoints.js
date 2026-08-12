@@ -117,6 +117,7 @@ function finalizeCheckpointRun(run, result) {
   if (shouldCompleteCheckpointRun(result, exitCode)) {
     for (const name of CHECKPOINT_NAMES) completeCheckpoint(run, name);
     run.status = "completed";
+    run.required_permission = null;
     run.stop_reason = result.summary || result.finalStatus || "completed";
     run.last_verified_commit = gitHead(run.repo);
   } else {
@@ -232,6 +233,7 @@ function runResume() {
 
   if (!next) {
     run.status = "completed";
+    run.required_permission = null;
     run.stop_reason = "resume found no incomplete checkpoint";
     writeCheckpointRun(run);
     return {
@@ -261,6 +263,7 @@ function runResume() {
 
   completeCheckpoint(run, "record", { resumed: true });
   run.status = "completed";
+  run.required_permission = null;
   run.stop_reason = "resume completed record checkpoint";
   run.last_verified_commit = gitHead(run.repo);
   writeCheckpointRun(run);

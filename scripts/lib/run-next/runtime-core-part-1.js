@@ -308,10 +308,14 @@ function updateSelectedLane(result, route) {
   if (lane.objective) {
     const objective = objectiveAuthority.normalizeObjective(lane.objective);
     const checkpoint = route.kind || route.permission || "run-next";
+    const objectiveStatus = result.objectiveStatus || (blocked ? "blocked" : "active");
     changes.objective = {
       ...objective,
-      status: result.objectiveStatus || (blocked ? "blocked" : "active"),
+      status: objectiveStatus,
       updated_at: new Date().toISOString(),
+      authority: objectiveStatus === "complete"
+        ? objectiveAuthority.inactiveAuthority()
+        : objective.authority,
       checkpoints: {
         ...objective.checkpoints,
         [checkpoint]: blocked ? "blocked" : "complete",

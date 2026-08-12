@@ -134,7 +134,7 @@ function writeCheckpoint(repo, rootDir, commitSha, overrides = {}) {
     run_id: "fixture-run",
     repo,
     status: "completed",
-    required_permission: "fixture-route",
+    required_permission: null,
     last_verified_commit: commitSha,
     updated_at: "2026-01-02T00:00:00.000Z",
     checkpoints: [{ name: "record", status: "completed" }],
@@ -296,6 +296,13 @@ try {
   const staleReport = buildReport(optionsFor(stale, { objective: terminal }));
   assert.equal(staleReport.lane_state.objective.freshness, "STALE_AUTHORITY", "stale terminal objective was not detected");
   assert.equal(staleReport.lane_state.objective.authority_stale, true, "stale authority was not detected");
+
+  const staleCheckpointPermission = createRepo("stale checkpoint permission repo");
+  const staleCheckpointPermissionReport = buildReport(optionsFor(staleCheckpointPermission, {
+    checkpoint: { required_permission: "fixture-route" },
+  }));
+  assert.equal(staleCheckpointPermissionReport.checkpoint.permission_consistent, false, "legacy completed checkpoint permission was not detected");
+  assert.ok(staleCheckpointPermissionReport.checkpoint.issues.includes("completed_checkpoint_retains_required_permission"));
 
   const mismatchObjectiveRepo = createRepo("objective mismatch repo");
   write(mismatchObjectiveRepo.repo, "new-work.txt", "new work\n");

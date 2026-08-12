@@ -16,6 +16,10 @@ const {
   runProfile,
 } = require(path.join(ROOT, "scripts/lib/secret-bundles/delivery"));
 const { postgresEnvironment } = require(path.join(ROOT, "scripts/lib/secret-bundles/read-only-probes"));
+const {
+  delegatedCommand,
+  githubGitEnvironment,
+} = require(path.join(ROOT, "scripts/lib/secret-bundles/git-runtime"));
 
 function temporaryDirectory() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "coding-workflow-secret-bundles-"));
@@ -107,7 +111,7 @@ function makeManifest(directory, tools, expectedNames = ["CF_TOKEN", "GH_USER", 
       },
     ],
     profiles: [
-      { id: "github-read", bundle: "github-user", allowed_commands: ["node"] },
+      { id: "github-read", bundle: "github-user", allowed_commands: ["git", "node"] },
       { id: "cloud-read", bundle: "cloud-service", allowed_commands: ["node"] },
       { id: "openclaw-runtime", bundle: "openclaw-runtime", allowed_commands: ["node"], openclaw_resolver: true },
     ],
@@ -164,6 +168,39 @@ async function testInventoryMigrationDeliveryAndRetirement() {
   const delivered = runProfile(loaded, "github-read", [process.execPath, child], true, { invokeAdapterFn: fakeInvokeAdapter });
   assert.strictEqual(delivered.status, "PASS");
   assert(!JSON.stringify(delivered).includes("synthetic-github-value"));
+
+  let delegated = null;
+  const gitDelivery = runProfile(loaded, "github-read", ["git", "ls-remote", "origin"], true, {
+    invokeAdapterFn(_manifest, _bundle, allowSecretAccess, command) {
+      delegated = command;
+      return fakeInvokeAdapter(_manifest, _bundle, allowSecretAccess, command);
+    },
+  });
+  assert.strictEqual(gitDelivery.execution.command, "git");
+  assert.strictEqual(gitDelivery.execution.credential_transport, "ephemeral_github_header");
+  assert.deepStrictEqual(delegatedCommand(loaded.bundles[0], ["git", "status"]), [
+    process.execPath,
+    path.join(ROOT, "scripts/lib/secret-bundles/git-runtime.js"),
+    "git",
+    "status",
+  ]);
+  assert.deepStrictEqual(delegated, [
+    process.execPath,
+    path.join(ROOT, "scripts/lib/secret-bundles/git-runtime.js"),
+    "git",
+    "ls-remote",
+    "origin",
+  ]);
+
+  const sourceEnvironment = { GIT_CONFIG_COUNT: "2" };
+  sourceEnvironment[["GH", "TOKEN"].join("_")] = "synthetic-token";
+  const gitEnvironment = githubGitEnvironment(sourceEnvironment);
+  assert.strictEqual(gitEnvironment.GIT_TERMINAL_PROMPT, "0");
+  assert.strictEqual(gitEnvironment.GIT_CONFIG_COUNT, "3");
+  assert.strictEqual(gitEnvironment.GIT_CONFIG_KEY_2, "http.https://github.com/.extraheader");
+  assert(!gitEnvironment.GIT_CONFIG_VALUE_2.includes("synthetic-token"));
+  assert.strictEqual(gitEnvironment.GH_TOKEN, undefined);
+  assert.strictEqual(gitEnvironment.GITHUB_TOKEN, undefined);
 
   assert.throws(
     () => runProfile(loaded, "github-read", ["curl", "https://example.invalid"], true, { invokeAdapterFn: fakeInvokeAdapter }),

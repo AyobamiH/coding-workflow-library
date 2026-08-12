@@ -967,6 +967,7 @@ Rules:
 - Restrict each delivery profile to exact command basenames.
 - Send plaintext only through process memory, SOPS stdin, or a private child pipe.
 - Suppress provider and child output during proof operations.
+- When a selected bundle maps to `GH_TOKEN` and delegates `git`, use the library's ephemeral GitHub-only header bridge instead of depending on a persistent `gh` credential store; never place the token in arguments, files, or reports.
 - Retire a plaintext source only after coverage, SOPS status, and delivery proof pass in the same command.
 - Never treat secret access as publication, deployment, provider-write, database-write, or production authority.
 
