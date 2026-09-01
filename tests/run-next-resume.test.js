@@ -17,6 +17,7 @@ fs.writeFileSync(path.join(targetRepo, "README.md"), "# Resume target\n");
 spawnSync("git", ["init"], { cwd: targetRepo, encoding: "utf8" });
 spawnSync("git", ["config", "user.name", "Test User"], { cwd: targetRepo, encoding: "utf8" });
 spawnSync("git", ["config", "user.email", "test@example.invalid"], { cwd: targetRepo, encoding: "utf8" });
+spawnSync("git", ["config", "commit.gpgsign", "false"], { cwd: targetRepo, encoding: "utf8" });
 spawnSync("git", ["add", "README.md"], { cwd: targetRepo, encoding: "utf8" });
 spawnSync("git", ["commit", "-m", "Initial test repo"], { cwd: targetRepo, encoding: "utf8" });
 
@@ -103,7 +104,7 @@ try {
 
   const before = fs.readFileSync(path.join(runDir, repoKey(targetRepo), "test-run-001.json"), "utf8");
   const dryRun = run(["--repo", targetRepo, "--resume", "--dry-run", "--allow", "verification-bundle-self-test"]);
-  assert.equal(dryRun.status, 0, "resume dry-run should pass");
+  assert.equal(dryRun.status, 0, `resume dry-run should pass\n${dryRun.stdout}${dryRun.stderr}`);
   assert.match(dryRun.stdout, /RESUME DRY RUN/, "resume dry-run should identify itself");
   assert.equal(fs.readFileSync(path.join(runDir, repoKey(targetRepo), "test-run-001.json"), "utf8"), before, "resume dry-run changed checkpoint state");
 

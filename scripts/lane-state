@@ -179,6 +179,7 @@ function setObjective(state, laneId, options) {
     created_at: replacing ? now : current.created_at,
     updated_at: now,
   });
+  if (replacing && lane.objective.status === "active") lane.status = "active";
   lane.last_updated = new Date().toISOString();
   validateState(state);
   return lane.objective;

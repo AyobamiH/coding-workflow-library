@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Keep situational truth consistent with terminal lane fallback: product repositories without library-owned route, ledger, or build-queue files now report those surfaces as `NOT_APPLICABLE` instead of manufacturing a safety blocker, and explicit objective blockers retain precedence over generic unpublished-commit guidance.
+- Keep synthetic Git fixtures independent of workstation commit-signing preferences so resume, release-preflight, and situational-truth validation remain deterministic.
 
 - Preserve product-lane truth when no executable route matches: held, completed, blocked, and unmatched active lanes now retain specific non-mutating classifications instead of falling through to `NEEDS JOHN`, with lane-isolation regression coverage.
 - Reconcile authenticated Git publication and terminal lifecycle truth: purpose-scoped `GH_TOKEN` delivery now reaches one Git child through an ephemeral GitHub-only header, completed objectives revoke every authority class, completed checkpoints clear their required permission, and regression tests cover lane isolation and legacy stale-record detection.
@@ -10,7 +11,7 @@
 - Add a lane-scoped Capability Intelligence CLI input-truth route that proves command-specific option rejection and shared risk-level validation before source scanning.
 - Add an executable, lane-scoped Capability Intelligence search-truth route and derive accepted route permission flags from audited metadata so new routes cannot pass audit while failing CLI parsing.
 - Add deterministic library next-objective assessment, a lane-scoped terminal route, CLI delegation, and isolation tests so a verified empty reusable queue is no longer reported as an unknown ledger state.
-- Make `lane-state objective-set --reset` start a replacement objective as active instead of inheriting the previous objective's terminal status.
+- Make `lane-state objective-set --reset` reactivate both the replacement objective and its lane instead of retaining terminal status.
 - Split every former 1,000-line review candidate into focused `run-next` parts or workflow-extraction modules, add responsibility comments and compatibility facades, and tighten source-size policy from a 2,200-line hard maximum to 1,000 lines with early review at 750.
 - Add manifest-driven purpose-scoped SOPS bundles with exact dotenv-name coverage, explicit runtime aliases, command allowlists, encrypted-file validation, non-printing delivery proof, private-pipe resolution, gated source retirement, modular implementation, CLI delegation, route metadata, and portable synthetic tests.
 - Replace the rejected subscription-backed 1Password path with a narrow open-source SOPS + age adapter for tooling and identity status, non-decrypting encrypted-file validation, explicit output-suppressed `sops exec-env --pristine`, active skill/route/CLI integration, a report schema, and synthetic provider tests.

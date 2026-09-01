@@ -148,6 +148,7 @@ function createRepo(name) {
   git(repo, ["init", "-b", "main"]);
   git(repo, ["config", "user.name", "Fixture"]);
   git(repo, ["config", "user.email", "fixture@example.invalid"]);
+  git(repo, ["config", "commit.gpgsign", "false"]);
   write(repo, "README.md", "# Fixture\n");
   write(repo, "AGENTS.md", "# Agents\n");
   write(repo, "RUNBOOK.md", "# Runbook\n");

@@ -182,11 +182,13 @@ try {
   const previousObjective = laneState.getLane(initial, "lane-a").objective;
   previousObjective.checkpoints.old_release = "complete";
   previousObjective.blockers.push({ state: "BLOCKED_CAPABILITY", reason: "old blocker" });
+  laneState.getLane(initial, "lane-a").status = "complete";
   laneState.setObjective(initial, "lane-a", { "objective-id": "replacement-objective", description: "fresh objective" });
   const replacementObjective = laneState.getLane(initial, "lane-a").objective;
   assert.deepEqual(replacementObjective.checkpoints, {}, "replacement objective inherited stale checkpoints");
   assert.deepEqual(replacementObjective.blockers, [], "replacement objective inherited stale blockers");
   assert.equal(replacementObjective.status, "active", "replacement objective inherited a completed status");
+  assert.equal(laneState.getLane(initial, "lane-a").status, "active", "replacement objective left the lane terminal");
   assert.equal(replacementObjective.authority.remote_publication, false, "replacement objective inherited a prior remote grant");
 
   const beforeDryRun = fs.readFileSync(stateFile, "utf8");

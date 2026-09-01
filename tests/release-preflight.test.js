@@ -32,6 +32,7 @@ function initRepo(name) {
   assert.equal(run("git", ["init", "-b", "main"], repo).status, 0);
   assert.equal(run("git", ["config", "user.email", "fixture@example.invalid"], repo).status, 0);
   assert.equal(run("git", ["config", "user.name", "Fixture"], repo).status, 0);
+  assert.equal(run("git", ["config", "commit.gpgsign", "false"], repo).status, 0);
   return repo;
 }
 
