@@ -1,5 +1,8 @@
 # Coding Workflow Skills Library
 
+Release candidate `0.3.0` packages the current GitHub implementation. Publication and clean registry installation must be verified separately.
+
+
 This library converts the workflow extraction in `<WORKFLOW_EXTRACTION_SOURCE>` into local, operational Markdown skill files.
 
 Use this library when another LLM needs reusable instructions for repo mapping, session-log extraction, OpenClaw route tracing, environment audits, security hardening review, verification, and error triage.
