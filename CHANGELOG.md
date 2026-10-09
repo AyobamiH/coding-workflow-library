@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.3.0 - 2026-10-09
+
+- Accept npm 12 keyed-object pack manifests as well as npm 11 array output, retaining malformed-manifest rejection.
+
 - Keep situational truth consistent with terminal lane fallback: product repositories without library-owned route, ledger, or build-queue files now report those surfaces as `NOT_APPLICABLE` instead of manufacturing a safety blocker, and explicit objective blockers retain precedence over generic unpublished-commit guidance.
 - Keep synthetic Git fixtures independent of workstation commit-signing preferences so resume, release-preflight, and situational-truth validation remain deterministic.
 

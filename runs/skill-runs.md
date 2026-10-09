@@ -1933,3 +1933,10 @@ This file records every real use of the coding workflow skills library.
 * Selected work: Capability Intelligence `CI-015` reconciliation because source, tests, documentation, and a second independent task evaluation were present and executable without production consequences.
 * Library defect found: unmatched held and terminal lane states were mislabeled as `NEEDS JOHN`; corrected with explicit non-mutating boundary classifications and regression tests.
 * Boundaries preserved: no npm publication, package version change, tag, release, deployment, production mutation, secret mutation, destructive action, or speculative agent/broker architecture.
+
+
+## Distribution reconciliation — 2026-10-09
+
+Candidate `0.3.0` reconciles npm with the current GitHub implementation under the owner-authorised package update objective. Local validation, tarball inspection, clean installation, and authenticated publication are required. Registry publication is pending; existing product authority and execution boundaries remain unchanged.
+
+Validation evidence: Passed the full pre-commit gate and npm test, including npm 11/12 manifest regression tests. Package readiness passed with 244 manifest entries and no package-path risks. The only remaining preflight warning before commit is the reviewed release diff. Registry publication and post-publication installation remain pending.

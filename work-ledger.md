@@ -1926,3 +1926,10 @@ Each entry records the active repo, objective, permission boundary, selected ski
 * Dogfood defect: valid held and terminal product states without an executable route fell through to `NEEDS JOHN`, obscuring their recorded lane truth.
 * Bounded correction: classify unmatched held, complete, blocked, and active states explicitly; preserve the existing next condition; never mutate a held or terminal selected lane from the fallback path.
 * Boundaries: no product deployment, production mutation, secret mutation, destructive action, package version change, npm publication, tag, or GitHub Release.
+
+
+## Distribution reconciliation — 2026-10-09
+
+Candidate `0.3.0` reconciles npm with the current GitHub implementation under the owner-authorised package update objective. Local validation, tarball inspection, clean installation, and authenticated publication are required. Registry publication is pending; existing product authority and execution boundaries remain unchanged.
+
+Validation evidence: Passed the full pre-commit gate and npm test, including npm 11/12 manifest regression tests. Package readiness passed with 244 manifest entries and no package-path risks. The only remaining preflight warning before commit is the reviewed release diff. Registry publication and post-publication installation remain pending.

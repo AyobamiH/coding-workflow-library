@@ -115,6 +115,12 @@ try {
   const followedManifest = packageHelper.extractPackManifest(`${packResult(["package.json"]).stdout}\ntrailing diagnostic`);
   assert.equal(followedManifest.files.length, 1, "pack JSON should parse when diagnostics follow the manifest");
 
+  const npm12Manifest = { "fixture-package": { name: "fixture-package", version: "1.1.0", files: [{ path: "package.json", size: 10 }] } };
+  const npm12Parsed = packageHelper.extractPackManifest(`prepack diagnostic\n${JSON.stringify(npm12Manifest)}\ntrailing diagnostic`);
+  assert.equal(npm12Parsed.files.length, 1, "npm 12 keyed-object pack output must parse");
+  assert.equal(packageHelper.extractPackManifest('{"fixture-package":{"files":"invalid"}}'), null);
+  assert.equal(packageHelper.extractPackManifest('{"fixture-package":'), null);
+
   const riskyPackage = packageReport(repo, ["bin/fixture.js", ".env.production", "evidence/private.md"]);
   assert.equal(riskyPackage.final_status, "FAIL", "forbidden package paths should fail");
   assert(riskyPackage.pack_dry_run.risks.some((risk) => risk.code === "ENV_FILE_INCLUDED"));
