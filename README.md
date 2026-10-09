@@ -1,6 +1,6 @@
 # Coding Workflow Skills Library
 
-Release candidate `0.3.0` packages the current GitHub implementation. Publication and clean registry installation must be verified separately.
+Version `0.3.0` is published on npm under `latest`. Registry digest, fresh-cache installation and CLI acceptance are recorded in [release evidence](docs/releases/npm-v0.3.0-evidence.json).
 
 
 This library converts the workflow extraction in `<WORKFLOW_EXTRACTION_SOURCE>` into local, operational Markdown skill files.

@@ -1933,3 +1933,8 @@ Each entry records the active repo, objective, permission boundary, selected ski
 Candidate `0.3.0` reconciles npm with the current GitHub implementation under the owner-authorised package update objective. Local validation, tarball inspection, clean installation, and authenticated publication are required. Registry publication is pending; existing product authority and execution boundaries remain unchanged.
 
 Validation evidence: Passed the full pre-commit gate and npm test, including npm 11/12 manifest regression tests. Package readiness passed with 244 manifest entries and no package-path risks. The only remaining preflight warning before commit is the reviewed release diff. Registry publication and post-publication installation remain pending.
+
+
+## Registry acceptance — 2026-10-10
+
+`autonomous-coding-workflow-library@0.3.0` is independently confirmed on npm under `latest`. The registry tarball matches the reviewed GitHub asset and staged package; exact-version installation with a new cache, every CLI bin and registry-signature verification passed. See [release evidence](docs/releases/npm-v0.3.0-evidence.json). Maintainer 2FA was preserved and the temporary publishing login was logged out and removed. Publication adds no production execution authority.
