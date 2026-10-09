@@ -1,0 +1,40 @@
+{
+  "name": "autonomous-coding-workflow-library",
+  "version": "0.3.0",
+  "source": "fd7aab1f3f5b9c71b7a79b3da30cd0bcce9ba984",
+  "sourceFileComparison": "all packaged files match merged source",
+  "sha256": "82c334877d946bbdf4c0eb46c46446ea232de78b786a912cc81b4aa8451bee17",
+  "integrity": "sha512-Qt8uOQ93jWWKaanJBn3TUG9hRB8UIi0aLdLYtHSLoBx85nJFroWjhnzN3xiDUwS/sDrFhz4B5TOgGonPhsSc1w==",
+  "files": 244,
+  "freshCacheInstall": "passed",
+  "cliHelp": "passed",
+  "npmPublication": "confirmed",
+  "stageId": "49ab4b53-3b4e-486c-90b9-81ecca198451",
+  "stagedTarballComparison": "SHA-256 matches local tarball and GitHub-recorded asset digest",
+  "publishedAt": "2026-10-09T23:26:20.759Z",
+  "registryTarball": "https://registry.npmjs.org/autonomous-coding-workflow-library/-/autonomous-coding-workflow-library-0.3.0.tgz",
+  "registryIntegrity": "sha512-Qt8uOQ93jWWKaanJBn3TUG9hRB8UIi0aLdLYtHSLoBx85nJFroWjhnzN3xiDUwS/sDrFhz4B5TOgGonPhsSc1w==",
+  "registrySha256": "82c334877d946bbdf4c0eb46c46446ea232de78b786a912cc81b4aa8451bee17",
+  "distTags": {
+    "latest": "0.3.0"
+  },
+  "publisher": "oneclicksystems",
+  "postPublicationFreshCacheInstall": "passed",
+  "installedVersion": "0.3.0",
+  "cliBins": {
+    "coding-workflow": {
+      "exit": 0,
+      "outputPresent": true
+    }
+  },
+  "exports": null,
+  "main": null,
+  "signatureAudit": {
+    "exit": 0,
+    "summary": "audited 1 package in 0s\n\n1 package has a verified registry signature"
+  },
+  "registrySignatureKeyIds": [
+    "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+  ],
+  "authenticationBoundary": "Maintainer approved via npm website with required 2FA. Temporary CLI login logged out and removed; no persistent npm write credential introduced. Trusted-publisher inspection required a separate 2FA challenge and was not completed for these packages."
+}
