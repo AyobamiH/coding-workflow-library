@@ -1945,3 +1945,7 @@ Validation evidence: Passed the full pre-commit gate and npm test, including npm
 ## Registry acceptance — 2026-10-10
 
 `autonomous-coding-workflow-library@0.3.0` is independently confirmed on npm under `latest`. The registry tarball matches the reviewed GitHub asset and staged package; exact-version installation with a new cache, every CLI bin and registry-signature verification passed. See [release evidence](docs/releases/npm-v0.3.0-evidence.json). Maintainer 2FA was preserved and the temporary publishing login was logged out and removed. Publication adds no production execution authority.
+
+## Release reconciliation implementation — 2026-10-12
+
+Selected release-preflight and GitHub handoff skills under the approved release-reconciliation objective. Isolated implementation adds a read-only helper, explicit public-network grant, canonical identity and baseline checks, consumer metadata observations, CLI delegation, synthetic contracts and operating guidance. Validation: focused reconciliation contracts, full npm test and all 25 pre-commit checks passed. Live public reads found all four configured npm versions equal to source package versions; later source commits require review. Explicit workstation-global inspection returned unknown installation metadata for these packages, so adoption remains unproven. No runtime, scheduler, registry write or npm credential changes.

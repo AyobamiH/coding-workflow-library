@@ -811,3 +811,7 @@ Built from:
 - `<WORKFLOW_EXTRACTION_SOURCE>`
 - Local OpenClaw session logs under `agents/main/sessions` and `agents/researcher/sessions`
 - `evidence/opstruth-report.md`
+
+## Read-only release reconciliation
+
+The release-preflight maintenance extension adds `scripts/release-reconciliation` and CLI delegation to compare canonical source, explicit npm tags and opt-in consumer metadata. It follows repeated October publication gaps; unknown evidence remains visible and no running service or publication is changed. See [release reconciliation](docs/release-reconciliation.md).

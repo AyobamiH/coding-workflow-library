@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "packages": [
+    {
+      "name": "autonomous-coding-workflow-library",
+      "repository": "AyobamiH/coding-workflow-library",
+      "tag": "latest",
+      "baseline": {
+        "version": "0.3.0",
+        "commit": "fd7aab1f3f5b9c71b7a79b3da30cd0bcce9ba984"
+      }
+    },
+    {
+      "name": "capability-intelligence",
+      "repository": "AyobamiH/capability-intelligence",
+      "tag": "latest",
+      "baseline": {
+        "version": "0.2.0",
+        "commit": "3bad73601ed15f27239b1f73c23dcadc3f1e3daa"
+      }
+    },
+    {
+      "name": "coding-agent-skills",
+      "repository": "OneClickPostFactory/coding-agent-skills",
+      "tag": "latest",
+      "baseline": {
+        "version": "0.2.20",
+        "commit": "1d17b28db96c9466d2ae41519e7992a71cc06868"
+      }
+    },
+    {
+      "name": "@oneclicksystems/agentproof",
+      "repository": "AyobamiH/agentproof",
+      "tag": "next",
+      "baseline": {
+        "version": "0.1.0-rc.6",
+        "commit": "a0ee17a70d05bc3c339c0c15be6bb38b4517771a"
+      }
+    }
+  ],
+  "consumers": []
+}

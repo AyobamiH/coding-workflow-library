@@ -248,3 +248,7 @@ All listed P2 items are complete. No generic capability work is active. New foun
 - Bounded read-only browser live-proof helper (`scripts/browser-live-proof`) and `browser-live-proof-skill`.
 - Narrow non-printing open-source SOPS + age adapter (`scripts/sops-age-secret-access`) and `sops-age-secret-access-skill`.
 - Capability-intelligence builder skill and local-only hard-cutover route.
+
+## Read-only release reconciliation
+
+The release-preflight maintenance extension adds `scripts/release-reconciliation` and CLI delegation to compare canonical source, explicit npm tags and opt-in consumer metadata. It follows repeated October publication gaps; unknown evidence remains visible and no running service or publication is changed. See [release reconciliation](docs/release-reconciliation.md).
