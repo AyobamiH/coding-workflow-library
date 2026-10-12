@@ -446,3 +446,7 @@ Do not say "complete", "done", or equivalent unless:
 - failures and recoveries are recorded;
 - work ledger has been updated or the task was not orchestrated;
 - run log has been updated or the user explicitly asks not to update it.
+
+## Read-only release reconciliation
+
+The release-preflight maintenance extension adds `scripts/release-reconciliation` and CLI delegation to compare canonical source, explicit npm tags and opt-in consumer metadata. It follows repeated October publication gaps; unknown evidence remains visible and no running service or publication is changed. See [release reconciliation](docs/release-reconciliation.md).

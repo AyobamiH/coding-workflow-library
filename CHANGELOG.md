@@ -104,3 +104,7 @@
 - Clean-temp smoke passes from a copied library without hidden local state.
 - Route audit, skill cleanup, validation, packaging readiness, and release preflight evidence are collected.
 - Publish, version, tag, push, GitHub release, deploy, and remote mutation gates are separately approved.
+
+## Read-only release reconciliation
+
+The release-preflight maintenance extension adds `scripts/release-reconciliation` and CLI delegation to compare canonical source, explicit npm tags and opt-in consumer metadata. It follows repeated October publication gaps; unknown evidence remains visible and no running service or publication is changed. See [release reconciliation](docs/release-reconciliation.md).

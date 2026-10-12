@@ -206,3 +206,7 @@ supabase functions deploy
 - Add integration with GitHub handoff and evidence-pack reports.
 - Add GitHub source handoff mode that proves public repository files, CI, exact-file commit scope, and remote HEAD parity while still blocking publish/version/tag/release.
 - Keep the generic semver publication route idempotent across remote main, tag, npm version, and GitHub Release checks; never recreate an already verified artifact.
+
+## Read-only release reconciliation
+
+The release-preflight maintenance extension adds `scripts/release-reconciliation` and CLI delegation to compare canonical source, explicit npm tags and opt-in consumer metadata. It follows repeated October publication gaps; unknown evidence remains visible and no running service or publication is changed. See [release reconciliation](../docs/release-reconciliation.md).

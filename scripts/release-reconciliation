@@ -1,0 +1,32 @@
+#!/usr/bin/env node
+"use strict";
+const fs = require("fs");
+const { reconcile } = require("./lib/release-reconciliation");
+async function main() {
+  const args = process.argv.slice(2);
+  if (args.includes("--help")) {
+    console.log("Usage: release-reconciliation --config <json> --allow-network [--json] [--strict]\nRead-only public GitHub/npm reconciliation and explicit local consumer metadata. Exit 0: report; 1: strict review required; 2: invalid input or missing network grant.");
+    return;
+  }
+  let configPath; let network = false, json = false, strict = false;
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--config" && args[i + 1] && !args[i + 1].startsWith("--")) configPath = args[++i];
+    else if (args[i] === "--allow-network") network = true;
+    else if (args[i] === "--json") json = true;
+    else if (args[i] === "--strict") strict = true;
+    else throw new Error("INVALID_ARGUMENT");
+  }
+  if (!network || !configPath) throw new Error("CONFIG_AND_NETWORK_GRANT_REQUIRED");
+  const report = await reconcile(JSON.parse(fs.readFileSync(configPath, "utf8")));
+  if (json) console.log(JSON.stringify(report, null, 2));
+  else {
+    console.log("Release reconciliation: " + report.status);
+    for (const p of report.packages) {
+      console.log(p.name + " [" + p.tag + "] source=" + (p.source?.version || "UNKNOWN") + " npm=" + (p.registry?.version || "UNKNOWN"));
+      console.log("  " + (p.findings.join(", ") || "Observed metadata matches"));
+      for (const c of p.consumers) console.log("  consumer " + c.id + ": " + c.status + "; runtime=" + c.runtime);
+    }
+  }
+  if (strict && report.status === "REVIEW") process.exitCode = 1;
+}
+main().catch(() => { console.error("Reconciliation could not start: check config and explicit --allow-network. No changes made."); process.exitCode = 2; });

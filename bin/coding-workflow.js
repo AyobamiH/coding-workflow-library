@@ -7,6 +7,11 @@ const { spawnSync } = require("child_process");
 const ROOT = path.resolve(__dirname, "..");
 
 const COMMANDS = {
+  "release-reconciliation": {
+    script: "scripts/release-reconciliation",
+    description: "Compare canonical source, npm tags and explicit consumer metadata without mutation.",
+    cwd: "caller",
+  },
   routes: {
     script: "scripts/route-audit",
     description: "Audit local route metadata.",
@@ -112,6 +117,7 @@ function printHelp() {
 Local CLI for the autonomous coding workflow library.
 
 Usage:
+  coding-workflow release-reconciliation --config <json> --allow-network [--json] [--strict]
   coding-workflow --help
   coding-workflow routes [--json]
   coding-workflow validate
